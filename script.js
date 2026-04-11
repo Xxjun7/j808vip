@@ -4,15 +4,13 @@ let currentUser = null;
 let lastCode = "";
 let remainingTimes = 0;
 
-/* ⭐ 核心控制 */
 let isDrawing = false;
 let canPickCard = false;
 
-/* login */
 let loginLock = false;
 let lastLoginTime = 0;
 
-/* fetch timeout */
+/* ================= fetch timeout ================= */
 function fetchWithTimeout(url, timeout = 8000) {
   return Promise.race([
     fetch(url),
@@ -33,9 +31,8 @@ function updateLoginUI(isLogin) {
   logoutBtn.style.display = isLogin ? "inline-block" : "none";
 }
 
-/* ================= 登出 ================= */
+/* ================= logout ================= */
 function logout() {
-
   currentUser = null;
   remainingTimes = 0;
   lastCode = "";
@@ -46,6 +43,7 @@ function logout() {
   document.getElementById("chance").innerText = "";
   document.getElementById("cards").innerHTML = "";
   document.getElementById("result").innerText = "";
+
   document.getElementById("overlay").classList.remove("show");
 
   document.getElementById("drawAgainBtn").style.display = "none";
@@ -54,7 +52,7 @@ function logout() {
   updateLoginUI(false);
 }
 
-/* ================= 初始化 ================= */
+/* ================= init ================= */
 window.onload = function () {
   const saved = localStorage.getItem("uid");
   if (saved) document.getElementById("uid").value = saved;
@@ -62,14 +60,13 @@ window.onload = function () {
   document.getElementById("drawAgainBtn").onclick = createCards;
 };
 
-/* ================= 建卡 ================= */
+/* ================= create cards ================= */
 function createCards() {
-
   const cardsDiv = document.getElementById("cards");
   cardsDiv.innerHTML = "";
 
   isDrawing = false;
-  canPickCard = true;   // ⭐ 每一回合才允許點
+  canPickCard = true;
 
   document.getElementById("overlay").classList.remove("show");
   document.getElementById("result").innerText = "";
@@ -93,9 +90,8 @@ function createCards() {
   }
 }
 
-/* ================= 登入 ================= */
+/* ================= login ================= */
 async function login() {
-
   const now = Date.now();
   const btn = document.getElementById("loginBtn");
 
@@ -108,7 +104,6 @@ async function login() {
   btn.innerText = "登入中...";
 
   try {
-
     const uid = document.getElementById("uid").value.trim();
     if (!uid) return alert("請輸入編號姓名");
 
@@ -142,16 +137,13 @@ async function login() {
   }
 }
 
-/* ================= 抽卡核心 ================= */
+/* ================= draw ================= */
 async function handleClick(card) {
-
-  if (isDrawing) return;
-  if (!canPickCard) return;
-  if (!currentUser) return alert("請先登入");
+  if (isDrawing || !canPickCard || !currentUser) return;
   if (remainingTimes <= 0) return alert("已無抽卡次數");
 
   isDrawing = true;
-  canPickCard = false; // ⭐ 抽一次後鎖死
+  canPickCard = false;
 
   document.getElementById("overlay").classList.add("show");
 
@@ -164,7 +156,6 @@ async function handleClick(card) {
   inner.classList.add("spinning");
 
   try {
-
     const ip = await fetchWithTimeout("https://api.ipify.org");
     const ipText = await ip.text();
 
@@ -173,7 +164,7 @@ async function handleClick(card) {
     );
 
     const t = await res.text();
-    if (t === "NO_CHANCE") throw new Error("NO_CHANCE");
+    if (t === "NO_CHANCE") throw new Error();
 
     const data = JSON.parse(t);
 
@@ -188,11 +179,11 @@ async function handleClick(card) {
       card.classList.add("glow-selected");
 
       inner.classList.add("flipped");
+
       inner.querySelector(".back").innerHTML =
-          data.win
-              ? `🎉 文字可自訂<br>${data.code.slice(0, 16)}`
-              : "未中獎";
-        
+        data.win
+          ? `🎉 文字可自訂<br>${data.code.slice(0, 16)}`
+          : "未中獎";
 
       requestAnimationFrame(() => {
 
@@ -202,19 +193,9 @@ async function handleClick(card) {
 
           if (data.win) {
             others.forEach(c => {
-              const i = c.querySelector(".inner");
-              i.querySelector(".back").innerHTML = "未中獎";
-              i.classList.add("flipped");
+              c.querySelector(".inner .back").innerHTML = "未中獎";
+              c.querySelector(".inner").classList.add("flipped");
             });
-          } else {
-            const shuffled = others.sort(() => Math.random() - 0.5);
-
-            shuffled[0].querySelector(".back").innerHTML = "🎉 中獎";
-            shuffled[1].querySelector(".back").innerHTML = "未中獎";
-
-            shuffled.forEach(c =>
-              c.querySelector(".inner").classList.add("flipped")
-            );
           }
 
         }, 200);
@@ -224,18 +205,15 @@ async function handleClick(card) {
           const resultDiv = document.getElementById("result");
           const copyBtn = document.getElementById("copyBtn");
 
-          if (data.win) {
-            resultDiv.innerHTML = `🎉 恭喜中獎<br>${data.code}`;
-            copyBtn.style.display = "inline-block";
-          } else {
-            resultDiv.innerHTML = "未中獎";
-            copyBtn.style.display = "none";
-          }
+          resultDiv.innerHTML = data.win
+            ? `🎉 恭喜中獎<br>${data.code}`
+            : "未中獎";
+
+          copyBtn.style.display = data.win ? "inline-block" : "none";
 
           document.getElementById("overlay").classList.remove("show");
 
           setTimeout(() => {
-
             document.getElementById("chance").innerText =
               `${currentUser} 剩餘次數：${remainingTimes}`;
 
@@ -253,28 +231,46 @@ async function handleClick(card) {
     });
 
   } catch (e) {
-
     alert("抽卡失敗");
-
     document.getElementById("overlay").classList.remove("show");
-    inner.classList.remove("spinning");
-
-  } finally {
-    setTimeout(() => isDrawing = false, 500);
   }
 }
 
-/* ================= 工具 ================= */
+/* ================= copy ================= */
 function copyCode() {
   if (!lastCode) return alert("無中獎碼");
   navigator.clipboard.writeText(lastCode);
 }
 
+/* ================= 📸 LINE 穩定截圖版 ================= */
 function capture() {
-  html2canvas(document.body).then(canvas => {
-    const a = document.createElement("a");
-    a.href = canvas.toDataURL();
-    a.download = "抽獎結果.png";
-    a.click();
+
+  // ❄️ freeze animation（避免 LINE 截圖錯）
+  document.body.classList.add("freeze");
+
+  html2canvas(document.body, {
+    useCORS: true,
+    scale: 2,
+    backgroundColor: "#111",
+    scrollX: 0,
+    scrollY: 0
+  }).then(canvas => {
+
+    canvas.toBlob(blob => {
+      const url = URL.createObjectURL(blob);
+
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "抽獎結果.png";
+      a.click();
+
+      URL.revokeObjectURL(url);
+
+      document.body.classList.remove("freeze");
+    });
+
+  }).catch(() => {
+    document.body.classList.remove("freeze");
+    alert("截圖失敗，請用 Chrome 開啟");
   });
 }

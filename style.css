@@ -14,7 +14,7 @@ body {
   overflow-x:hidden;
 }
 
-/* 👉 前台 input / button（只影響遊戲） */
+/* 👉 前台 input / button */
 body:not(.admin-page) input,
 body:not(.admin-page) button{
   padding:5px;
@@ -34,6 +34,7 @@ body:not(.admin-page) button{
   padding:10px;
 }
 
+/* ⭐ 修正重點 */
 .card{
   width:120px;
   height:180px;
@@ -41,39 +42,56 @@ body:not(.admin-page) button{
   margin:10px;
   perspective:1000px;
   cursor:pointer;
+
   border-radius:10px;
   overflow:hidden;
+
+  transform: translateZ(0); /* ⭐ 防黑角 */
 }
 
+/* ⭐ 修正重點 */
 .inner{
   width:100%;
   height:100%;
   position:relative;
+
   transform-style:preserve-3d;
   transition:0.8s;
   will-change: transform;
+
+  transform: translateZ(0); /* ⭐ 防閃爍 */
 }
 
 .flipped{ transform:rotateY(180deg); }
 
+/* ⭐ 修正重點 */
 .front,.back{
   position:absolute;
   width:100%;
   height:100%;
+
   display:flex;
   align-items:center;
   justify-content:center;
+
   border-radius:10px;
+
   backface-visibility:hidden;
   -webkit-backface-visibility:hidden;
+
+  transform: translateZ(0); /* ⭐ 防黑邊 */
 }
 
-.front{ background:linear-gradient(45deg,#444,#888); }
+.front{ 
+  background:linear-gradient(45deg,#444,#888);
+}
 
+/* ⭐ 修正重點 */
 .back{
   background:gold;
   color:#000;
-  transform:rotateY(180deg);
+
+  transform:rotateY(180deg) translateZ(1px); /* ⭐ 關鍵修正 */
 }
 
 /* =========================
@@ -102,7 +120,7 @@ body:not(.admin-page) button{
 }
 
 /* =========================
-   🎛 overlay
+   🎛 overlay（原版透明）
 ========================= */
 
 #overlay{
@@ -135,7 +153,6 @@ body:not(.admin-page) button{
   flex-wrap:wrap;
 }
 
-/* 前台 button */
 body:not(.admin-page) button{
   border-radius:8px;
   border:1px solid #444;
@@ -170,7 +187,7 @@ body:not(.admin-page) button:active{
 }
 
 /* =========================
-   📱 RWD（前台）
+   📱 RWD
 ========================= */
 
 @media (max-width:768px){
@@ -184,133 +201,4 @@ body:not(.admin-page) button:active{
 
 @media (max-width:360px){
   .card{ width:75px; height:115px; }
-}
-
-/* =====================================================
-   🔧 後台（admin page）
-===================================================== */
-
-body.admin-page{
-  background:#111;
-  color:#fff;
-  font-family:sans-serif;
-
-  margin:0;
-  padding:0;
-
-  min-height:100vh;
-
-  display:flex;
-  justify-content:center;
-  align-items:center;
-  flex-direction:column;
-
-  text-align:center;
-  overflow-x:hidden;
-}
-
-/* 主容器 */
-#loginArea,
-#adminPanel{
-  width:100%;
-  max-width:500px;
-  padding:20px;
-  margin:10px auto;
-
-  display:flex;
-  flex-direction:column;
-  align-items:center;
-  justify-content:center;
-  text-align:center;
-}
-
-/* 標題（修正：避免無效 selector） */
-body.admin-page h1,
-body.admin-page h2{
-  margin:10px 0;
-}
-
-/* input（只影響後台） */
-body.admin-page input{
-  width:90%;
-  max-width:300px;
-
-  padding:8px;
-  margin:6px 0;
-
-  border-radius:6px;
-  border:1px solid #444;
-
-  background:#000;
-  color:#fff;
-
-  text-align:center;
-}
-
-/* button（後台專用） */
-body.admin-page button{
-  width:90%;
-  max-width:300px;
-
-  padding:8px;
-  margin:5px;
-
-  border-radius:8px;
-  border:1px solid #444;
-
-  background:linear-gradient(145deg,#1a1a1a,#000);
-  color:#fff;
-
-  cursor:pointer;
-  transition:0.2s;
-}
-
-body.admin-page button:hover{
-  transform:translateY(-2px) scale(1.03);
-  box-shadow:0 0 10px rgba(255,255,255,0.2);
-}
-
-body.admin-page button:active{
-  transform:scale(0.95);
-}
-
-/*ID黃色字 */
-.highlightText{
-  color: gold;
-  font-weight: bold;
-}
-
-/* 表格 */
-#logArea{
-  width:100%;
-  overflow-x:auto;
-  margin-top:10px;
-}
-
-table{
-  width:100%;
-  border-collapse:collapse;
-  background:#000;
-  color:#fff;
-  font-size:14px;
-}
-
-td,th{
-  border:1px solid #444;
-  padding:6px;
-  text-align:center;
-}
-
-/* 📱 後台手機 */
-@media (max-width:600px){
-  #loginArea,
-  #adminPanel{
-    max-width:95%;
-    padding:15px;
-  }
-
-  table{ font-size:12px; }
-
-  h1{ font-size:20px; }
-  h2{ font-size:18px; }
 }
