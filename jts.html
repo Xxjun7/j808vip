@@ -2,64 +2,62 @@
 <html lang="zh-Hant">
 <head>
   <meta charset="UTF-8">
-  <title>純原生截圖下載範例</title>
+  <title>頁面截圖下載</title>
   <style>
     body {
       font-family: sans-serif;
       margin: 20px;
+      background-color: #f4f4f9;
     }
     .capture {
       padding: 10px 20px;
       font-size: 16px;
+      background-color: #007bff;
+      color: white;
       cursor: pointer;
+      border: none;
+      border-radius: 5px;
+      transition: background-color 0.3s;
+    }
+    .capture:hover {
+      background-color: #0056b3;
     }
     .content {
       margin-top: 20px;
       padding: 20px;
       border: 1px solid #ccc;
-      background: #f5f5f5;
+      background: #ffffff;
+    }
+    h1 {
+      color: #333;
     }
   </style>
 </head>
 <body>
+
   <button class="capture">📸 下載頁面截圖</button>
 
-  <div class="content" id="capture-area">
-    <h1>測試截圖區域</h1>
-    <p>這是頁面的一部分，將會生成圖片下載。</p>
+  <div class="content">
+    <h1>這是測試內容</h1>
+    <p>這段文字會顯示在截圖中。</p>
+    <p>背景色、字型樣式也會被保留。</p>
   </div>
 
+  <!-- 引入 html2canvas -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/0.4.1/html2canvas.min.js"></script>
+
   <script>
-    function captureElement(element) {
-      const rect = element.getBoundingClientRect();
-      const svg = `
-        <svg xmlns="http://www.w3.org/2000/svg" width="${rect.width}" height="${rect.height}">
-          <foreignObject width="100%" height="100%">
-            ${new XMLSerializer().serializeToString(element)}
-          </foreignObject>
-        </svg>
-      `;
-      const blob = new Blob([svg], {type: 'image/svg+xml;charset=utf-8'});
-      const url = URL.createObjectURL(blob);
-      const img = new Image();
-      img.onload = function() {
-        const canvas = document.createElement('canvas');
-        canvas.width = rect.width;
-        canvas.height = rect.height;
-        const ctx = canvas.getContext('2d');
-        ctx.drawImage(img, 0, 0);
+    document.querySelector('.capture').onclick = function() {
+      html2canvas(document.body).then(function(canvas) {
         canvas.toBlob(function(blob) {
           const a = document.createElement('a');
           a.href = URL.createObjectURL(blob);
-          a.download = '截圖.png';
+          a.download = '頁面截圖.png';
           a.click();
-        }, 'image/png');
-        URL.revokeObjectURL(url);
-      };
-      img.src = url;
-    }
-
-    document.querySelector('.capture').onclick = () => captureElement(document.getElementById('capture-area'));
+        });
+      });
+    };
   </script>
+
 </body>
 </html>
