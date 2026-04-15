@@ -272,13 +272,9 @@ function copyCode() {
 
 function capture() {
   html2canvas(document.body).then(canvas => {
-    canvas.toBlob(function(blob) {
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = "抽獎結果.png";
-      a.click();
-      URL.revokeObjectURL(url); // 釋放資源
-    }, 'image/png');
+    const a = document.createElement("a");
+    a.href = canvas.toDataURL();
+    a.download = "抽獎結果.png";
+    a.click();
   });
 }
