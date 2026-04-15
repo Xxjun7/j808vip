@@ -2,7 +2,7 @@
 <html lang="zh-Hant">
 <head>
   <meta charset="UTF-8">
-  <title>頁面截圖下載</title>
+  <title>頁面截圖下載2</title>
   <style>
     body {
       font-family: sans-serif;
@@ -35,7 +35,7 @@
 </head>
 <body>
 
-  <button class="capture">📸 下載頁面截圖</button>
+  <button class="capture">📸 下載頁面截圖2</button>
 
   <div class="content">
     <h1>這是測試內容</h1>
@@ -43,20 +43,22 @@
     <p>背景色、字型樣式也會被保留。</p>
   </div>
 
-  <!-- 引入 html2canvas -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/0.4.1/html2canvas.min.js"></script>
+  <!-- 使用最新版 html2canvas -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 
   <script>
-    document.querySelector('.capture').onclick = function() {
-      html2canvas(document.body).then(function(canvas) {
-        canvas.toBlob(function(blob) {
+    document.querySelector('.capture').addEventListener('click', () => {
+      html2canvas(document.body, {scrollY: -window.scrollY}).then(canvas => {
+        canvas.toBlob(blob => {
           const a = document.createElement('a');
           a.href = URL.createObjectURL(blob);
           a.download = '頁面截圖.png';
           a.click();
         });
+      }).catch(err => {
+        console.error('截圖失敗:', err);
       });
-    };
+    });
   </script>
 
 </body>
