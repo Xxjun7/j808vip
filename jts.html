@@ -1,75 +1,90 @@
 <!DOCTYPE html>
 <html lang="zh-TW">
 <head>
-  <meta charset="UTF-8">
-  <title>抽卡活動</title>
-  <link rel="stylesheet" href="style.css">
-
-  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
+<meta charset="UTF-8">
+<title>圖片存檔測試</title>
+<style>
+  body { font-family: Arial; text-align: center; padding: 20px; }
+  img { max-width: 300px; display: block; margin: 20px auto; }
+  button, a {
+    margin: 5px;
+    padding: 10px 15px;
+    cursor: pointer;
+  }
+</style>
 </head>
-
 <body>
 
-<h1>🎴 抽卡遊戲</h1>
+<h2>圖片存檔測試</h2>
 
-<div id="loginArea">
-  <input id="uid" placeholder="輸入編號姓名">
-  <button id="loginBtn" onclick="login()">登入</button>
-</div>
+<img id="testImg" src="https://picsum.photos/400/300" alt="測試圖片">
 
-<button id="logoutBtn" onclick="logout()" style="display:none;">
-  登出
-</button>
+<!-- 方法1：download 屬性 -->
+<a href="https://picsum.photos/400/300" download="image1.jpg">
+  <button>方法1：直接下載(download)</button>
+</a>
 
-<div id="chance"></div>
-<div id="cards"></div>
-<div id="result"></div>
+<!-- 方法2：JS 建立 a 下載 -->
+<button onclick="downloadImage()">方法2：JS下載</button>
 
-<!-- ⭐ 按鈕區（置中） -->
-<div id="actionBtns">
-  <button id="copyBtn" onclick="copyCode()" class="copy" style="display:none;">📋 複製驗證碼</button>
-  <button onclick="capture()" class="capture">📸 截圖</button>
-  <button id="drawAgainBtn" style="display:none;">🎴 再抽一次</button>
-</div>
+<!-- 方法3：Canvas 轉換下載 -->
+<button onclick="downloadCanvas()">方法3：Canvas下載</button>
 
-<script src="html2canvas.min.js"></script>
-<script src="script.js"></script>
+<!-- 方法4：右鍵提示 -->
+<button onclick="alert('請對圖片按右鍵另存')">方法4：提示右鍵</button>
 
-<div id="overlay"></div>
+<!-- 方法5：開新分頁 -->
+<button onclick="openNewTab()">方法5：新分頁開啟</button>
+
+<!-- 方法6：fetch 轉 blob -->
+<button onclick="fetchDownload()">方法6：fetch下載</button>
 
 <script>
-  // 用戶代理檢查（判斷是否是LINE內建瀏覽器）
-  function isLineBrowser() {
-    return navigator.userAgent.includes("Line");
-  }
+const imgUrl = "https://picsum.photos/400/300";
 
-  // 當頁面載入時，嘗試檢查是否來自 LINE 瀏覽器
-  window.onload = function() {
-    if (isLineBrowser()) {
-      // 如果是 LINE 瀏覽器，稍等 1 秒後自動跳轉
-      setTimeout(function() {
-        // 嘗試用 window.location 開啟目標網址，這會觸發外部瀏覽器開啟
-        window.location.href = "https://xxjun7.github.io/j808vip/";
-      }, 500);
-    }
-  }
+// 方法2
+function downloadImage() {
+  const a = document.createElement('a');
+  a.href = imgUrl;
+  a.download = 'image2.jpg';
+  a.click();
+}
 
-  // 原來的功能：登入、登出等
-  function login() {
-    // 登入邏輯
-  }
+// 方法3
+function downloadCanvas() {
+  const img = document.getElementById('testImg');
+  const canvas = document.createElement('canvas');
+  const ctx = canvas.getContext('2d');
 
-  function logout() {
-    // 登出邏輯
-  }
+  canvas.width = img.naturalWidth;
+  canvas.height = img.naturalHeight;
 
-  function capture() {
-    // 截圖邏輯
-  }
+  ctx.drawImage(img, 0, 0);
 
-  function copyCode() {
-    // 複製驗證碼邏輯
-  }
+  const a = document.createElement('a');
+  a.download = 'image3.png';
+  a.href = canvas.toDataURL();
+  a.click();
+}
+
+// 方法5
+function openNewTab() {
+  window.open(imgUrl, '_blank');
+}
+
+// 方法6
+function fetchDownload() {
+  fetch(imgUrl)
+    .then(res => res.blob())
+    .then(blob => {
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'image4.jpg';
+      a.click();
+      window.URL.revokeObjectURL(url);
+    });
+}
 </script>
 
 </body>
