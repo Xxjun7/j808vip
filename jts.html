@@ -1,71 +1,76 @@
 <!DOCTYPE html>
-<html lang="zh-Hant">
+<html lang="zh-TW">
 <head>
   <meta charset="UTF-8">
-  <title>頁面截圖下載</title>
-  <style>
-    body {
-      font-family: sans-serif;
-      margin: 20px;
-      background-color: #f4f4f9;
-    }
-    .capture {
-      padding: 10px 20px;
-      font-size: 16px;
-      background-color: #007bff;
-      color: white;
-      cursor: pointer;
-      border: none;
-      border-radius: 5px;
-      transition: background-color 0.3s;
-    }
-    .capture:hover {
-      background-color: #0056b3;
-    }
-    .content {
-      margin-top: 20px;
-      padding: 20px;
-      border: 1px solid #ccc;
-      background: #ffffff;
-    }
-    h1 {
-      color: #333;
-    }
-  </style>
+  <title>抽卡活動</title>
+  <link rel="stylesheet" href="style.css">
+
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
 </head>
+
 <body>
 
-  <button class="capture">📸 下載頁面截圖3</button>
+<h1>🎴 抽卡遊戲</h1>
 
-  <div class="content">
-    <h1>這是測試內容</h1>
-    <p>這段文字會顯示在截圖中。</p>
-    <p>背景色、字型樣式也會被保留。</p>
-  </div>
+<div id="loginArea">
+  <input id="uid" placeholder="輸入編號姓名">
+  <button id="loginBtn" onclick="login()">登入</button>
+</div>
 
-  <!-- 使用最新版 html2canvas -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<button id="logoutBtn" onclick="logout()" style="display:none;">
+  登出
+</button>
 
-  <script>
-    document.querySelector('.capture').addEventListener('click', () => {
-      html2canvas(document.body, {
-        useCORS: true,          // 開啟跨域支持
-        scrollY: -window.scrollY // 修正滾動
-      }).then(canvas => {
-        canvas.toBlob(blob => {
-          // 確保創建 Blob 對象
-          const a = document.createElement('a');
-          a.href = URL.createObjectURL(blob);
-          a.download = '頁面截圖.png';
-          document.body.appendChild(a); // 添加到 DOM
-          a.click();  // 觸發點擊下載
-          document.body.removeChild(a); // 下載後移除
-        });
-      }).catch(err => {
-        console.error('截圖過程發生錯誤:', err);
-      });
-    });
-  </script>
+<div id="chance"></div>
+<div id="cards"></div>
+<div id="result"></div>
+
+<!-- ⭐ 按鈕區（置中） -->
+<div id="actionBtns">
+  <button id="copyBtn" onclick="copyCode()" class="copy" style="display:none;">📋 複製驗證碼</button>
+  <button onclick="capture()" class="capture">📸 截圖</button>
+  <button id="drawAgainBtn" style="display:none;">🎴 再抽一次</button>
+</div>
+
+<script src="html2canvas.min.js"></script>
+<script src="script.js"></script>
+
+<div id="overlay"></div>
+
+<script>
+  // 用戶代理檢查（判斷是否是LINE內建瀏覽器）
+  function isLineBrowser() {
+    return navigator.userAgent.includes("Line");
+  }
+
+  // 當頁面載入時，嘗試檢查是否來自 LINE 瀏覽器
+  window.onload = function() {
+    if (isLineBrowser()) {
+      // 如果是 LINE 瀏覽器，稍等 1 秒後自動跳轉
+      setTimeout(function() {
+        // 嘗試用 window.location 開啟目標網址，這會觸發外部瀏覽器開啟
+        window.location.href = "https://xxjun7.github.io/j808vip/";
+      }, 500);
+    }
+  }
+
+  // 原來的功能：登入、登出等
+  function login() {
+    // 登入邏輯
+  }
+
+  function logout() {
+    // 登出邏輯
+  }
+
+  function capture() {
+    // 截圖邏輯
+  }
+
+  function copyCode() {
+    // 複製驗證碼邏輯
+  }
+</script>
 
 </body>
 </html>
