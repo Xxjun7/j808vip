@@ -2,89 +2,151 @@
 <html lang="zh-TW">
 <head>
 <meta charset="UTF-8">
-<title>圖片存檔測試</title>
+<title>頁面存圖測試</title>
+
+<!-- html2canvas -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+
+<!-- dom-to-image -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/dom-to-image/2.6.0/dom-to-image.min.js"></script>
+
 <style>
   body { font-family: Arial; text-align: center; padding: 20px; }
-  img { max-width: 300px; display: block; margin: 20px auto; }
-  button, a {
-    margin: 5px;
-    padding: 10px 15px;
-    cursor: pointer;
+  #captureArea {
+    border: 2px solid #333;
+    padding: 20px;
+    display: inline-block;
+    background: #f9f9f9;
   }
+  img { max-width: 300px; margin: 10px 0; }
+  button { margin: 5px; padding: 10px 15px; cursor: pointer; }
 </style>
 </head>
 <body>
 
-<h2>圖片存檔測試</h2>
+<h2>頁面截圖 / 存圖測試</h2>
 
-<img id="testImg" src="https://picsum.photos/400/300" alt="測試圖片">
+<div id="captureArea">
+  <h3>測試內容</h3>
+  <p>這是一段測試文字（要一起被存成圖片）</p>
+  <img src="https://picsum.photos/400/300" crossorigin="anonymous">
+</div>
 
-<!-- 方法1：download 屬性 -->
-<a href="https://picsum.photos/400/300" download="image1.jpg">
-  <button>方法1：直接下載(download)</button>
-</a>
+<br>
 
-<!-- 方法2：JS 建立 a 下載 -->
-<button onclick="downloadImage()">方法2：JS下載</button>
+<!-- 方法1 html2canvas -->
+<button onclick="method1()">方法1：html2canvas</button>
 
-<!-- 方法3：Canvas 轉換下載 -->
-<button onclick="downloadCanvas()">方法3：Canvas下載</button>
+<!-- 方法2 dom-to-image -->
+<button onclick="method2()">方法2：dom-to-image</button>
 
-<!-- 方法4：右鍵提示 -->
-<button onclick="alert('請對圖片按右鍵另存')">方法4：提示右鍵</button>
+<!-- 方法3 canvas 手動畫 -->
+<button onclick="method3()">方法3：手動Canvas</button>
 
-<!-- 方法5：開新分頁 -->
-<button onclick="openNewTab()">方法5：新分頁開啟</button>
+<!-- 方法4 window.print -->
+<button onclick="window.print()">方法4：列印存PDF</button>
 
-<!-- 方法6：fetch 轉 blob -->
-<button onclick="fetchDownload()">方法6：fetch下載</button>
+<!-- 方法5 開新頁 -->
+<button onclick="method5()">方法5：新頁截圖提示</button>
+
+<!-- 方法6 fetch + canvas -->
+<button onclick="method6()">方法6：fetch圖片再畫</button>
 
 <script>
-const imgUrl = "https://picsum.photos/400/300";
 
-// 方法2
-function downloadImage() {
-  const a = document.createElement('a');
-  a.href = imgUrl;
-  a.download = 'image2.jpg';
-  a.click();
+// 方法1 html2canvas
+function method1() {
+  html2canvas(document.querySelector("#captureArea")).then(canvas => {
+    download(canvas, 'html2canvas.png');
+  });
 }
 
-// 方法3
-function downloadCanvas() {
-  const img = document.getElementById('testImg');
+// 方法2 dom-to-image
+function method2() {
+  domtoimage.toPng(document.getElementById('captureArea'))
+    .then(function (dataUrl) {
+      downloadURL(dataUrl, 'dom-to-image.png');
+    });
+}
+
+// 方法3 手動 canvas（只畫文字+圖）
+function method3() {
   const canvas = document.createElement('canvas');
   const ctx = canvas.getContext('2d');
 
-  canvas.width = img.naturalWidth;
-  canvas.height = img.naturalHeight;
+  canvas.width = 500;
+  canvas.height = 400;
 
-  ctx.drawImage(img, 0, 0);
+  ctx.fillStyle = "#fff";
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
 
+  ctx.fillStyle = "#000";
+  ctx.font = "20px Arial";
+  ctx.fillText("這是一段測試文字", 20, 50);
+
+  const img = new Image();
+  img.crossOrigin = "anonymous";
+  img.src = "https://picsum.photos/400/300";
+
+  img.onload = function() {
+    ctx.drawImage(img, 50, 80, 400, 300);
+    download(canvas, 'manual-canvas.png');
+  };
+}
+
+// 方法5
+function method5() {
+  alert("開新分頁後請手動截圖（瀏覽器截圖）");
+  window.open(location.href, '_blank');
+}
+
+// 方法6 fetch 圖片再畫
+function method6() {
+  fetch("https://picsum.photos/400/300")
+    .then(res => res.blob())
+    .then(blob => {
+      const img = new Image();
+      const url = URL.createObjectURL(blob);
+
+      img.onload = function() {
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+
+        canvas.width = 500;
+        canvas.height = 400;
+
+        ctx.fillStyle = "#fff";
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        ctx.fillStyle = "#000";
+        ctx.font = "20px Arial";
+        ctx.fillText("fetch + canvas 文字", 20, 50);
+
+        ctx.drawImage(img, 50, 80, 400, 300);
+
+        download(canvas, 'fetch-canvas.png');
+        URL.revokeObjectURL(url);
+      };
+
+      img.src = url;
+    });
+}
+
+// 共用下載
+function download(canvas, filename) {
   const a = document.createElement('a');
-  a.download = 'image3.png';
+  a.download = filename;
   a.href = canvas.toDataURL();
   a.click();
 }
 
-// 方法5
-function openNewTab() {
-  window.open(imgUrl, '_blank');
+function downloadURL(url, filename) {
+  const a = document.createElement('a');
+  a.download = filename;
+  a.href = url;
+  a.click();
 }
 
-// 方法6
-function fetchDownload() {
-  fetch(imgUrl)
-    .then(res => res.blob())
-    .then(blob => {
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = 'image4.jpg';
-      a.click();
-      window.URL.revokeObjectURL(url);
-    });
-}
 </script>
 
 </body>
