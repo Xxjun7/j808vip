@@ -2,7 +2,7 @@
    🎮 前台（抽卡系統）
 ===================================================== */
 
-body {
+html, body {
   background:#111;
   color:#fff;
   font-family:sans-serif;
@@ -10,8 +10,8 @@ body {
 
   margin:0;
   padding:0;
-
-  overflow-x:hidden;
+  overflow-x:hidden; /* 禁止整體頁面左右滾動 */
+  height: 100%;  /* 保證 body 高度能填滿整個頁面 */
 }
 
 /* 👉 前台 input / button（只影響遊戲） */
