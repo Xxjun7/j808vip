@@ -2,7 +2,7 @@
 <html lang="zh-Hant">
 <head>
   <meta charset="UTF-8">
-  <title>頁面截圖下載2</title>
+  <title>頁面截圖下載</title>
   <style>
     body {
       font-family: sans-serif;
@@ -35,7 +35,7 @@
 </head>
 <body>
 
-  <button class="capture">📸 下載頁面截圖2</button>
+  <button class="capture">📸 下載頁面截圖3</button>
 
   <div class="content">
     <h1>這是測試內容</h1>
@@ -48,15 +48,21 @@
 
   <script>
     document.querySelector('.capture').addEventListener('click', () => {
-      html2canvas(document.body, {scrollY: -window.scrollY}).then(canvas => {
+      html2canvas(document.body, {
+        useCORS: true,          // 開啟跨域支持
+        scrollY: -window.scrollY // 修正滾動
+      }).then(canvas => {
         canvas.toBlob(blob => {
+          // 確保創建 Blob 對象
           const a = document.createElement('a');
           a.href = URL.createObjectURL(blob);
           a.download = '頁面截圖.png';
-          a.click();
+          document.body.appendChild(a); // 添加到 DOM
+          a.click();  // 觸發點擊下載
+          document.body.removeChild(a); // 下載後移除
         });
       }).catch(err => {
-        console.error('截圖失敗:', err);
+        console.error('截圖過程發生錯誤:', err);
       });
     });
   </script>
