@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<title>整頁轉圖片分享</title>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+
+<style>
+  body { font-family: Arial; }
+  .box {
+    height: 600px;
+    border: 1px solid #000;
+    margin: 20px;
+    padding: 20px;
+  }
+  button { padding: 10px; margin: 5px; }
+</style>
+</head>
+<body>
+
+<h2>整頁 → 圖片 → 分享</h2>
+
+<div class="box">內容1</div>
+<div class="box">內容2</div>
+<div class="box">內容3</div>
+
+<button onclick="capture()">📸 產生整頁圖片</button>
+<button onclick="share()">📤 分享圖片</button>
+
+<br><br>
+<img id="preview" style="max-width:100%; border:1px solid #ccc;">
+
+<script>
+
+let imageBlob = null;
+
+// 產生整頁圖
+function capture() {
+  html2canvas(document.body, {
+    scrollY: -window.scrollY,
+    windowHeight: document.body.scrollHeight
+  }).then(canvas => {
+    document.getElementById("preview").src = canvas.toDataURL();
+
+    canvas.toBlob(blob => {
+      imageBlob = blob;
+    });
+  });
+}
+
+// 分享（手機可用）
+async function share() {
+  if (!imageBlob) {
+    alert("請先產生圖片");
+    return;
+  }
+
+  const file = new File([imageBlob], "page.png", { type: "image/png" });
+
+  if (navigator.canShare && navigator.canShare({ files: [file] })) {
+    await navigator.share({
+      files: [file],
+      title: "整頁截圖",
+    });
+  } else {
+    alert("此裝置不支援分享，請改用下載");
+  }
+}
+
+</script>
+
+</body>
+</html>
