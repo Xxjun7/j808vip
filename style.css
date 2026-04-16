@@ -3,23 +3,23 @@
 ===================================================== */
 
 html, body {
-  background:#111 !important;
+  background:#111;
   color:#fff;
   font-family:sans-serif;
   text-align:center;
 
   margin:0;
   padding:0;
-  overflow-x:hidden;
-  height:100%;
+  overflow-x:hidden; /* 禁止整體頁面左右滾動 */
+  height: 100%;  /* 保證 body 高度能填滿整個頁面 */
 }
 
-/* 👉 input / button */
+/* 👉 前台 input / button（只影響遊戲） */
 body:not(.admin-page) input,
 body:not(.admin-page) button{
   padding:5px;
   margin:5px;
-  font-size:16px;
+  font-size:16px; /* ⭐ 防止 iPhone 自動放大 */
 }
 
 /* =========================
@@ -33,8 +33,6 @@ body:not(.admin-page) button{
   align-items:center;
   gap:6px;
   padding:10px;
-
-  overflow:visible !important; /* ⭐ 防截圖裁切 */
 }
 
 .card{
@@ -46,11 +44,6 @@ body:not(.admin-page) button{
   cursor:pointer;
   border-radius:10px;
   overflow:hidden;
-
-  transform: translateZ(0); /* ⭐ 防 iOS 白邊 */
-  -webkit-transform: translateZ(0);
-  backface-visibility:hidden;
-  -webkit-backface-visibility:hidden;
 }
 
 .inner{
@@ -85,7 +78,7 @@ body:not(.admin-page) button{
 }
 
 /* =========================
-   ✨ 動畫
+   ✨ 動畫（優化版）
 ========================= */
 
 @keyframes glowSpin {
@@ -107,21 +100,6 @@ body:not(.admin-page) button{
   0% { box-shadow:0 0 20px gold, 0 0 40px gold; }
   50% { box-shadow:0 0 40px gold, 0 0 80px gold; }
   100% { box-shadow:0 0 20px gold, 0 0 40px gold; }
-}
-
-/* ⭐⭐⭐ 分享模式強制穩定（核心修正） */
-.freeze-capture * {
-  animation: none !important;
-  transition: none !important;
-  transform: none !important;
-}
-
-/* ⭐ glow 在截圖時強制固定（避免消失） */
-.freeze-capture .glow-selected{
-  box-shadow:
-    0 0 15px gold,
-    0 0 35px gold,
-    0 0 60px gold !important;
 }
 
 /* =========================
@@ -158,7 +136,7 @@ body:not(.admin-page) button{
   flex-wrap:wrap;
 }
 
-/* button */
+/* 前台 button */
 body:not(.admin-page) button{
   border-radius:8px;
   border:1px solid #444;
@@ -193,7 +171,7 @@ body:not(.admin-page) button:active{
 }
 
 /* =========================
-   📱 RWD
+   📱 RWD（前台）（已優化）
 ========================= */
 
 @media (max-width:768px){
@@ -232,6 +210,7 @@ body.admin-page{
   overflow-x:hidden;
 }
 
+/* 主容器 */
 #loginArea,
 #adminPanel{
   width:100%;
@@ -246,6 +225,13 @@ body.admin-page{
   text-align:center;
 }
 
+/* 標題（修正：避免無效 selector） */
+body.admin-page h1,
+body.admin-page h2{
+  margin:10px 0;
+}
+
+/* input（只影響後台） */
 body.admin-page input{
   width:90%;
   max-width:300px;
@@ -262,6 +248,7 @@ body.admin-page input{
   text-align:center;
 }
 
+/* button（後台專用） */
 body.admin-page button{
   width:90%;
   max-width:300px;
@@ -288,11 +275,13 @@ body.admin-page button:active{
   transform:scale(0.95);
 }
 
+/*ID黃色字 */
 .highlightText{
   color: gold;
   font-weight: bold;
 }
 
+/* 表格 */
 #logArea{
   width:100%;
   overflow-x:auto;
@@ -325,4 +314,9 @@ td,th{
 
   h1{ font-size:20px; }
   h2{ font-size:18px; }
+}
+
+.freeze-capture * {
+  animation: none !important;
+  transition: none !important;
 }
