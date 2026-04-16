@@ -281,7 +281,14 @@ function capture() {
 
 async function share() {
 
+  console.log("share clicked"); // 🔥 確認有沒有觸發
+
   try {
+
+    if (typeof html2canvas === "undefined") {
+      alert("html2canvas 沒載入");
+      return;
+    }
 
     const canvas = await html2canvas(document.body, {
       useCORS: true,
@@ -296,7 +303,6 @@ async function share() {
       type: "image/png"
     });
 
-    // 📤 原生分享（IG / LINE / AirDrop）
     if (navigator.canShare && navigator.canShare({ files: [file] })) {
 
       await navigator.share({
@@ -306,7 +312,8 @@ async function share() {
 
     } else {
 
-      // fallback（下載）
+      alert("此裝置不支援分享，改為下載");
+
       const a = document.createElement("a");
       a.href = URL.createObjectURL(blob);
       a.download = "抽獎結果.png";
@@ -315,7 +322,7 @@ async function share() {
 
   } catch (e) {
     console.error(e);
-    alert("分享失敗");
+    alert("分享失敗：" + e.message);
   }
 }
 
