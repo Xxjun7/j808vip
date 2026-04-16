@@ -8,9 +8,6 @@ let remainingTimes = 0;
 let isDrawing = false;
 let canPickCard = false;
 
-/* ⭐⭐⭐ UI狀態鎖 */
-let uiReady = false;
-
 /* login */
 let loginLock = false;
 let lastLoginTime = 0;
@@ -45,7 +42,6 @@ function logout() {
 
   isDrawing = false;
   canPickCard = false;
-  uiReady = false;
 
   document.getElementById("chance").innerText = "";
   document.getElementById("cards").innerHTML = "";
@@ -73,8 +69,7 @@ function createCards() {
   cardsDiv.innerHTML = "";
 
   isDrawing = false;
-  canPickCard = true;
-  uiReady = false;
+  canPickCard = true;   // ⭐ 每一回合才允許點
 
   document.getElementById("overlay").classList.remove("show");
   document.getElementById("result").innerText = "";
@@ -156,8 +151,7 @@ async function handleClick(card) {
   if (remainingTimes <= 0) return alert("已無抽卡次數");
 
   isDrawing = true;
-  canPickCard = false;
-  uiReady = false;
+  canPickCard = false; // ⭐ 抽一次後鎖死
 
   document.getElementById("overlay").classList.add("show");
 
@@ -195,9 +189,10 @@ async function handleClick(card) {
 
       inner.classList.add("flipped");
       inner.querySelector(".back").innerHTML =
-        data.win
-          ? `🎉 文字可自訂<br>${data.code.slice(0, 16)}`
-          : "未中獎";
+          data.win
+              ? `🎉 文字可自訂<br>${data.code.slice(0, 16)}`
+              : "未中獎";
+        
 
       requestAnimationFrame(() => {
 
@@ -249,8 +244,6 @@ async function handleClick(card) {
 
             isDrawing = false;
 
-            uiReady = true;
-
           }, 300);
 
         }, 400);
@@ -277,7 +270,15 @@ function copyCode() {
   navigator.clipboard.writeText(lastCode);
 }
 
-/* ================= 分享（已穩定修正版） ================= */
+function capture() {
+  html2canvas(document.body).then(canvas => {
+    const a = document.createElement("a");
+    a.href = canvas.toDataURL();
+    a.download = "抽獎結果.png";
+    a.click();
+  });
+}
+
 function freezeScreen() {
   document.body.classList.add("freeze-capture");
 }
@@ -286,36 +287,42 @@ function unfreezeScreen() {
   document.body.classList.remove("freeze-capture");
 }
 
+function waitUIStable() {
+  return new Promise(resolve => {
+
+    // 等 2~3 個 frame（確保 DOM update + animation flush）
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        setTimeout(resolve, 300); // 等你的 setTimeout 動畫結束
+      });
+    });
+
+  });
+}
+
 async function share() {
 
   try {
 
-    if (!uiReady) {
-      await new Promise(resolve => {
-        const check = () => {
-          if (uiReady) return resolve();
-          requestAnimationFrame(check);
-        };
-        check();
-      });
-    }
+    // 🔥 1. 等 UI 完全穩定（重點）
+    await waitUIStable();
 
-    freezeScreen();
+    // 🔥 2. freeze（停止動畫）
+    document.body.classList.add("freeze-capture");
 
+    const target = document.body;
+
+    // 🔥 3. 再等一次 render flush
     await new Promise(r => requestAnimationFrame(r));
 
-    // ⭐ 改成只截穩定區（解白邊 + 不吃 body bug）
-    const node = document.getElementById("cards");
-
-    const canvas = await html2canvas(node, {
+    // 🔥 4. 截圖
+    const canvas = await html2canvas(target, {
       useCORS: true,
       scale: 2,
-      backgroundColor: "#ffffff",
-      scrollX: 0,
-      scrollY: 0
+      backgroundColor: "#ffffff"
     });
 
-    unfreezeScreen();
+    document.body.classList.remove("freeze-capture");
 
     const blob = await new Promise(resolve => {
       canvas.toBlob(resolve, "image/png");
@@ -341,8 +348,9 @@ async function share() {
     }
 
   } catch (e) {
-    unfreezeScreen();
+    document.body.classList.remove("freeze-capture");
     console.error(e);
     alert("分享失敗");
   }
 }
+
