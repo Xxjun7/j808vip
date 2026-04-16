@@ -287,31 +287,46 @@ function unfreezeScreen() {
   document.body.classList.remove("freeze-capture");
 }
 
+function waitUIStable() {
+  return new Promise(resolve => {
+
+    // 等 2~3 個 frame（確保 DOM update + animation flush）
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        setTimeout(resolve, 300); // 等你的 setTimeout 動畫結束
+      });
+    });
+
+  });
+}
+
 async function share() {
 
   try {
 
-    // 🔥 1. freeze 畫面（停止動畫）
-    freezeScreen();
+    // 🔥 1. 等 UI 完全穩定（重點）
+    await waitUIStable();
 
-    // 🔥 2. 等一個 frame（讓 DOM 穩定）
-    await new Promise(r => requestAnimationFrame(() => {
-      requestAnimationFrame(r);
-    }));
+    // 🔥 2. freeze（停止動畫）
+    document.body.classList.add("freeze-capture");
 
-    // 🔥 3. 截圖
-    const canvas = await html2canvas(document.body, {
+    const target = document.body;
+
+    // 🔥 3. 再等一次 render flush
+    await new Promise(r => requestAnimationFrame(r));
+
+    // 🔥 4. 截圖
+    const canvas = await html2canvas(target, {
       useCORS: true,
       scale: 2,
       backgroundColor: "#ffffff"
     });
 
+    document.body.classList.remove("freeze-capture");
+
     const blob = await new Promise(resolve => {
       canvas.toBlob(resolve, "image/png");
     });
-
-    // 🔥 4. 解 freeze
-    unfreezeScreen();
 
     const file = new File([blob], "抽獎結果.png", {
       type: "image/png"
@@ -333,8 +348,7 @@ async function share() {
     }
 
   } catch (e) {
-
-    unfreezeScreen();
+    document.body.classList.remove("freeze-capture");
     console.error(e);
     alert("分享失敗");
   }
