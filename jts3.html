@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<title>整頁轉圖片分享</title>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+
+<style>
+  body { font-family: Arial; }
+  .box {
+    height: 600px;
+    border: 1px solid #000;
+    margin: 20px;
+    padding: 20px;
+  }
+  button { padding: 10px; margin: 5px; }
+</style>
+</head>
+<body>
+
+<h2>整頁 → 圖片 → 分享</h2>
+
+<div class="box">
+  區塊1<br>
+  <img src="https://picsum.photos/300/200" crossorigin="anonymous">
+</div>
+
+<div class="box">
+  區塊2<br>
+  <img src="https://picsum.photos/301/200" crossorigin="anonymous">
+</div>
+
+<div class="box">
+  區塊3<br>
+  <img src="https://picsum.photos/302/200" crossorigin="anonymous">
+</div>
+
+<button onclick="capture()">📸 產生整頁圖片</button>
+<button onclick="share()">📤 分享圖片</button>
+
+<br><br>
+<img id="preview" style="max-width:100%; border:1px solid #ccc;">
+
+<script>
+
+let imageBlob = null;
+
+// 等所有圖片載入
+async function waitImagesLoaded() {
+  const images = document.querySelectorAll("img");
+
+  await Promise.all([...images].map(img => {
+    if (img.complete) return;
+    return new Promise(resolve => {
+      img.onload = img.onerror = resolve;
+    });
+  }));
+}
+
+// 產生整頁圖
+async function capture() {
+
+  // 等圖片載入完成
+  await waitImagesLoaded();
+
+  const canvas = await html2canvas(document.body, {
+    useCORS: true,
+    allowTaint: false,
+    scale: 2, // 手機畫質提升（重要）
+    scrollY: -window.scrollY,
+    windowWidth: document.documentElement.scrollWidth,
+    windowHeight: document.documentElement.scrollHeight
+  });
+
+  document.getElementById("preview").src = canvas.toDataURL("image/png");
+
+  canvas.toBlob(blob => {
+    imageBlob = blob;
+  }, "image/png");
+}
+
+// 分享（手機可用）
+async function share() {
+  if (!imageBlob) {
+    alert("請先產生圖片");
+    return;
+  }
+
+  const file = new File([imageBlob], "page.png", { type: "image/png" });
+
+  if (navigator.canShare && navigator.canShare({ files: [file] })) {
+    await navigator.share({
+      files: [file],
+      title: "整頁截圖",
+    });
+  } else {
+    alert("此裝置不支援分享，請改用下載");
+  }
+}
+
+</script>
+
+</body>
+</html>
