@@ -278,3 +278,44 @@ function capture() {
     a.click();
   });
 }
+
+async function share() {
+
+  try {
+
+    const canvas = await html2canvas(document.body, {
+      useCORS: true,
+      scale: 2
+    });
+
+    const blob = await new Promise(resolve => {
+      canvas.toBlob(resolve, "image/png");
+    });
+
+    const file = new File([blob], "抽獎結果.png", {
+      type: "image/png"
+    });
+
+    // 📤 原生分享（IG / LINE / AirDrop）
+    if (navigator.canShare && navigator.canShare({ files: [file] })) {
+
+      await navigator.share({
+        files: [file],
+        title: "抽卡結果"
+      });
+
+    } else {
+
+      // fallback（下載）
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(blob);
+      a.download = "抽獎結果.png";
+      a.click();
+    }
+
+  } catch (e) {
+    console.error(e);
+    alert("分享失敗");
+  }
+}
+
