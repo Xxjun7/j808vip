@@ -315,3 +315,8 @@ td,th{
   h1{ font-size:20px; }
   h2{ font-size:18px; }
 }
+
+.freeze-capture * {
+  animation: none !important;
+  transition: none !important;
+}
