@@ -2,125 +2,193 @@
 <html lang="zh-TW">
 <head>
 <meta charset="UTF-8">
-<title>整頁截圖測試</title>
+<title>Product Share Component</title>
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/dom-to-image/2.6.0/dom-to-image.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/dom-to-image-more@3.3.0/dist/dom-to-image-more.min.js"></script>
 
 <style>
-  body { font-family: Arial; }
-  .section {
-    height: 600px;
-    border: 1px solid #000;
-    margin: 20px;
-    padding: 20px;
-  }
-  img { width: 300px; }
-  button { margin: 5px; padding: 10px; }
+body { font-family: Arial; }
+
+.box {
+  height: 600px;
+  border: 1px solid #000;
+  margin: 20px;
+  padding: 20px;
+}
+
+/* loading overlay */
+#loading {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.4);
+  display: none;
+  justify-content: center;
+  align-items: center;
+  color: #fff;
+  font-size: 18px;
+  z-index: 9999;
+}
+
+.freeze * {
+  transition: none !important;
+  animation: none !important;
+}
+
+button {
+  padding: 12px;
+  margin: 10px;
+  font-size: 16px;
+}
 </style>
 </head>
 <body>
 
-<h2>整頁截圖測試（含滾動）</h2>
+<div id="loading">生成分享圖片中...</div>
 
-<div class="section">區塊1<br><img src="https://picsum.photos/300/200"></div>
-<div class="section">區塊2<br><img src="https://picsum.photos/301/200"></div>
-<div class="section">區塊3<br><img src="https://picsum.photos/302/200"></div>
+<h2>產品級分享元件</h2>
 
-<!-- 方法1 -->
-<button onclick="method1()">方法1：html2canvas整頁</button>
+<div id="captureArea">
 
-<!-- 方法2 -->
-<button onclick="method2()">方法2：html2canvas + scroll修正</button>
+  <div class="box">
+    區塊1<br>
+    <img src="https://picsum.photos/300/200">
+  </div>
 
-<!-- 方法3 -->
-<button onclick="method3()">方法3：dom-to-image整頁</button>
+  <div class="box">
+    區塊2<br>
+    <img src="https://picsum.photos/301/200">
+  </div>
 
-<!-- 方法4 -->
-<button onclick="method4()">方法4：分段截圖再合成</button>
+  <div class="box">
+    區塊3<br>
+    <img src="https://picsum.photos/302/200">
+  </div>
 
-<!-- 方法5 -->
-<button onclick="method5()">方法5：直接截documentElement</button>
+</div>
 
-<!-- 方法6 -->
-<button onclick="method6()">方法6：瀏覽器列印PDF</button>
+<button onclick="ShareComponent.share()">📤 分享</button>
 
 <script>
 
-// 方法1（基本整頁）
-function method1() {
-  html2canvas(document.body).then(canvas => {
-    download(canvas, 'm1_basic.png');
-  });
-}
+const ShareComponent = {
 
-// 方法2（強制整頁高度）
-function method2() {
-  html2canvas(document.body, {
-    scrollY: -window.scrollY,
-    windowHeight: document.body.scrollHeight
-  }).then(canvas => {
-    download(canvas, 'm2_full.png');
-  });
-}
+  isReady: false,
+  isProcessing: false,
 
-// 方法3 dom-to-image
-function method3() {
-  domtoimage.toPng(document.body)
-    .then(dataUrl => downloadURL(dataUrl, 'm3_dom.png'));
-}
+  /* =========================
+     初始化（只做一次）
+  ========================= */
+  async init() {
+    const imgs = document.querySelectorAll("#captureArea img");
 
-// 方法4 分段截圖（最接近真整頁）
-async function method4() {
-  const totalHeight = document.body.scrollHeight;
-  const viewHeight = window.innerHeight;
-  let y = 0;
+    await Promise.all([...imgs].map(async (img) => {
+      try {
+        const res = await fetch(img.src);
+        const blob = await res.blob();
 
-  const finalCanvas = document.createElement('canvas');
-  finalCanvas.width = window.innerWidth;
-  finalCanvas.height = totalHeight;
-  const ctx = finalCanvas.getContext('2d');
+        const base64 = await new Promise(resolve => {
+          const reader = new FileReader();
+          reader.onloadend = () => resolve(reader.result);
+          reader.readAsDataURL(blob);
+        });
 
-  while (y < totalHeight) {
-    window.scrollTo(0, y);
-    await new Promise(r => setTimeout(r, 300));
+        img.src = base64;
 
-    const canvas = await html2canvas(document.body);
-    ctx.drawImage(canvas, 0, y);
+      } catch (e) {
+        console.warn("image lock failed:", img.src);
+      }
+    }));
 
-    y += viewHeight;
+    this.isReady = true;
+  },
+
+  /* =========================
+     等畫面穩定
+  ========================= */
+  waitStable() {
+    return new Promise(r => {
+      requestAnimationFrame(() => {
+        requestAnimationFrame(r);
+      });
+    });
+  },
+
+  /* =========================
+     fallback download
+  ========================= */
+  download(blob) {
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = "share.png";
+    a.click();
+  },
+
+  /* =========================
+     主分享 API
+  ========================= */
+  async share() {
+
+    if (this.isProcessing) return;
+    this.isProcessing = true;
+
+    document.getElementById("loading").style.display = "flex";
+
+    try {
+
+      if (!this.isReady) {
+        await this.init();
+      }
+
+      const node = document.getElementById("captureArea");
+
+      await this.waitStable();
+
+      document.body.classList.add("freeze");
+
+      const clone = node.cloneNode(true);
+
+      clone.style.position = "fixed";
+      clone.style.left = "-10000px";
+      clone.style.top = "0";
+      clone.style.background = "#fff";
+
+      document.body.appendChild(clone);
+
+      await this.waitStable();
+
+      const blob = await domtoimage.toBlob(clone, {
+        bgcolor: "#ffffff",
+        cacheBust: false,
+        width: clone.scrollWidth,
+        height: clone.scrollHeight
+      });
+
+      document.body.removeChild(clone);
+      document.body.classList.remove("freeze");
+
+      const file = new File([blob], "share.png", { type: "image/png" });
+
+      if (navigator.canShare?.({ files: [file] })) {
+
+        await navigator.share({
+          files: [file],
+          title: "分享內容"
+        });
+
+      } else {
+        this.download(blob);
+      }
+
+    } catch (err) {
+      console.error(err);
+      alert("分享失敗，已改下載");
+
+    } finally {
+      document.getElementById("loading").style.display = "none";
+      this.isProcessing = false;
+    }
   }
-
-  window.scrollTo(0, 0);
-  download(finalCanvas, 'm4_stitch.png');
-}
-
-// 方法5 documentElement
-function method5() {
-  html2canvas(document.documentElement).then(canvas => {
-    download(canvas, 'm5_html.png');
-  });
-}
-
-// 方法6
-function method6() {
-  window.print();
-}
-
-// 下載
-function download(canvas, name) {
-  const a = document.createElement('a');
-  a.download = name;
-  a.href = canvas.toDataURL();
-  a.click();
-}
-
-function downloadURL(url, name) {
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = name;
-  a.click();
-}
+};
 
 </script>
 
