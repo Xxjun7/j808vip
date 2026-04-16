@@ -8,7 +8,7 @@ let remainingTimes = 0;
 let isDrawing = false;
 let canPickCard = false;
 
-/* ⭐⭐⭐ 新增：UI狀態鎖（關鍵） */
+/* ⭐⭐⭐ UI狀態鎖 */
 let uiReady = false;
 
 /* login */
@@ -74,7 +74,7 @@ function createCards() {
 
   isDrawing = false;
   canPickCard = true;
-  uiReady = false; // ⭐ reset
+  uiReady = false;
 
   document.getElementById("overlay").classList.remove("show");
   document.getElementById("result").innerText = "";
@@ -157,7 +157,7 @@ async function handleClick(card) {
 
   isDrawing = true;
   canPickCard = false;
-  uiReady = false; // ⭐ 抽卡開始 = 未完成
+  uiReady = false;
 
   document.getElementById("overlay").classList.add("show");
 
@@ -249,7 +249,7 @@ async function handleClick(card) {
 
             isDrawing = false;
 
-            uiReady = true; // ⭐⭐⭐ 關鍵：真正完成
+            uiReady = true;
 
           }, 300);
 
@@ -277,7 +277,7 @@ function copyCode() {
   navigator.clipboard.writeText(lastCode);
 }
 
-/* ================= 分享（已修正） ================= */
+/* ================= 分享（已穩定修正版） ================= */
 function freezeScreen() {
   document.body.classList.add("freeze-capture");
 }
@@ -286,21 +286,10 @@ function unfreezeScreen() {
   document.body.classList.remove("freeze-capture");
 }
 
-function waitUIStable() {
-  return new Promise(resolve => {
-    requestAnimationFrame(() => {
-      requestAnimationFrame(() => {
-        setTimeout(resolve, 300);
-      });
-    });
-  });
-}
-
 async function share() {
 
   try {
 
-    // ⭐⭐⭐ 關鍵：等抽卡完全結束
     if (!uiReady) {
       await new Promise(resolve => {
         const check = () => {
@@ -315,10 +304,15 @@ async function share() {
 
     await new Promise(r => requestAnimationFrame(r));
 
-    const canvas = await html2canvas(document.body, {
+    // ⭐ 改成只截穩定區（解白邊 + 不吃 body bug）
+    const node = document.getElementById("cards");
+
+    const canvas = await html2canvas(node, {
       useCORS: true,
       scale: 2,
-      backgroundColor: "#ffffff"
+      backgroundColor: "#ffffff",
+      scrollX: 0,
+      scrollY: 0
     });
 
     unfreezeScreen();
