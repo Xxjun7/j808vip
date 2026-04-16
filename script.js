@@ -8,6 +8,9 @@ let remainingTimes = 0;
 let isDrawing = false;
 let canPickCard = false;
 
+/* ⭐⭐⭐ 新增：UI狀態鎖（關鍵） */
+let uiReady = false;
+
 /* login */
 let loginLock = false;
 let lastLoginTime = 0;
@@ -42,6 +45,7 @@ function logout() {
 
   isDrawing = false;
   canPickCard = false;
+  uiReady = false;
 
   document.getElementById("chance").innerText = "";
   document.getElementById("cards").innerHTML = "";
@@ -69,7 +73,8 @@ function createCards() {
   cardsDiv.innerHTML = "";
 
   isDrawing = false;
-  canPickCard = true;   // ⭐ 每一回合才允許點
+  canPickCard = true;
+  uiReady = false; // ⭐ reset
 
   document.getElementById("overlay").classList.remove("show");
   document.getElementById("result").innerText = "";
@@ -151,7 +156,8 @@ async function handleClick(card) {
   if (remainingTimes <= 0) return alert("已無抽卡次數");
 
   isDrawing = true;
-  canPickCard = false; // ⭐ 抽一次後鎖死
+  canPickCard = false;
+  uiReady = false; // ⭐ 抽卡開始 = 未完成
 
   document.getElementById("overlay").classList.add("show");
 
@@ -189,10 +195,9 @@ async function handleClick(card) {
 
       inner.classList.add("flipped");
       inner.querySelector(".back").innerHTML =
-          data.win
-              ? `🎉 文字可自訂<br>${data.code.slice(0, 16)}`
-              : "未中獎";
-        
+        data.win
+          ? `🎉 文字可自訂<br>${data.code.slice(0, 16)}`
+          : "未中獎";
 
       requestAnimationFrame(() => {
 
@@ -244,6 +249,8 @@ async function handleClick(card) {
 
             isDrawing = false;
 
+            uiReady = true; // ⭐⭐⭐ 關鍵：真正完成
+
           }, 300);
 
         }, 400);
@@ -270,15 +277,7 @@ function copyCode() {
   navigator.clipboard.writeText(lastCode);
 }
 
-function capture() {
-  html2canvas(document.body).then(canvas => {
-    const a = document.createElement("a");
-    a.href = canvas.toDataURL();
-    a.download = "抽獎結果.png";
-    a.click();
-  });
-}
-
+/* ================= 分享（已修正） ================= */
 function freezeScreen() {
   document.body.classList.add("freeze-capture");
 }
@@ -289,14 +288,11 @@ function unfreezeScreen() {
 
 function waitUIStable() {
   return new Promise(resolve => {
-
-    // 等 2~3 個 frame（確保 DOM update + animation flush）
     requestAnimationFrame(() => {
       requestAnimationFrame(() => {
-        setTimeout(resolve, 300); // 等你的 setTimeout 動畫結束
+        setTimeout(resolve, 300);
       });
     });
-
   });
 }
 
@@ -304,25 +300,28 @@ async function share() {
 
   try {
 
-    // 🔥 1. 等 UI 完全穩定（重點）
-    await waitUIStable();
+    // ⭐⭐⭐ 關鍵：等抽卡完全結束
+    if (!uiReady) {
+      await new Promise(resolve => {
+        const check = () => {
+          if (uiReady) return resolve();
+          requestAnimationFrame(check);
+        };
+        check();
+      });
+    }
 
-    // 🔥 2. freeze（停止動畫）
-    document.body.classList.add("freeze-capture");
+    freezeScreen();
 
-    const target = document.body;
-
-    // 🔥 3. 再等一次 render flush
     await new Promise(r => requestAnimationFrame(r));
 
-    // 🔥 4. 截圖
-    const canvas = await html2canvas(target, {
+    const canvas = await html2canvas(document.body, {
       useCORS: true,
       scale: 2,
       backgroundColor: "#ffffff"
     });
 
-    document.body.classList.remove("freeze-capture");
+    unfreezeScreen();
 
     const blob = await new Promise(resolve => {
       canvas.toBlob(resolve, "image/png");
@@ -348,9 +347,8 @@ async function share() {
     }
 
   } catch (e) {
-    document.body.classList.remove("freeze-capture");
+    unfreezeScreen();
     console.error(e);
     alert("分享失敗");
   }
 }
-
