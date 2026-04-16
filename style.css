@@ -1,0 +1,48 @@
+/* =====================================================
+   🔥 分享截圖穩定修正補丁（必加）
+===================================================== */
+
+/* ⭐ 防白邊 + 截圖穩定 */
+#shareArea {
+  background: #111; /* 跟遊戲一致 */
+  padding: 10px;
+  box-sizing: border-box;
+}
+
+/* ⭐ 防止 glow 被截壞（核心修正） */
+.card.glow-selected {
+  animation: none !important;   /* ❗截圖時停動畫 */
+  transition: none !important;
+
+  box-shadow:
+    0 0 15px gold,
+    0 0 35px gold,
+    0 0 60px gold !important;
+
+  transform: none !important;
+}
+
+/* ⭐ freeze 強化版（比你原本更強） */
+.freeze-capture * {
+  animation: none !important;
+  transition: none !important;
+  transform: none !important;
+}
+
+/* ⭐ 避免 html2canvas 邊界 bug */
+#cards {
+  overflow: visible !important;
+}
+
+/* ⭐ 防止 1px 白邊（iOS / Chrome 常見） */
+html, body {
+  background: #111 !important;
+}
+
+/* ⭐ 卡片邊緣抗鋸齒穩定 */
+.card {
+  transform: translateZ(0);
+  -webkit-transform: translateZ(0);
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+}
