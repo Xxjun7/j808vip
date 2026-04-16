@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<title>抽卡活動</title>
+
+<link rel="stylesheet" href="style.css">
+
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
+
+<style>
+/* ⭐ 防白邊基礎 */
+html, body {
+  margin: 0;
+  padding: 0;
+  background: #fff;
+}
+
+/* ⭐ 分享專用穩定容器 */
+#shareArea {
+  padding: 20px;
+  background: #fff;
+  display: block;
+}
+</style>
+
+</head>
+
+<body>
+
+<h1>🎴 抽卡遊戲</h1>
+
+<div id="loginArea">
+  <input id="uid" placeholder="輸入編號姓名">
+  <button id="loginBtn" onclick="login()">登入</button>
+</div>
+
+<button id="logoutBtn" onclick="logout()" style="display:none;">
+  登出
+</button>
+
+<!-- ⭐⭐⭐ 這裡是關鍵：統一 capture 區 -->
+<div id="shareArea">
+
+  <div id="chance"></div>
+
+  <div id="cards"></div>
+
+  <div id="result"></div>
+
+</div>
+
+<!-- ⭐ 按鈕區 -->
+<div id="actionBtns">
+
+  <button onclick="share()" class="capture">📤 截圖分享</button>
+
+  <button id="copyBtn" onclick="copyCode()" class="copy" style="display:none;">
+    📋 複製驗證碼
+  </button>
+
+  <button onclick="capture()" class="capture">
+    📸 瀏覽器截圖
+  </button>
+
+  <button id="drawAgainBtn" style="display:none;">
+    🎴 再抽一次
+  </button>
+
+</div>
+
+<script src="html2canvas.min.js"></script>
+<script src="script.js"></script>
+
+<div id="overlay"></div>
+
+</body>
+</html>
