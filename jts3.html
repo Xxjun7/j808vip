@@ -2,41 +2,35 @@
 <html lang="zh-TW">
 <head>
 <meta charset="UTF-8">
-<title>IG等級穩定分享版</title>
+<title>商用級穩定分享系統</title>
 
 <script src="https://cdn.jsdelivr.net/npm/dom-to-image-more@3.3.0/dist/dom-to-image-more.min.js"></script>
 
 <style>
-  body { font-family: Arial; margin: 0; }
+body { font-family: Arial; }
 
-  .box {
-    height: 600px;
-    border: 1px solid #000;
-    margin: 20px;
-    padding: 20px;
-  }
+.box {
+  height: 600px;
+  border: 1px solid #000;
+  margin: 20px;
+  padding: 20px;
+}
 
-  button {
-    padding: 12px;
-    margin: 10px;
-    font-size: 16px;
-  }
+button {
+  padding: 12px;
+  margin: 10px;
+  font-size: 16px;
+}
 
-  /* 🔥 freeze 用（截圖時防跳動） */
-  .freeze * {
-    transition: none !important;
-    animation: none !important;
-  }
-
-  #preview {
-    max-width: 100%;
-    border: 1px solid #ccc;
-  }
+.freeze * {
+  transition: none !important;
+  animation: none !important;
+}
 </style>
 </head>
 <body>
 
-<h2>IG 等級穩定分享</h2>
+<h2>🔥 商用級 IG 穩定分享</h2>
 
 <div id="captureArea">
 
@@ -57,16 +51,50 @@
 
 </div>
 
-<button onclick="share()">📤 一鍵分享（IG等級）</button>
+<button onclick="share()">📤 一鍵分享（商用穩定）</button>
 
 <br><br>
-<img id="preview">
+<img id="preview" style="max-width:100%; border:1px solid #ccc;">
 
 <script>
 
+let isReady = false;
 let isProcessing = false;
 
-// 等畫面穩定
+/* =========================
+   🔥 ① 頁面載入：鎖定所有圖片
+   ========================= */
+async function lockAllImages() {
+
+  const imgs = document.querySelectorAll("#captureArea img");
+
+  await Promise.all([...imgs].map(async (img) => {
+
+    try {
+      const res = await fetch(img.src);
+      const blob = await res.blob();
+
+      const base64 = await new Promise(resolve => {
+        const reader = new FileReader();
+        reader.onloadend = () => resolve(reader.result);
+        reader.readAsDataURL(blob);
+      });
+
+      // 🔥 關鍵：永久鎖定，不再變動
+      img.dataset.locked = "true";
+      img.src = base64;
+
+    } catch (e) {
+      console.warn("鎖圖失敗:", img.src);
+    }
+  }));
+
+  isReady = true;
+}
+
+/* =========================
+   等 render 穩定
+   ========================= */
 function waitStable() {
   return new Promise(r => {
     requestAnimationFrame(() => {
@@ -75,29 +103,9 @@ function waitStable() {
   });
 }
 
-// ❌ 不再 fetch 圖片（關鍵修正）
-function lockImages(clone) {
-  const imgs = clone.querySelectorAll("img");
-
-  imgs.forEach(img => {
-    // 🔥 關鍵：禁止重新載入
-    img.crossOrigin = "anonymous";
-    img.decoding = "sync";
-  });
-}
-
-// 等圖片載入完成（只等，不改）
-async function waitImages(el) {
-  const imgs = el.querySelectorAll("img");
-
-  await Promise.all([...imgs].map(img => {
-    if (img.complete) return;
-    return new Promise(r => {
-      img.onload = img.onerror = r;
-    });
-  }));
-}
-
+/* =========================
+   🚀 ② 商用級分享（純 snapshot）
+   ========================= */
 async function share() {
 
   if (isProcessing) return;
@@ -105,15 +113,18 @@ async function share() {
 
   try {
 
+    if (!isReady) {
+      await lockAllImages();
+    }
+
     const node = document.getElementById("captureArea");
 
-    // 1️⃣ 等圖片載入完成（當下畫面）
-    await waitImages(node);
-
-    // 2️⃣ 等 render 穩定
     await waitStable();
 
-    // 3️⃣ clone（快照）
+    // freeze UI（避免動畫變動）
+    document.body.classList.add("freeze");
+
+    // clone snapshot
     const clone = node.cloneNode(true);
 
     clone.style.position = "fixed";
@@ -123,36 +134,46 @@ async function share() {
 
     document.body.appendChild(clone);
 
-    // 4️⃣ 不重抓圖，只鎖住狀態
-    lockImages(clone);
-
-    // 5️⃣ 等 clone render
     await waitStable();
 
-    // 6️⃣ 直接截圖（不 fetch、不轉 base64）
     const blob = await domtoimage.toBlob(clone, {
       bgcolor: "#ffffff",
-      cacheBust: false,   // 🔥 關鍵：禁止 cache 變動
+      cacheBust: false,
       width: clone.scrollWidth,
       height: clone.scrollHeight
     });
 
     document.body.removeChild(clone);
+    document.body.classList.remove("freeze");
 
-    // 7️⃣ 分享
-    const file = new File([blob], "page.png", { type: "image/png" });
+    const url = URL.createObjectURL(blob);
+    document.getElementById("preview").src = url;
 
-    await navigator.share?.({
-      files: [file],
-      title: "分享"
-    });
+    const file = new File([blob], "share.png", { type: "image/png" });
+
+    if (navigator.canShare?.({ files: [file] })) {
+      await navigator.share({
+        files: [file],
+        title: "分享內容"
+      });
+    } else {
+      alert("此裝置不支援分享");
+    }
 
   } catch (e) {
     console.error(e);
-    alert("截圖失敗");
+    alert("分享失敗");
   }
 
   isProcessing = false;
 }
 
+/* =========================
+   🔥 初始化（關鍵）
+   ========================= */
+window.addEventListener("load", lockAllImages);
+
 </script>
+
+</body>
+</html>
