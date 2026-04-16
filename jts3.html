@@ -2,12 +2,12 @@
 <html lang="zh-TW">
 <head>
 <meta charset="UTF-8">
-<title>整頁轉圖片（無閃動分享版）</title>
+<title>IG等級穩定分享版</title>
 
 <script src="https://cdn.jsdelivr.net/npm/dom-to-image-more@3.3.0/dist/dom-to-image-more.min.js"></script>
 
 <style>
-  body { font-family: Arial; }
+  body { font-family: Arial; margin: 0; }
 
   .box {
     height: 600px;
@@ -17,14 +17,26 @@
   }
 
   button {
-    padding: 10px;
-    margin: 5px;
+    padding: 12px;
+    margin: 10px;
+    font-size: 16px;
+  }
+
+  /* 🔥 freeze 用（截圖時防跳動） */
+  .freeze * {
+    transition: none !important;
+    animation: none !important;
+  }
+
+  #preview {
+    max-width: 100%;
+    border: 1px solid #ccc;
   }
 </style>
 </head>
 <body>
 
-<h2>IG 等級整頁分享（穩定版）</h2>
+<h2>IG 等級穩定分享</h2>
 
 <div id="captureArea">
 
@@ -45,52 +57,47 @@
 
 </div>
 
-<button onclick="share()">📤 直接分享整頁</button>
+<button onclick="share()">📤 一鍵分享（IG等級）</button>
 
 <br><br>
-<img id="preview" style="max-width:100%; border:1px solid #ccc;">
+<img id="preview">
 
 <script>
 
 let isProcessing = false;
 
-// 把圖片轉 base64（只作用在 clone，不污染畫面）
-async function convertImagesInClone(clone) {
-
-  const imgs = clone.querySelectorAll("img");
-
-  await Promise.all([...imgs].map(async img => {
-    try {
-      const res = await fetch(img.src);
-      const blob = await res.blob();
-
-      const reader = new FileReader();
-      const base64 = await new Promise(resolve => {
-        reader.onloadend = () => resolve(reader.result);
-        reader.readAsDataURL(blob);
-      });
-
-      img.src = base64;
-
-    } catch (e) {
-      console.warn("圖片轉換失敗:", img.src);
-    }
-  }));
-}
-
-// 等圖片載入完成（clone）
-async function waitImages(clone) {
-  const imgs = clone.querySelectorAll("img");
+// 等圖片載入完成
+async function waitImages(el) {
+  const imgs = el.querySelectorAll("img");
 
   await Promise.all([...imgs].map(img => {
     if (img.complete) return;
-    return new Promise(resolve => {
-      img.onload = img.onerror = resolve;
+    return new Promise(r => {
+      img.onload = img.onerror = r;
     });
   }));
 }
 
-// 🚀 直接分享（核心）
+// 等畫面 render 穩定
+function waitStableRender() {
+  return new Promise(r => {
+    requestAnimationFrame(() => {
+      requestAnimationFrame(r);
+    });
+  });
+}
+
+// freeze 畫面（避免動畫/變動）
+function freezeUI() {
+  document.body.classList.add("freeze");
+}
+
+// 解 freeze
+function unfreezeUI() {
+  document.body.classList.remove("freeze");
+}
+
+// 🚀 主分享
 async function share() {
 
   if (isProcessing) return;
@@ -100,10 +107,18 @@ async function share() {
 
     const node = document.getElementById("captureArea");
 
-    // 1️⃣ 複製 DOM（關鍵：不影響畫面）
+    // 1️⃣ 等圖片載入
+    await waitImages(node);
+
+    // 2️⃣ 等 render 穩定
+    await waitStableRender();
+
+    // 3️⃣ freeze UI（防止截圖時跳動）
+    freezeUI();
+
+    // 4️⃣ clone（安全截圖）
     const clone = node.cloneNode(true);
 
-    // 2️⃣ 丟到畫面外（不可見）
     clone.style.position = "fixed";
     clone.style.left = "-10000px";
     clone.style.top = "0";
@@ -111,33 +126,34 @@ async function share() {
 
     document.body.appendChild(clone);
 
-    // 3️⃣ 處理圖片（只影響 clone）
-    await convertImagesInClone(clone);
-
-    // 4️⃣ 等圖片載入
+    // 5️⃣ clone 圖片再確認一次
     await waitImages(clone);
 
-    // 5️⃣ 截圖
+    // 6️⃣ 再等一次 render（超穩）
+    await waitStableRender();
+
+    // 7️⃣ 截圖
     const blob = await domtoimage.toBlob(clone, {
       bgcolor: "#ffffff",
       width: clone.scrollWidth,
       height: clone.scrollHeight
     });
 
-    // 6️⃣ 移除 clone
     document.body.removeChild(clone);
 
-    // 7️⃣ 預覽（可刪）
+    unfreezeUI();
+
+    // 8️⃣ 預覽
     const url = URL.createObjectURL(blob);
     document.getElementById("preview").src = url;
 
-    // 8️⃣ 分享
-    const file = new File([blob], "page.png", { type: "image/png" });
+    // 9️⃣ 分享
+    const file = new File([blob], "ig-share.png", { type: "image/png" });
 
     if (navigator.canShare && navigator.canShare({ files: [file] })) {
       await navigator.share({
         files: [file],
-        title: "整頁截圖"
+        title: "分享內容"
       });
     } else {
       alert("此裝置不支援分享");
