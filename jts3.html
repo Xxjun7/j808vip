@@ -1,72 +1,30 @@
-<!DOCTYPE html>
-<html lang="zh-TW">
-<head>
-<meta charset="UTF-8">
-<title>IG等級穩定分享版</title>
-
 <script src="https://cdn.jsdelivr.net/npm/dom-to-image-more@3.3.0/dist/dom-to-image-more.min.js"></script>
-
-<style>
-  body { font-family: Arial; margin: 0; }
-
-  .box {
-    height: 600px;
-    border: 1px solid #000;
-    margin: 20px;
-    padding: 20px;
-  }
-
-  button {
-    padding: 12px;
-    margin: 10px;
-    font-size: 16px;
-  }
-
-  /* 🔥 freeze 用（截圖時防跳動） */
-  .freeze * {
-    transition: none !important;
-    animation: none !important;
-  }
-
-  #preview {
-    max-width: 100%;
-    border: 1px solid #ccc;
-  }
-</style>
-</head>
-<body>
-
-<h2>IG 等級穩定分享</h2>
-
-<div id="captureArea">
-
-  <div class="box">
-    區塊1<br>
-    <img src="https://picsum.photos/300/200">
-  </div>
-
-  <div class="box">
-    區塊2<br>
-    <img src="https://picsum.photos/301/200">
-  </div>
-
-  <div class="box">
-    區塊3<br>
-    <img src="https://picsum.photos/302/200">
-  </div>
-
-</div>
-
-<button onclick="share()">📤 一鍵分享（IG等級）</button>
-
-<br><br>
-<img id="preview">
 
 <script>
 
 let isProcessing = false;
 
-// 等圖片載入完成
+// 等畫面穩定
+function waitStable() {
+  return new Promise(r => {
+    requestAnimationFrame(() => {
+      requestAnimationFrame(r);
+    });
+  });
+}
+
+// ❌ 不再 fetch 圖片（關鍵修正）
+function lockImages(clone) {
+  const imgs = clone.querySelectorAll("img");
+
+  imgs.forEach(img => {
+    // 🔥 關鍵：禁止重新載入
+    img.crossOrigin = "anonymous";
+    img.decoding = "sync";
+  });
+}
+
+// 等圖片載入完成（只等，不改）
 async function waitImages(el) {
   const imgs = el.querySelectorAll("img");
 
@@ -78,26 +36,6 @@ async function waitImages(el) {
   }));
 }
 
-// 等畫面 render 穩定
-function waitStableRender() {
-  return new Promise(r => {
-    requestAnimationFrame(() => {
-      requestAnimationFrame(r);
-    });
-  });
-}
-
-// freeze 畫面（避免動畫/變動）
-function freezeUI() {
-  document.body.classList.add("freeze");
-}
-
-// 解 freeze
-function unfreezeUI() {
-  document.body.classList.remove("freeze");
-}
-
-// 🚀 主分享
 async function share() {
 
   if (isProcessing) return;
@@ -107,16 +45,13 @@ async function share() {
 
     const node = document.getElementById("captureArea");
 
-    // 1️⃣ 等圖片載入
+    // 1️⃣ 等圖片載入完成（當下畫面）
     await waitImages(node);
 
     // 2️⃣ 等 render 穩定
-    await waitStableRender();
+    await waitStable();
 
-    // 3️⃣ freeze UI（防止截圖時跳動）
-    freezeUI();
-
-    // 4️⃣ clone（安全截圖）
+    // 3️⃣ clone（快照）
     const clone = node.cloneNode(true);
 
     clone.style.position = "fixed";
@@ -126,41 +61,32 @@ async function share() {
 
     document.body.appendChild(clone);
 
-    // 5️⃣ clone 圖片再確認一次
-    await waitImages(clone);
+    // 4️⃣ 不重抓圖，只鎖住狀態
+    lockImages(clone);
 
-    // 6️⃣ 再等一次 render（超穩）
-    await waitStableRender();
+    // 5️⃣ 等 clone render
+    await waitStable();
 
-    // 7️⃣ 截圖
+    // 6️⃣ 直接截圖（不 fetch、不轉 base64）
     const blob = await domtoimage.toBlob(clone, {
       bgcolor: "#ffffff",
+      cacheBust: false,   // 🔥 關鍵：禁止 cache 變動
       width: clone.scrollWidth,
       height: clone.scrollHeight
     });
 
     document.body.removeChild(clone);
 
-    unfreezeUI();
+    // 7️⃣ 分享
+    const file = new File([blob], "page.png", { type: "image/png" });
 
-    // 8️⃣ 預覽
-    const url = URL.createObjectURL(blob);
-    document.getElementById("preview").src = url;
+    await navigator.share?.({
+      files: [file],
+      title: "分享"
+    });
 
-    // 9️⃣ 分享
-    const file = new File([blob], "ig-share.png", { type: "image/png" });
-
-    if (navigator.canShare && navigator.canShare({ files: [file] })) {
-      await navigator.share({
-        files: [file],
-        title: "分享內容"
-      });
-    } else {
-      alert("此裝置不支援分享");
-    }
-
-  } catch (err) {
-    console.error(err);
+  } catch (e) {
+    console.error(e);
     alert("截圖失敗");
   }
 
@@ -168,6 +94,3 @@ async function share() {
 }
 
 </script>
-
-</body>
-</html>
