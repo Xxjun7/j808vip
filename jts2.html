@@ -2,9 +2,9 @@
 <html lang="zh-TW">
 <head>
 <meta charset="UTF-8">
-<title>整頁轉圖片分享</title>
+<title>整頁轉圖片（進階穩定版）</title>
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/dom-to-image-more@3.3.0/dist/dom-to-image-more.min.js"></script>
 
 <style>
   body { font-family: Arial; }
@@ -19,14 +19,29 @@
 </head>
 <body>
 
-<h2>整頁 → 圖片 → 分享</h2>
+<h2>IG 等級整頁截圖</h2>
 
-<div class="box">區塊1<br><img src="https://picsum.photos/300/200"></div>
-<div class="box">區塊2<br><img src="https://picsum.photos/301/200"></div>
-<div class="box">區塊3<br><img src="https://picsum.photos/302/200"></div>
+<div id="captureArea">
 
-<button onclick="capture()">📸 產生整頁圖片</button>
-<button onclick="share()">📤 分享圖片</button>
+  <div class="box">
+    區塊1<br>
+    <img src="https://picsum.photos/300/200">
+  </div>
+
+  <div class="box">
+    區塊2<br>
+    <img src="https://picsum.photos/301/200">
+  </div>
+
+  <div class="box">
+    區塊3<br>
+    <img src="https://picsum.photos/302/200">
+  </div>
+
+</div>
+
+<button onclick="capture()">📸 一鍵截圖</button>
+<button onclick="share()">📤 分享</button>
 
 <br><br>
 <img id="preview" style="max-width:100%; border:1px solid #ccc;">
@@ -35,21 +50,63 @@
 
 let imageBlob = null;
 
-// 產生整頁圖
-function capture() {
-  html2canvas(document.body, {
-    scrollY: -window.scrollY,
-    windowHeight: document.body.scrollHeight
-  }).then(canvas => {
-    document.getElementById("preview").src = canvas.toDataURL();
+// 強制圖片轉 base64（解決跨域）
+async function fixImages() {
+  const imgs = document.querySelectorAll("#captureArea img");
 
-    canvas.toBlob(blob => {
-      imageBlob = blob;
-    });
-  });
+  await Promise.all([...imgs].map(async img => {
+    try {
+      const res = await fetch(img.src);
+      const blob = await res.blob();
+
+      const reader = new FileReader();
+      const base64 = await new Promise(r => {
+        reader.onloadend = () => r(reader.result);
+        reader.readAsDataURL(blob);
+      });
+
+      img.src = base64;
+    } catch (e) {
+      console.warn("圖片轉換失敗:", img.src);
+    }
+  }));
 }
 
-// 分享（手機可用）
+// IG 等級截圖
+async function capture() {
+
+  const node = document.getElementById("captureArea");
+
+  // 1️⃣ 解決跨域圖片（關鍵）
+  await fixImages();
+
+  // 2️⃣ 等圖片載入
+  await Promise.all(
+    [...node.querySelectorAll("img")].map(img => {
+      if (img.complete) return;
+      return new Promise(r => img.onload = img.onerror = r);
+    })
+  );
+
+  // 3️⃣ 轉圖片
+  const blob = await domtoimage.toBlob(node, {
+    quality: 1,
+    bgcolor: "#ffffff",
+    width: node.scrollWidth,
+    height: node.scrollHeight,
+    style: {
+      transform: "scale(1)",
+      transformOrigin: "top left"
+    }
+  });
+
+  imageBlob = blob;
+
+  const url = URL.createObjectURL(blob);
+  document.getElementById("preview").src = url;
+}
+
+// 分享
 async function share() {
   if (!imageBlob) {
     alert("請先產生圖片");
@@ -61,10 +118,10 @@ async function share() {
   if (navigator.canShare && navigator.canShare({ files: [file] })) {
     await navigator.share({
       files: [file],
-      title: "整頁截圖",
+      title: "截圖分享",
     });
   } else {
-    alert("此裝置不支援分享，請改用下載");
+    alert("不支援分享，請下載");
   }
 }
 
