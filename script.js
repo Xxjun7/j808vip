@@ -279,31 +279,45 @@ function capture() {
   });
 }
 
-async function share() {
+function freezeScreen() {
+  document.body.classList.add("freeze-capture");
+}
 
-  console.log("share clicked"); // 🔥 確認有沒有觸發
+function unfreezeScreen() {
+  document.body.classList.remove("freeze-capture");
+}
+
+async function share() {
 
   try {
 
-    if (typeof html2canvas === "undefined") {
-      alert("html2canvas 沒載入");
-      return;
-    }
+    // 🔥 1. freeze 畫面（停止動畫）
+    freezeScreen();
 
+    // 🔥 2. 等一個 frame（讓 DOM 穩定）
+    await new Promise(r => requestAnimationFrame(() => {
+      requestAnimationFrame(r);
+    }));
+
+    // 🔥 3. 截圖
     const canvas = await html2canvas(document.body, {
       useCORS: true,
-      scale: 2
+      scale: 2,
+      backgroundColor: "#ffffff"
     });
 
     const blob = await new Promise(resolve => {
       canvas.toBlob(resolve, "image/png");
     });
 
+    // 🔥 4. 解 freeze
+    unfreezeScreen();
+
     const file = new File([blob], "抽獎結果.png", {
       type: "image/png"
     });
 
-    if (navigator.canShare && navigator.canShare({ files: [file] })) {
+    if (navigator.canShare?.({ files: [file] })) {
 
       await navigator.share({
         files: [file],
@@ -312,8 +326,6 @@ async function share() {
 
     } else {
 
-      alert("此裝置不支援分享，改為下載");
-
       const a = document.createElement("a");
       a.href = URL.createObjectURL(blob);
       a.download = "抽獎結果.png";
@@ -321,8 +333,10 @@ async function share() {
     }
 
   } catch (e) {
+
+    unfreezeScreen();
     console.error(e);
-    alert("分享失敗：" + e.message);
+    alert("分享失敗");
   }
 }
 
