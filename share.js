@@ -30,10 +30,8 @@ async function Share() {
     await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
 
     // ⭐ 抓整頁尺寸
-    const width = window.innerWidth;
-    const height = window.innerHeight;
-    //const width = document.documentElement.scrollWidth;
-    //const height = document.documentElement.scrollHeight;
+    const width = document.documentElement.scrollWidth;
+    const height = document.documentElement.scrollHeight;
 
     const blob = await domtoimage.toBlob(clone, {
       bgcolor: "#111",
