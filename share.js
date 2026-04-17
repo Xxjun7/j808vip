@@ -20,10 +20,10 @@ async function Share() {
     clone.style.background = "#111"; // 跟你背景一致
 
     // ⭐ 關掉動畫（但保留 transform）
-    clone.querySelectorAll("*").forEach(el => {
-      el.style.animation = "none";
-      el.style.transition = "none";
-    });
+   // clone.querySelectorAll("*").forEach(el => {
+   //   el.style.animation = "none";
+   //   el.style.transition = "none";
+   // });
 
     document.body.appendChild(clone);
 
