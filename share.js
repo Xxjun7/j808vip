@@ -12,12 +12,12 @@ async function Share() {
     const node = document.body;
 
     // ⭐ clone（避免污染畫面）
-    const clone = node.cloneNode(true);
+    //const clone = node.cloneNode(true);
 
-    clone.style.position = "fixed";
-    clone.style.left = "-9999px";
-    clone.style.top = "0";
-    clone.style.background = "#111"; // 跟你背景一致
+    //clone.style.position = "fixed";
+    //clone.style.left = "-9999px";
+   //clone.style.top = "0";
+    //clone.style.background = "#111"; // 跟你背景一致
 
     // ⭐ 關掉動畫（但保留 transform）
    // clone.querySelectorAll("*").forEach(el => {
