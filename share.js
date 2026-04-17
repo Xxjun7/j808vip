@@ -1,63 +1,57 @@
 async function Share() {
+
   try {
+
+    // ⭐ 凍結所有動畫（很重要）
     document.body.classList.add("freeze-capture");
 
+    // ⭐ 等畫面穩定（避免截到動畫中）
     await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
 
-    // ⭐ 建立 9:16 畫布（模擬手機畫面）
-    const canvas = document.createElement("div");
+    // ⭐ 直接用整個 body
+    const node = document.body;
 
-    const WIDTH = 1080;
-    const HEIGHT = 1920;
+    // ⭐ clone（避免污染畫面）
+    const clone = node.cloneNode(true);
 
-    canvas.style.width = WIDTH + "px";
-    canvas.style.height = HEIGHT + "px";
-    canvas.style.position = "fixed";
-    canvas.style.left = "-99999px";
-    canvas.style.top = "0";
-    canvas.style.overflow = "hidden";
-    canvas.style.background = "#111";
+    clone.style.position = "fixed";
+    clone.style.left = "-9999px";
+    clone.style.top = "0";
+    clone.style.background = "#111"; // 跟你背景一致
 
-    // ⭐ 把整個畫面塞進去
-    const clone = document.body.cloneNode(true);
-
-    // ⭐ 關動畫
+    // ⭐ 關掉動畫（但保留 transform）
     clone.querySelectorAll("*").forEach(el => {
       el.style.animation = "none";
       el.style.transition = "none";
     });
 
-    // ⭐ 縮放成手機比例（重點）
-    const scaleX = WIDTH / window.innerWidth;
-    const scaleY = HEIGHT / window.innerHeight;
-    const scale = Math.min(scaleX, scaleY);
-
-    clone.style.transform = `scale(${scale})`;
-    clone.style.transformOrigin = "top left";
-    clone.style.width = window.innerWidth + "px";
-
-    canvas.appendChild(clone);
-    document.body.appendChild(canvas);
+    document.body.appendChild(clone);
 
     await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
 
-    const blob = await domtoimage.toBlob(canvas, {
+    // ⭐ 抓整頁尺寸
+    const width = document.documentElement.scrollWidth;
+    const height = document.documentElement.scrollHeight;
+
+    const blob = await domtoimage.toBlob(clone, {
       bgcolor: "#111",
-      width: WIDTH,
-      height: HEIGHT
+      width,
+      height
     });
 
-    document.body.removeChild(canvas);
+    document.body.removeChild(clone);
     document.body.classList.remove("freeze-capture");
 
     const file = new File([blob], "share.png", { type: "image/png" });
 
-    if (navigator.share && navigator.canShare?.({ files: [file] })) {
+    // ⭐ 手機分享
+    if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
       await navigator.share({
         files: [file],
         title: "抽卡結果"
       });
     } else {
+      // ⭐ fallback 下載
       const a = document.createElement("a");
       a.href = URL.createObjectURL(blob);
       a.download = "share.png";
