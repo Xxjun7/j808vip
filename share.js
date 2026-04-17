@@ -6,12 +6,6 @@ async function ShareIG() {
     const chance = document.getElementById("chance")?.innerText || "";
     const result = document.getElementById("result")?.innerText || "尚未抽卡";
 
-    // ⭐ 解析 code（避免整段亂）
-    const code = result;
-
-    // =========================
-    // 🎨 建立 IG 畫布
-    // =========================
     const canvas = document.createElement("canvas");
     canvas.width = 1080;
     canvas.height = 1920;
@@ -29,7 +23,7 @@ async function ShareIG() {
     ctx.fillRect(0, 0, 1080, 1920);
 
     // =========================
-    // 🏷 標題
+    // 🎴 標題
     // =========================
     ctx.fillStyle = "#fff";
     ctx.font = "bold 80px sans-serif";
@@ -37,7 +31,7 @@ async function ShareIG() {
     ctx.fillText("🎴 抽卡結果", 540, 180);
 
     // =========================
-    // 👤 使用者
+    // 👤 使用者 + 次數
     // =========================
     ctx.font = "40px sans-serif";
     ctx.fillStyle = "#aaa";
@@ -45,81 +39,81 @@ async function ShareIG() {
     ctx.fillText(chance, 540, 360);
 
     // =========================
-    // 🟡 SSR 黃色框（重點）
+    // 🟡 SSR 卡片本體（重點）
     // =========================
-    const boxX = 140;
-    const boxY = 520;
-    const boxW = 800;
-    const boxH = 900;
+    const x = 140;
+    const y = 520;
+    const w = 800;
+    const h = 1000;
 
-    // 背景框
+    // 卡片底
     ctx.fillStyle = "#1a1a1a";
-    roundRect(ctx, boxX, boxY, boxW, boxH, 40);
+    roundRect(ctx, x, y, w, h, 40);
     ctx.fill();
 
-    // ⭐ 金色發光外框
-    ctx.strokeStyle = "gold";
-    ctx.lineWidth = 8;
+    // ⭐ 發光外框（SSR效果）
     ctx.shadowColor = "gold";
-    ctx.shadowBlur = 30;
+    ctx.shadowBlur = 40;
 
-    roundRect(ctx, boxX, boxY, boxW, boxH, 40);
+    ctx.strokeStyle = "gold";
+    ctx.lineWidth = 10;
+    roundRect(ctx, x, y, w, h, 40);
     ctx.stroke();
 
     ctx.shadowBlur = 0;
 
     // =========================
-    // 🎴 中獎卡樣式標題
+    // 🎴 SSR 標示
     // =========================
     ctx.fillStyle = "gold";
-    ctx.font = "bold 60px sans-serif";
-    ctx.fillText("🎉 中獎卡", 540, 650);
+    ctx.font = "bold 70px sans-serif";
+    ctx.fillText("SSR", 540, 680);
 
     // =========================
-    // 🔑 CODE 區塊（重點）
+    // 🔑 CODE（卡片核心）
     // =========================
     ctx.fillStyle = "#fff";
-    ctx.font = "bold 45px monospace";
+    ctx.font = "bold 60px monospace";
 
     wrapText(
       ctx,
-      code,
+      result,
       540,
-      780,
+      820,
       700,
-      65
+      80
     );
 
     // =========================
-    // ✨ 裝飾文字
+    // 🎮 footer
     // =========================
     ctx.fillStyle = "#666";
     ctx.font = "28px sans-serif";
     ctx.fillText("SSR 抽卡分享卡", 540, 1750);
 
     // =========================
-    // 📤 轉檔 + 分享
+    // 📤 分享
     // =========================
-    canvas.toBlob(async (blob) => {
+    const blob = await new Promise(resolve =>
+      canvas.toBlob(resolve, "image/png")
+    );
 
-      const file = new File([blob], "ssr-share.png", { type: "image/png" });
+    const file = new File([blob], "ssr-card.png", { type: "image/png" });
 
-      if (navigator.share && navigator.canShare?.({ files: [file] })) {
+    if (navigator.share && navigator.canShare?.({ files: [file] })) {
 
-        await navigator.share({
-          files: [file],
-          title: "SSR 抽卡結果"
-        });
+      await navigator.share({
+        files: [file],
+        title: "SSR 抽卡結果"
+      });
 
-      } else {
+    } else {
 
-        const a = document.createElement("a");
-        a.href = URL.createObjectURL(blob);
-        a.download = "ssr-share.png";
-        a.click();
-      }
-
-    });
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(blob);
+      a.download = "ssr-card.png";
+      a.click();
+    }
 
   } catch (e) {
     console.error(e);
