@@ -2,7 +2,6 @@ async function ShareIG() {
 
   try {
 
-    const uid = document.getElementById("uid")?.value || "";
     const chance = document.getElementById("chance")?.innerText || "";
     const result = document.getElementById("result")?.innerText || "尚未抽卡";
 
@@ -28,21 +27,20 @@ async function ShareIG() {
     ctx.fillStyle = "#fff";
     ctx.font = "bold 80px sans-serif";
     ctx.textAlign = "center";
-    ctx.fillText("🎴 抽卡結果", 540, 180);
+    ctx.fillText("🎴 抽卡結果", 540, 200);
 
     // =========================
-    // 👤 使用者 + 次數
+    // 💰 次數
     // =========================
     ctx.font = "40px sans-serif";
     ctx.fillStyle = "#aaa";
-    ctx.fillText(uid, 540, 300);
-    ctx.fillText(chance, 540, 360);
+    ctx.fillText(chance, 540, 320);
 
     // =========================
-    // 🟡 SSR 卡片本體（重點）
+    // 🟡 SSR 卡片（只顯示一張）
     // =========================
     const x = 140;
-    const y = 520;
+    const y = 480;
     const w = 800;
     const h = 1000;
 
@@ -51,9 +49,9 @@ async function ShareIG() {
     roundRect(ctx, x, y, w, h, 40);
     ctx.fill();
 
-    // ⭐ 發光外框（SSR效果）
+    // ⭐ 發光效果（SSR重點）
     ctx.shadowColor = "gold";
-    ctx.shadowBlur = 40;
+    ctx.shadowBlur = 50;
 
     ctx.strokeStyle = "gold";
     ctx.lineWidth = 10;
@@ -63,29 +61,29 @@ async function ShareIG() {
     ctx.shadowBlur = 0;
 
     // =========================
-    // 🎴 SSR 標示
+    // 🎉 中獎卡標題
     // =========================
     ctx.fillStyle = "gold";
     ctx.font = "bold 70px sans-serif";
-    ctx.fillText("SSR", 540, 680);
+    ctx.fillText("🎉 中獎卡", 540, 620);
 
     // =========================
-    // 🔑 CODE（卡片核心）
+    // 🔑 CODE（核心）
     // =========================
     ctx.fillStyle = "#fff";
-    ctx.font = "bold 60px monospace";
+    ctx.font = "bold 55px monospace";
 
     wrapText(
       ctx,
       result,
       540,
-      820,
+      780,
       700,
       80
     );
 
     // =========================
-    // 🎮 footer
+    // 🧾 footer
     // =========================
     ctx.fillStyle = "#666";
     ctx.font = "28px sans-serif";
@@ -98,20 +96,20 @@ async function ShareIG() {
       canvas.toBlob(resolve, "image/png")
     );
 
-    const file = new File([blob], "ssr-card.png", { type: "image/png" });
+    const file = new File([blob], "ssr-share.png", { type: "image/png" });
 
     if (navigator.share && navigator.canShare?.({ files: [file] })) {
 
       await navigator.share({
         files: [file],
-        title: "SSR 抽卡結果"
+        title: "SSR 中獎卡"
       });
 
     } else {
 
       const a = document.createElement("a");
       a.href = URL.createObjectURL(blob);
-      a.download = "ssr-card.png";
+      a.download = "ssr-share.png";
       a.click();
     }
 
