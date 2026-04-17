@@ -16,7 +16,7 @@ async function Share() {
 
     //clone.style.position = "fixed";
     //clone.style.left = "-9999px";
-   //clone.style.top = "0";
+    //clone.style.top = "0";
     //clone.style.background = "#111"; // 跟你背景一致
 
     // ⭐ 關掉動畫（但保留 transform）
@@ -30,8 +30,10 @@ async function Share() {
     await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
 
     // ⭐ 抓整頁尺寸
-    const width = document.documentElement.scrollWidth;
-    const height = document.documentElement.scrollHeight;
+    const width = window.innerWidth;
+    const height = window.innerHeight;
+    //const width = document.documentElement.scrollWidth;
+    //const height = document.documentElement.scrollHeight;
 
     const blob = await domtoimage.toBlob(clone, {
       bgcolor: "#111",
