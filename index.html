@@ -16,9 +16,10 @@
   <input id="uid" placeholder="輸入編號姓名">
   <button id="loginBtn" onclick="login()">登入</button>
 </div>
+  
+<button id="logoutBtn" onclick="logout()" style="display:none;">登出</button>
 
 <div id="chance"></div>
-<button id="logoutBtn" onclick="logout()" style="display:none;">登出</button>
 <!-- ⭐⭐⭐ 關鍵：包一層分享區 -->
 <div id="shareArea">
   <div id="cards"></div>
@@ -41,7 +42,7 @@
 <script src="script.js"></script>
 
 <!-- ⭐ dom-to-image（要在 share.js 前） -->
-<script src="https://cdn.jsdelivr.net/npm/dom-to-image-more@3.3.0/dist/dom-to-image-more.min.js"></script>
+<script src="dom-to-image-more.min372.js"></script>
 
 <script src="share.js"></script>
 
