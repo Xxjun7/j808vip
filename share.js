@@ -3,7 +3,7 @@ async function Share() {
   try {
 
     // ⭐ 凍結所有動畫（很重要）
-    document.body.classList.add("freeze-capture");
+    //document.body.classList.add("freeze-capture");
 
     // ⭐ 等畫面穩定（避免截到動畫中）
     await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
