@@ -1,10 +1,12 @@
-const Share = {
+async function Share(selector) {
 
-  isReady: false,
+  const node = document.querySelector(selector);
+  if (!node) return;
 
-  // 🔹 圖片轉 base64（解決跨域）
-  async init(selector) {
-    const imgs = document.querySelectorAll(`${selector} img`);
+  try {
+
+    // 🔥 1. 把圖片轉 base64（關鍵）
+    const imgs = node.querySelectorAll("img");
 
     await Promise.all([...imgs].map(async (img) => {
       try {
@@ -18,93 +20,47 @@ const Share = {
         });
 
         img.src = base64;
-
       } catch (e) {
-        console.warn("image failed:", img.src);
+        console.warn("image fail:", img.src);
       }
     }));
 
-    // 等字體
-    if (document.fonts) {
-      await document.fonts.ready;
-    }
+    // 等畫面穩定
+    await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
 
-    this.isReady = true;
-  },
+    const clone = node.cloneNode(true);
+    clone.style.position = "fixed";
+    clone.style.left = "-9999px";
+    clone.style.top = "0";
+    clone.style.background = "#fff";
 
-  // 🔹 等畫面穩定
-  waitStable() {
-    return new Promise(r => {
-      requestAnimationFrame(() => {
-        requestAnimationFrame(r);
-      });
+    document.body.appendChild(clone);
+
+    await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
+
+    const blob = await domtoimage.toBlob(clone, {
+      bgcolor: "#ffffff",
+      width: clone.scrollWidth,
+      height: clone.scrollHeight
     });
-  },
 
-  // 🔹 fallback 下載
-  download(blob) {
-    const a = document.createElement("a");
-    a.href = URL.createObjectURL(blob);
-    a.download = "share.png";
-    a.click();
-  },
+    document.body.removeChild(clone);
 
-  // 🔹 主功能
-  async run(selector) {
+    const file = new File([blob], "share.png", { type: "image/png" });
 
-    const node = document.querySelector(selector);
-    if (!node) {
-      console.error("找不到元素:", selector);
-      return;
-    }
-
-    try {
-
-      if (!this.isReady) {
-        await this.init(selector);
-      }
-
-      await this.waitStable();
-
-      // 凍結動畫（避免畫面跑掉）
-      document.body.classList.add("freeze");
-
-      const clone = node.cloneNode(true);
-
-      clone.style.position = "fixed";
-      clone.style.left = "-9999px";
-      clone.style.top = "0";
-      clone.style.background = "#fff";
-
-      document.body.appendChild(clone);
-
-      await this.waitStable();
-
-      const blob = await domtoimage.toBlob(clone, {
-        bgcolor: "#ffffff",
-        width: clone.scrollWidth,
-        height: clone.scrollHeight
+    if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
+      await navigator.share({
+        files: [file],
+        title: document.title
       });
-
-      document.body.removeChild(clone);
-      document.body.classList.remove("freeze");
-
-      const file = new File([blob], "share.png", { type: "image/png" });
-
-      // 📱 分享 or 下載
-      if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
-
-        await navigator.share({
-          files: [file],
-          title: document.title
-        });
-
-      } else {
-        this.download(blob);
-      }
-
-    } catch (err) {
-      console.error("分享失敗:", err);
+    } else {
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(blob);
+      a.download = "share.png";
+      a.click();
     }
+
+  } catch (err) {
+    console.error(err);
   }
-};
+}
