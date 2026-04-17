@@ -1,3 +1,38 @@
+// =========================
+// 🧩 工具（一定要在最上面）
+// =========================
+function roundRect(ctx, x, y, w, h, r) {
+  ctx.beginPath();
+  ctx.moveTo(x + r, y);
+  ctx.arcTo(x + w, y, x + w, y + h, r);
+  ctx.arcTo(x + w, y + h, x, y + h, r);
+  ctx.arcTo(x, y + h, x, y, r);
+  ctx.arcTo(x, y, x + w, y, r);
+  ctx.closePath();
+}
+
+function wrapText(ctx, text, x, y, maxWidth, lineHeight) {
+  const words = text.split("");
+  let line = "";
+
+  for (let i = 0; i < words.length; i++) {
+    const testLine = line + words[i];
+
+    if (ctx.measureText(testLine).width > maxWidth && i > 0) {
+      ctx.fillText(line, x, y);
+      line = words[i];
+      y += lineHeight;
+    } else {
+      line = testLine;
+    }
+  }
+
+  ctx.fillText(line, x, y);
+}
+
+// =========================
+// 🎴 分享主函式
+// =========================
 async function ShareIG() {
 
   try {
@@ -8,7 +43,7 @@ async function ShareIG() {
     const result = document.getElementById("result")?.innerText || "尚未抽卡";
 
     // =========================
-    // 🎴 Canvas
+    // 🖼 canvas
     // =========================
     const canvas = document.createElement("canvas");
     canvas.width = 1080;
@@ -34,13 +69,15 @@ async function ShareIG() {
     ctx.textAlign = "center";
     ctx.fillText("🎴 抽卡結果", 540, 180);
 
-    // 次數
+    // =========================
+    // 💰 次數
+    // =========================
     ctx.font = "40px sans-serif";
     ctx.fillStyle = "#aaa";
     ctx.fillText(chance, 540, 320);
 
     // =========================
-    // 🟡 SSR 卡片（唯一重點）
+    // 🟡 SSR 卡片
     // =========================
     const x = 140;
     const y = 480;
@@ -52,9 +89,9 @@ async function ShareIG() {
     roundRect(ctx, x, y, w, h, 40);
     ctx.fill();
 
-    // 發光框
+    // ⭐ 發光效果
     ctx.shadowColor = "gold";
-    ctx.shadowBlur = 45;
+    ctx.shadowBlur = 50;
 
     ctx.strokeStyle = "gold";
     ctx.lineWidth = 10;
@@ -63,24 +100,30 @@ async function ShareIG() {
 
     ctx.shadowBlur = 0;
 
-    // SSR標示
+    // =========================
+    // 🎉 標題
+    // =========================
     ctx.fillStyle = "gold";
     ctx.font = "bold 70px sans-serif";
     ctx.fillText("🎉 中獎卡", 540, 620);
 
+    // =========================
     // CODE
+    // =========================
     ctx.fillStyle = "#fff";
     ctx.font = "bold 55px monospace";
 
     wrapText(ctx, result, 540, 780, 700, 80);
 
+    // =========================
     // footer
+    // =========================
     ctx.fillStyle = "#666";
     ctx.font = "28px sans-serif";
     ctx.fillText("SSR 抽卡分享卡", 540, 1750);
 
     // =========================
-    // 📦 blob（穩定版）
+    // 📦 blob
     // =========================
     const blob = await new Promise(resolve => {
       canvas.toBlob(resolve, "image/png");
@@ -95,14 +138,12 @@ async function ShareIG() {
       type: "image/png"
     });
 
-    console.log("blob ready");
-
     // =========================
-    // 📤 分享 or 下載
+    // 📤 分享
     // =========================
     if (navigator.share && navigator.canShare?.({ files: [file] })) {
 
-      console.log("using share");
+      console.log("share API");
 
       await navigator.share({
         files: [file],
@@ -111,7 +152,7 @@ async function ShareIG() {
 
     } else {
 
-      console.log("fallback download");
+      console.log("download fallback");
 
       const a = document.createElement("a");
       a.href = URL.createObjectURL(blob);
