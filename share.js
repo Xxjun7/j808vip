@@ -6,7 +6,12 @@ async function ShareIG() {
     const chance = document.getElementById("chance")?.innerText || "";
     const result = document.getElementById("result")?.innerText || "尚未抽卡";
 
-    // ⭐ 建立 IG 畫布（9:16）
+    // ⭐ 解析 code（避免整段亂）
+    const code = result;
+
+    // =========================
+    // 🎨 建立 IG 畫布
+    // =========================
     const canvas = document.createElement("canvas");
     canvas.width = 1080;
     canvas.height = 1920;
@@ -14,7 +19,7 @@ async function ShareIG() {
     const ctx = canvas.getContext("2d");
 
     // =========================
-    // 🎨 背景（黑色漸層）
+    // 🌌 背景
     // =========================
     const grad = ctx.createLinearGradient(0, 0, 0, 1920);
     grad.addColorStop(0, "#111");
@@ -26,71 +31,91 @@ async function ShareIG() {
     // =========================
     // 🏷 標題
     // =========================
-    ctx.fillStyle = "#ffffff";
+    ctx.fillStyle = "#fff";
     ctx.font = "bold 80px sans-serif";
     ctx.textAlign = "center";
-    ctx.fillText("🎴 抽卡結果", 540, 200);
+    ctx.fillText("🎴 抽卡結果", 540, 180);
 
     // =========================
     // 👤 使用者
     // =========================
     ctx.font = "40px sans-serif";
     ctx.fillStyle = "#aaa";
-    ctx.fillText(uid, 540, 320);
+    ctx.fillText(uid, 540, 300);
+    ctx.fillText(chance, 540, 360);
 
     // =========================
-    // 💰 次數
+    // 🟡 SSR 黃色框（重點）
     // =========================
-    ctx.fillText(chance, 540, 420);
+    const boxX = 140;
+    const boxY = 520;
+    const boxW = 800;
+    const boxH = 900;
 
-    // =========================
-    // 🎉 結果框
-    // =========================
+    // 背景框
     ctx.fillStyle = "#1a1a1a";
-    roundRect(ctx, 140, 600, 800, 600, 40);
+    roundRect(ctx, boxX, boxY, boxW, boxH, 40);
     ctx.fill();
 
-    // 外框金色
+    // ⭐ 金色發光外框
     ctx.strokeStyle = "gold";
-    ctx.lineWidth = 6;
+    ctx.lineWidth = 8;
+    ctx.shadowColor = "gold";
+    ctx.shadowBlur = 30;
+
+    roundRect(ctx, boxX, boxY, boxW, boxH, 40);
     ctx.stroke();
 
+    ctx.shadowBlur = 0;
+
     // =========================
-    // 結果文字
+    // 🎴 中獎卡樣式標題
+    // =========================
+    ctx.fillStyle = "gold";
+    ctx.font = "bold 60px sans-serif";
+    ctx.fillText("🎉 中獎卡", 540, 650);
+
+    // =========================
+    // 🔑 CODE 區塊（重點）
     // =========================
     ctx.fillStyle = "#fff";
-    ctx.font = "bold 60px sans-serif";
-    ctx.fillText("結果", 540, 750);
+    ctx.font = "bold 45px monospace";
 
-    ctx.font = "50px sans-serif";
-    wrapText(ctx, result, 540, 850, 700, 70);
+    wrapText(
+      ctx,
+      code,
+      540,
+      780,
+      700,
+      65
+    );
 
     // =========================
-    // footer
+    // ✨ 裝飾文字
     // =========================
     ctx.fillStyle = "#666";
-    ctx.font = "30px sans-serif";
-    ctx.fillText("IG 分享專用卡片", 540, 1750);
+    ctx.font = "28px sans-serif";
+    ctx.fillText("SSR 抽卡分享卡", 540, 1750);
 
     // =========================
-    // 轉檔 & 分享
+    // 📤 轉檔 + 分享
     // =========================
     canvas.toBlob(async (blob) => {
 
-      const file = new File([blob], "ig-share.png", { type: "image/png" });
+      const file = new File([blob], "ssr-share.png", { type: "image/png" });
 
-      if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
+      if (navigator.share && navigator.canShare?.({ files: [file] })) {
 
         await navigator.share({
           files: [file],
-          title: "抽卡結果"
+          title: "SSR 抽卡結果"
         });
 
       } else {
 
         const a = document.createElement("a");
         a.href = URL.createObjectURL(blob);
-        a.download = "ig-share.png";
+        a.download = "ssr-share.png";
         a.click();
       }
 
@@ -99,42 +124,4 @@ async function ShareIG() {
   } catch (e) {
     console.error(e);
   }
-}
-
-// =========================
-// 🧩 圓角矩形
-// =========================
-function roundRect(ctx, x, y, w, h, r) {
-  ctx.beginPath();
-  ctx.moveTo(x + r, y);
-  ctx.arcTo(x + w, y, x + w, y + h, r);
-  ctx.arcTo(x + w, y + h, x, y + h, r);
-  ctx.arcTo(x, y + h, x, y, r);
-  ctx.arcTo(x, y, x + w, y, r);
-  ctx.closePath();
-}
-
-// =========================
-// 🧩 自動換行
-// =========================
-function wrapText(ctx, text, x, y, maxWidth, lineHeight) {
-
-  const words = text.split("");
-  let line = "";
-
-  for (let n = 0; n < words.length; n++) {
-    let testLine = line + words[n];
-    let metrics = ctx.measureText(testLine);
-    let testWidth = metrics.width;
-
-    if (testWidth > maxWidth && n > 0) {
-      ctx.fillText(line, x, y);
-      line = words[n];
-      y += lineHeight;
-    } else {
-      line = testLine;
-    }
-  }
-
-  ctx.fillText(line, x, y);
 }
