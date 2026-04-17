@@ -1,59 +1,61 @@
 async function Share() {
-
   try {
-
-    // ⭐ 凍結所有動畫（很重要）
-    //document.body.classList.add("freeze-capture");
-
-    // ⭐ 等畫面穩定（避免截到動畫中）
-    await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
-
-    // ⭐ 直接用整個 body
-    const node = document.body;
-
-    // ⭐ clone（避免污染畫面）
-    const clone = node.cloneNode(true);
-
-    clone.style.position = "fixed";
-    clone.style.left = "-9999px";
-    clone.style.top = "0";
-    clone.style.background = "#111"; // 跟你背景一致
-
-    // ⭐ 關掉動畫（但保留 transform）
-   // clone.querySelectorAll("*").forEach(el => {
-   //   el.style.animation = "none";
-   //   el.style.transition = "none";
-   // });
-
-    document.body.appendChild(clone);
+    document.body.classList.add("freeze-capture");
 
     await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
 
-    // ⭐ 抓整頁尺寸
     const width = window.innerWidth;
     const height = window.innerHeight;
-    //const width = document.documentElement.scrollWidth;
-    //const height = document.documentElement.scrollHeight;
 
-    const blob = await domtoimage.toBlob(clone, {
-      bgcolor: "#111",
-      width,
-      height
+    // ⭐ 建立 viewport 容器（只顯示目前畫面）
+    const wrapper = document.createElement("div");
+    wrapper.style.position = "fixed";
+    wrapper.style.left = "-9999px";
+    wrapper.style.top = "0";
+    wrapper.style.width = width + "px";
+    wrapper.style.height = height + "px";
+    wrapper.style.overflow = "hidden";
+    wrapper.style.background = "#111";
+
+    // ⭐ clone 當前畫面
+    const clone = document.body.cloneNode(true);
+
+    clone.style.margin = "0";
+
+    // ⭐ 把畫面「移動到目前 scroll 位置」
+    const scrollX = window.scrollX;
+    const scrollY = window.scrollY;
+
+    clone.style.transform = `translate(${-scrollX}px, ${-scrollY}px)`;
+
+    // ⭐ 關動畫
+    clone.querySelectorAll("*").forEach(el => {
+      el.style.animation = "none";
+      el.style.transition = "none";
     });
 
-    document.body.removeChild(clone);
+    wrapper.appendChild(clone);
+    document.body.appendChild(wrapper);
+
+    await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
+
+    const blob = await domtoimage.toBlob(wrapper, {
+      width,
+      height,
+      bgcolor: "#111"
+    });
+
+    document.body.removeChild(wrapper);
     document.body.classList.remove("freeze-capture");
 
     const file = new File([blob], "share.png", { type: "image/png" });
 
-    // ⭐ 手機分享
     if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
       await navigator.share({
         files: [file],
         title: "抽卡結果"
       });
     } else {
-      // ⭐ fallback 下載
       const a = document.createElement("a");
       a.href = URL.createObjectURL(blob);
       a.download = "share.png";
