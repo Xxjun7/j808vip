@@ -5,7 +5,7 @@ async function ShareIG() {
     const result = document.getElementById("result")?.innerText || "尚未抽卡";
 
     // ⭐ 你中獎卡圖片（這裡改成你的）
-    const cardImgUrl = "/img/card.png"; // ⭐⭐⭐ 改這裡
+    const cardImgUrl = "https://png.pngtree.com/png-vector/20190130/ourmid/pngtree-ai-cartoon-new-year-red-envelope-pig-year-material-year-red-png-image_623861.jpg"; // ⭐⭐⭐ 改這裡
 
     const canvas = document.createElement("canvas");
     canvas.width = 1080;
