@@ -22,13 +22,20 @@
 </button>
 
 <div id="chance"></div>
-<div id="cards"></div>
-<div id="result"></div>
-<div id="card"></div>
+
+<!-- ⭐⭐⭐ 關鍵：包一層分享區 -->
+<div id="shareArea">
+  <div id="cards"></div>
+  <div id="result"></div>
+</div>
+
+<!-- ❌ 原本這個是空的 → 直接刪掉 -->
+<!-- <div id="card"></div> -->
 
 <!-- ⭐ 按鈕區（置中） -->
 <div id="actionBtns">
-  <button onclick="Share('#card')">📤 截圖分享</button>
+  <!-- ⭐ 改這裡 -->
+  <button onclick="Share('#shareArea')">📤 截圖分享</button>
   
   <button id="copyBtn" onclick="copyCode()" class="copy" style="display:none;">📋 複製驗證碼</button>
   <button onclick="capture()" class="capture">📸 瀏覽器截圖</button>
@@ -38,7 +45,9 @@
 <script src="html2canvas.min.js"></script>
 <script src="script.js"></script>
 
+<!-- ⭐ dom-to-image（要在 share.js 前） -->
 <script src="https://cdn.jsdelivr.net/npm/dom-to-image-more@3.3.0/dist/dom-to-image-more.min.js"></script>
+
 <script src="share.js"></script>
 
 <div id="overlay"></div>
