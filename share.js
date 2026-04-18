@@ -5,7 +5,7 @@ async function ShareIG() {
 
   try {
 
-    const uid = document.getElementById("uid")?.value || "";
+    const uid = document.getElementById("可以文字")?.value || "";
     const chance = document.getElementById("chance")?.innerText || "";
     const resultText = document.getElementById("result")?.innerText || "尚未抽卡";
 
@@ -41,8 +41,7 @@ async function ShareIG() {
     // UID
     ctx.fillStyle = "#aaa";
     ctx.font = "40px sans-serif";
-    //ctx.fillText(uid, 540, 320);
-    ctx.fillText("自訂文字", 540, 320);
+    ctx.fillText(uid, 540, 320);
 
 
     // 次數
