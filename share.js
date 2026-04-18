@@ -41,7 +41,9 @@ async function ShareIG() {
     // UID
     ctx.fillStyle = "#aaa";
     ctx.font = "40px sans-serif";
-    ctx.fillText(uid, 540, 320);
+    //ctx.fillText(uid, 540, 320);
+    ctx.fillText("自訂文字", 540, 320);
+
 
     // 次數
     ctx.fillText(chance, 540, 400);
