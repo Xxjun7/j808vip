@@ -1,3 +1,25 @@
+function drawRoundRect(ctx, x, y, w, h, r, color) {
+  ctx.beginPath();
+  ctx.moveTo(x + r, y);
+  ctx.arcTo(x + w, y, x + w, y + h, r);
+  ctx.arcTo(x + w, y + h, x, y + h, r);
+  ctx.arcTo(x, y + h, x, y, r);
+  ctx.arcTo(x, y, x + w, y, r);
+  ctx.closePath();
+
+  ctx.fillStyle = color;
+  ctx.fill();
+}
+
+function drawButton(ctx, x, y, w, h, color, text) {
+  drawRoundRect(ctx, x, y, w, h, 20, color);
+
+  ctx.fillStyle = "#fff";
+  ctx.font = "28px sans-serif";
+  ctx.textAlign = "center";
+  ctx.fillText(text, x + w / 2, y + h / 2 + 10);
+}
+
 async function ShareIG() {
 
   try {
