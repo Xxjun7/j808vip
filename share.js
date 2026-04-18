@@ -6,7 +6,7 @@ async function ShareIG() {
     const chance = document.getElementById("chance")?.innerText || "";
     const result = document.getElementById("result")?.innerText || "尚未抽卡";
 
-    // ⭐ 建立 IG 畫布（9:16）
+    // 🎨 畫布
     const canvas = document.createElement("canvas");
     canvas.width = 1080;
     canvas.height = 1920;
@@ -14,66 +14,86 @@ async function ShareIG() {
     const ctx = canvas.getContext("2d");
 
     // =========================
-    // 🎨 背景（黑色漸層）
+    // 🌌 背景（黑色漸層）
     // =========================
     const grad = ctx.createLinearGradient(0, 0, 0, 1920);
-    grad.addColorStop(0, "#111");
+    grad.addColorStop(0, "#0a0a0a");
     grad.addColorStop(1, "#000");
-
     ctx.fillStyle = grad;
     ctx.fillRect(0, 0, 1080, 1920);
 
     // =========================
     // 🏷 標題
     // =========================
-    ctx.fillStyle = "#ffffff";
-    ctx.font = "bold 80px sans-serif";
+    ctx.fillStyle = "#fff";
+    ctx.font = "bold 90px sans-serif";
     ctx.textAlign = "center";
-    ctx.fillText("🎴 抽卡結果", 540, 200);
+    ctx.fillText("🎴 抽卡結果", 540, 220);
 
-    // =========================
-    // 👤 使用者
-    // =========================
-    ctx.font = "40px sans-serif";
+    // UID
+    ctx.font = "42px sans-serif";
     ctx.fillStyle = "#aaa";
     ctx.fillText(uid, 540, 320);
 
-    // =========================
-    // 💰 次數
-    // =========================
-    ctx.fillText(chance, 540, 420);
+    // 次數
+    ctx.fillText(chance, 540, 400);
 
     // =========================
-    // 🎉 結果框
+    // 🧱 中央黑卡（像你圖）
     // =========================
-    ctx.fillStyle = "#1a1a1a";
-    roundRect(ctx, 140, 600, 800, 600, 40);
-    ctx.fill();
-
-    // 外框金色
-    ctx.strokeStyle = "gold";
-    ctx.lineWidth = 6;
-    ctx.stroke();
+    drawRoundRect(ctx, 140, 520, 800, 900, 40, "#111");
 
     // =========================
-    // 結果文字
+    // 🎴 金色卡片（發光）
     // =========================
-    ctx.fillStyle = "#fff";
-    ctx.font = "bold 60px sans-serif";
-    ctx.fillText("結果", 540, 750);
+    ctx.save();
 
-    ctx.font = "50px sans-serif";
-    wrapText(ctx, result, 540, 850, 700, 70);
+    // 發光
+    ctx.shadowColor = "gold";
+    ctx.shadowBlur = 60;
+
+    drawRoundRect(ctx, 340, 750, 400, 500, 30, "gold");
+
+    ctx.restore();
+
+    // 卡片內文字
+    ctx.fillStyle = "#000";
+    ctx.font = "bold 36px sans-serif";
+    ctx.textAlign = "center";
+    ctx.fillText("🎉 文字可自訂", 540, 950);
+
+    ctx.font = "32px monospace";
+    wrapText(ctx, result.replace("🎉 恭喜中獎", ""), 540, 1020, 320, 50);
+
+    // =========================
+    // 🎉 中獎文字
+    // =========================
+    if (result.includes("恭喜")) {
+      ctx.fillStyle = "#fff";
+      ctx.font = "bold 50px sans-serif";
+      ctx.fillText("🎉 恭喜中獎", 540, 1350);
+    } else {
+      ctx.fillStyle = "#888";
+      ctx.font = "bold 50px sans-serif";
+      ctx.fillText("未中獎", 540, 1350);
+    }
+
+    // =========================
+    // 🔘 假按鈕列（裝飾）
+    // =========================
+    drawButton(ctx, 260, 1500, 200, 80, "#222", "分享");
+    drawButton(ctx, 440, 1500, 200, 80, "#222", "複製");
+    drawButton(ctx, 620, 1500, 220, 80, "orange", "再抽一次");
 
     // =========================
     // footer
     // =========================
     ctx.fillStyle = "#666";
     ctx.font = "30px sans-serif";
-    ctx.fillText("IG 分享專用卡片", 540, 1750);
+    ctx.fillText("IG 分享專用卡片", 540, 1820);
 
     // =========================
-    // 轉檔 & 分享
+    // 輸出
     // =========================
     canvas.toBlob(async (blob) => {
 
@@ -99,42 +119,4 @@ async function ShareIG() {
   } catch (e) {
     console.error(e);
   }
-}
-
-// =========================
-// 🧩 圓角矩形
-// =========================
-function roundRect(ctx, x, y, w, h, r) {
-  ctx.beginPath();
-  ctx.moveTo(x + r, y);
-  ctx.arcTo(x + w, y, x + w, y + h, r);
-  ctx.arcTo(x + w, y + h, x, y + h, r);
-  ctx.arcTo(x, y + h, x, y, r);
-  ctx.arcTo(x, y, x + w, y, r);
-  ctx.closePath();
-}
-
-// =========================
-// 🧩 自動換行
-// =========================
-function wrapText(ctx, text, x, y, maxWidth, lineHeight) {
-
-  const words = text.split("");
-  let line = "";
-
-  for (let n = 0; n < words.length; n++) {
-    let testLine = line + words[n];
-    let metrics = ctx.measureText(testLine);
-    let testWidth = metrics.width;
-
-    if (testWidth > maxWidth && n > 0) {
-      ctx.fillText(line, x, y);
-      line = words[n];
-      y += lineHeight;
-    } else {
-      line = testLine;
-    }
-  }
-
-  ctx.fillText(line, x, y);
 }
