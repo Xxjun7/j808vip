@@ -7,29 +7,9 @@ async function ShareIG() {
 
     const uid = document.getElementById("可以文字")?.value || "";
     const chance = document.getElementById("chance")?.innerText || "";
-
-    const resultEl = document.getElementById("result");
-    const resultText = resultEl?.innerText || "";
+    const resultText = document.getElementById("result")?.innerText || "尚未抽卡";
 
     const isWin = resultText.includes("恭喜");
-
-    // =========================
-    // ⭐ 抓 16碼（最穩：用換行）
-    // =========================
-    let code = "";
-
-    const lines = resultText.split("\n");
-
-    if (lines.length > 1) {
-      code = lines[1].trim();
-    }
-
-    // fallback（保底）
-    if (!code && resultText.includes("恭喜")) {
-      code = resultText.replace("🎉 恭喜中獎", "").trim();
-    }
-
-    console.log("🎯 code =", code);
 
     // =========================
     // 🎨 建立 Canvas
@@ -63,6 +43,7 @@ async function ShareIG() {
     ctx.font = "40px sans-serif";
     ctx.fillText(uid, 540, 320);
 
+
     // 次數
     ctx.fillText(chance, 540, 400);
 
@@ -90,23 +71,15 @@ async function ShareIG() {
 
     ctx.restore();
 
-    // 卡片標題
+    // 卡片文字
     ctx.fillStyle = "#000";
     ctx.font = "bold 34px sans-serif";
     ctx.fillText("🎉 文字可自訂", 540, 960);
 
-    // =========================
-    // ⭐ 16碼顯示（關鍵）
-    // =========================
-    ctx.fillStyle = "#000";
-    ctx.font = "bold 42px monospace";
+    ctx.font = "28px monospace";
 
-    if (code) {
-      ctx.fillText(code, 540, 1040);
-    } else {
-      ctx.font = "28px sans-serif";
-      ctx.fillText("（未取得序號）", 540, 1040);
-    }
+    const code = resultText.replace("🎉 恭喜中獎", "").trim();
+    wrapText(ctx, code, 540, 1020, 260, 40);
 
     // =========================
     // 🎉 結果文字
@@ -191,4 +164,29 @@ function drawBtn(ctx, x, y, w, h, color, text) {
   ctx.font = "26px sans-serif";
   ctx.textAlign = "center";
   ctx.fillText(text, x + w / 2, y + h / 2 + 8);
+}
+
+// =========================
+// 🧩 自動換行
+// =========================
+function wrapText(ctx, text, x, y, maxWidth, lineHeight) {
+
+  const chars = text.split("");
+  let line = "";
+
+  for (let i = 0; i < chars.length; i++) {
+
+    const test = line + chars[i];
+    const width = ctx.measureText(test).width;
+
+    if (width > maxWidth && i > 0) {
+      ctx.fillText(line, x, y);
+      line = chars[i];
+      y += lineHeight;
+    } else {
+      line = test;
+    }
+  }
+
+  ctx.fillText(line, x, y);
 }
