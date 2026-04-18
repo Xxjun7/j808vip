@@ -8,19 +8,35 @@ async function ShareIG() {
     const uid = document.getElementById("可以文字")?.value || "";
     const chance = document.getElementById("chance")?.innerText || "";
 
-    const resultText = document.getElementById("result")?.innerText || "尚未抽卡";
-    const resultHTML = document.getElementById("result")?.innerHTML || "";
+    const resultEl = document.getElementById("result");
+    const resultText = resultEl?.innerText || "尚未抽卡";
 
     const isWin = resultText.includes("恭喜");
 
     // =========================
-    // ⭐ 抓 16碼（關鍵修正）
+    // ⭐ 抓 16碼（最終穩定版）
     // =========================
     let code = "";
 
-    if (resultHTML.includes("<br>")) {
-      code = resultHTML.split("<br>")[1].trim();
+    // 1️⃣ 最優先（你的主程式變數）
+    if (window.lastCode) {
+      code = window.lastCode;
     }
+
+    // 2️⃣ fallback：用換行抓
+    if (!code) {
+      const lines = resultText.split("\n");
+      if (lines.length > 1) {
+        code = lines[1].trim();
+      }
+    }
+
+    // 3️⃣ 再 fallback（極端保底）
+    if (!code && resultText.includes("恭喜")) {
+      code = resultText.replace("🎉 恭喜中獎", "").trim();
+    }
+
+    console.log("🎯 抓到的 code =", code);
 
     // =========================
     // 🎨 建立 Canvas
@@ -81,18 +97,23 @@ async function ShareIG() {
 
     ctx.restore();
 
-    // 卡片文字
+    // 卡片標題
     ctx.fillStyle = "#000";
     ctx.font = "bold 34px sans-serif";
     ctx.fillText("🎉 文字可自訂", 540, 960);
 
     // =========================
-    // ⭐ 16碼（重點顯示）
+    // ⭐ 16碼（一定顯示）
     // =========================
-    ctx.fillStyle = "#000";
-    ctx.font = "bold 40px monospace";
-
-    ctx.fillText(code, 540, 1040);
+    if (code) {
+      ctx.fillStyle = "#000";
+      ctx.font = "bold 42px monospace";
+      ctx.fillText(code, 540, 1040);
+    } else {
+      ctx.fillStyle = "#333";
+      ctx.font = "28px sans-serif";
+      ctx.fillText("（無中獎碼）", 540, 1040);
+    }
 
     // =========================
     // 🎉 結果文字
