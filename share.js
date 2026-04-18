@@ -1,34 +1,16 @@
-function drawRoundRect(ctx, x, y, w, h, r, color) {
-  ctx.beginPath();
-  ctx.moveTo(x + r, y);
-  ctx.arcTo(x + w, y, x + w, y + h, r);
-  ctx.arcTo(x + w, y + h, x, y + h, r);
-  ctx.arcTo(x, y + h, x, y, r);
-  ctx.arcTo(x, y, x + w, y, r);
-  ctx.closePath();
-
-  ctx.fillStyle = color;
-  ctx.fill();
-}
-
-function drawButton(ctx, x, y, w, h, color, text) {
-  drawRoundRect(ctx, x, y, w, h, 20, color);
-
-  ctx.fillStyle = "#fff";
-  ctx.font = "28px sans-serif";
-  ctx.textAlign = "center";
-  ctx.fillText(text, x + w / 2, y + h / 2 + 10);
-}
-
 async function ShareIG() {
 
   try {
 
     const uid = document.getElementById("uid")?.value || "";
     const chance = document.getElementById("chance")?.innerText || "";
-    const result = document.getElementById("result")?.innerText || "尚未抽卡";
+    const resultHTML = document.getElementById("result")?.innerText || "尚未抽卡";
 
-    // 🎨 畫布
+    const isWin = resultHTML.includes("恭喜");
+
+    // =========================
+    // 🎨 Canvas
+    // =========================
     const canvas = document.createElement("canvas");
     canvas.width = 1080;
     canvas.height = 1920;
@@ -36,16 +18,16 @@ async function ShareIG() {
     const ctx = canvas.getContext("2d");
 
     // =========================
-    // 🌌 背景（黑色漸層）
+    // 🌌 背景
     // =========================
-    const grad = ctx.createLinearGradient(0, 0, 0, 1920);
-    grad.addColorStop(0, "#0a0a0a");
-    grad.addColorStop(1, "#000");
-    ctx.fillStyle = grad;
+    const bg = ctx.createLinearGradient(0, 0, 0, 1920);
+    bg.addColorStop(0, "#0a0a0a");
+    bg.addColorStop(1, "#000");
+    ctx.fillStyle = bg;
     ctx.fillRect(0, 0, 1080, 1920);
 
     // =========================
-    // 🏷 標題
+    // 🎴 標題
     // =========================
     ctx.fillStyle = "#fff";
     ctx.font = "bold 90px sans-serif";
@@ -53,59 +35,68 @@ async function ShareIG() {
     ctx.fillText("🎴 抽卡結果", 540, 220);
 
     // UID
-    ctx.font = "42px sans-serif";
     ctx.fillStyle = "#aaa";
+    ctx.font = "40px sans-serif";
     ctx.fillText(uid, 540, 320);
 
     // 次數
     ctx.fillText(chance, 540, 400);
 
     // =========================
-    // 🧱 中央黑卡（像你圖）
+    // 🧱 中央黑卡（外框）
     // =========================
-    drawRoundRect(ctx, 140, 520, 800, 900, 40, "#111");
+    drawRoundRect(ctx, 120, 520, 840, 1000, 40, "#111");
 
     // =========================
-    // 🎴 金色卡片（發光）
+    // 🎴 內部小卡（像畫面）
+    // =========================
+    drawRoundRect(ctx, 260, 620, 560, 820, 30, "#0d0d0d");
+
+    // 標題
+    ctx.fillStyle = "#fff";
+    ctx.font = "bold 42px sans-serif";
+    ctx.fillText("抽卡遊戲", 540, 700);
+
+    // =========================
+    // 💡 金色卡片（發光）
     // =========================
     ctx.save();
 
-    // 發光
     ctx.shadowColor = "gold";
-    ctx.shadowBlur = 60;
+    ctx.shadowBlur = 80;
 
-    drawRoundRect(ctx, 340, 750, 400, 500, 30, "gold");
+    drawRoundRect(ctx, 360, 780, 360, 480, 30, "gold");
 
     ctx.restore();
 
-    // 卡片內文字
+    // 卡片文字
     ctx.fillStyle = "#000";
-    ctx.font = "bold 36px sans-serif";
-    ctx.textAlign = "center";
-    ctx.fillText("🎉 文字可自訂", 540, 950);
+    ctx.font = "bold 34px sans-serif";
+    ctx.fillText("🎉 文字可自訂", 540, 960);
 
-    ctx.font = "32px monospace";
-    wrapText(ctx, result.replace("🎉 恭喜中獎", ""), 540, 1020, 320, 50);
+    ctx.font = "28px monospace";
 
-    // =========================
-    // 🎉 中獎文字
-    // =========================
-    if (result.includes("恭喜")) {
-      ctx.fillStyle = "#fff";
-      ctx.font = "bold 50px sans-serif";
-      ctx.fillText("🎉 恭喜中獎", 540, 1350);
-    } else {
-      ctx.fillStyle = "#888";
-      ctx.font = "bold 50px sans-serif";
-      ctx.fillText("未中獎", 540, 1350);
-    }
+    let code = resultHTML.replace("🎉 恭喜中獎", "").trim();
+    wrapText(ctx, code, 540, 1020, 260, 40);
 
     // =========================
-    // 🔘 假按鈕列（裝飾）
+    // 🎉 中獎 / 未中
     // =========================
-    drawButton(ctx, 260, 1500, 200, 80, "#222", "分享");
-    drawButton(ctx, 440, 1500, 200, 80, "#222", "複製");
-    drawButton(ctx, 620, 1500, 220, 80, "orange", "再抽一次");
+    ctx.fillStyle = isWin ? "#fff" : "#777";
+    ctx.font = "bold 42px sans-serif";
+
+    ctx.fillText(
+      isWin ? "🎉 恭喜中獎" : "未中獎",
+      540,
+      1350
+    );
+
+    // =========================
+    // 🔘 按鈕（畫假的）
+    // =========================
+    drawBtn(ctx, 260, 1450, 200, 80, "#222", "SSR分享");
+    drawBtn(ctx, 440, 1450, 220, 80, "#222", "複製驗證碼");
+    drawBtn(ctx, 660, 1450, 220, 80, "orange", "再抽一次");
 
     // =========================
     // footer
@@ -115,7 +106,7 @@ async function ShareIG() {
     ctx.fillText("IG 分享專用卡片", 540, 1820);
 
     // =========================
-    // 輸出
+    // 📤 輸出
     // =========================
     canvas.toBlob(async (blob) => {
 
@@ -141,4 +132,48 @@ async function ShareIG() {
   } catch (e) {
     console.error(e);
   }
+}
+
+function drawRoundRect(ctx, x, y, w, h, r, color) {
+  ctx.beginPath();
+  ctx.moveTo(x + r, y);
+  ctx.arcTo(x + w, y, x + w, y + h, r);
+  ctx.arcTo(x + w, y + h, x, y + h, r);
+  ctx.arcTo(x, y + h, x, y, r);
+  ctx.arcTo(x, y, x + w, y, r);
+  ctx.closePath();
+
+  ctx.fillStyle = color;
+  ctx.fill();
+}
+
+function drawBtn(ctx, x, y, w, h, color, text) {
+
+  drawRoundRect(ctx, x, y, w, h, 20, color);
+
+  ctx.fillStyle = "#fff";
+  ctx.font = "26px sans-serif";
+  ctx.textAlign = "center";
+  ctx.fillText(text, x + w/2, y + h/2 + 8);
+}
+
+function wrapText(ctx, text, x, y, maxWidth, lineHeight) {
+
+  const chars = text.split("");
+  let line = "";
+
+  for (let i = 0; i < chars.length; i++) {
+    const test = line + chars[i];
+    const w = ctx.measureText(test).width;
+
+    if (w > maxWidth && i > 0) {
+      ctx.fillText(line, x, y);
+      line = chars[i];
+      y += lineHeight;
+    } else {
+      line = test;
+    }
+  }
+
+  ctx.fillText(line, x, y);
 }
