@@ -1,18 +1,15 @@
-// =========================
-// 📤 IG 分享（純 Canvas 版）
-// =========================
 async function ShareIG() {
 
   try {
 
     const uid = document.getElementById("可以文字")?.value || "";
     const chance = document.getElementById("chance")?.innerText || "";
-    const resultText = document.getElementById("result")?.innerText || "尚未抽卡";
+    const resultHTML = document.getElementById("result")?.innerText || "尚未抽卡";
 
-    const isWin = resultText.includes("恭喜");
+    const isWin = resultHTML.includes("恭喜");
 
     // =========================
-    // 🎨 建立 Canvas
+    // 🎨 Canvas
     // =========================
     const canvas = document.createElement("canvas");
     canvas.width = 1080;
@@ -26,7 +23,6 @@ async function ShareIG() {
     const bg = ctx.createLinearGradient(0, 0, 0, 1920);
     bg.addColorStop(0, "#0a0a0a");
     bg.addColorStop(1, "#000");
-
     ctx.fillStyle = bg;
     ctx.fillRect(0, 0, 1080, 1920);
 
@@ -43,16 +39,17 @@ async function ShareIG() {
     ctx.font = "40px sans-serif";
     ctx.fillText(uid, 540, 320);
 
-
     // 次數
     ctx.fillText(chance, 540, 400);
 
     // =========================
-    // 🧱 外層黑卡
+    // 🧱 中央黑卡（外框）
     // =========================
     drawRoundRect(ctx, 120, 520, 840, 1000, 40, "#111");
 
-    // 內層卡
+    // =========================
+    // 🎴 內部小卡（像畫面）
+    // =========================
     drawRoundRect(ctx, 260, 620, 560, 820, 30, "#0d0d0d");
 
     // 標題
@@ -61,9 +58,10 @@ async function ShareIG() {
     ctx.fillText("抽卡遊戲", 540, 700);
 
     // =========================
-    // 🎴 金色發光卡片
+    // 💡 金色卡片（發光）
     // =========================
     ctx.save();
+
     ctx.shadowColor = "gold";
     ctx.shadowBlur = 80;
 
@@ -78,11 +76,11 @@ async function ShareIG() {
 
     ctx.font = "28px monospace";
 
-    const code = resultText.replace("🎉 恭喜中獎", "").trim();
+    let code = resultHTML.replace("🎉 恭喜中獎", "").trim();
     wrapText(ctx, code, 540, 1020, 260, 40);
 
     // =========================
-    // 🎉 結果文字
+    // 🎉 中獎 / 未中
     // =========================
     ctx.fillStyle = isWin ? "#fff" : "#777";
     ctx.font = "bold 42px sans-serif";
@@ -94,11 +92,11 @@ async function ShareIG() {
     );
 
     // =========================
-    // 🔘 假按鈕列
+    // 🔘 按鈕（畫假的）
     // =========================
     drawBtn(ctx, 260, 1450, 200, 80, "#222", "SSR分享");
-    drawBtn(ctx, 460, 1450, 220, 80, "#222", "複製驗證碼");
-    drawBtn(ctx, 680, 1450, 220, 80, "orange", "再抽一次");
+    drawBtn(ctx, 440, 1450, 220, 80, "#222", "複製驗證碼");
+    drawBtn(ctx, 660, 1450, 220, 80, "orange", "再抽一次");
 
     // =========================
     // footer
@@ -136,11 +134,7 @@ async function ShareIG() {
   }
 }
 
-// =========================
-// 🧩 圓角矩形
-// =========================
 function drawRoundRect(ctx, x, y, w, h, r, color) {
-
   ctx.beginPath();
   ctx.moveTo(x + r, y);
   ctx.arcTo(x + w, y, x + w, y + h, r);
@@ -153,9 +147,6 @@ function drawRoundRect(ctx, x, y, w, h, r, color) {
   ctx.fill();
 }
 
-// =========================
-// 🔘 按鈕
-// =========================
 function drawBtn(ctx, x, y, w, h, color, text) {
 
   drawRoundRect(ctx, x, y, w, h, 20, color);
@@ -163,23 +154,19 @@ function drawBtn(ctx, x, y, w, h, color, text) {
   ctx.fillStyle = "#fff";
   ctx.font = "26px sans-serif";
   ctx.textAlign = "center";
-  ctx.fillText(text, x + w / 2, y + h / 2 + 8);
+  ctx.fillText(text, x + w/2, y + h/2 + 8);
 }
 
-// =========================
-// 🧩 自動換行
-// =========================
 function wrapText(ctx, text, x, y, maxWidth, lineHeight) {
 
   const chars = text.split("");
   let line = "";
 
   for (let i = 0; i < chars.length; i++) {
-
     const test = line + chars[i];
-    const width = ctx.measureText(test).width;
+    const w = ctx.measureText(test).width;
 
-    if (width > maxWidth && i > 0) {
+    if (w > maxWidth && i > 0) {
       ctx.fillText(line, x, y);
       line = chars[i];
       y += lineHeight;
