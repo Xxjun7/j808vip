@@ -2,111 +2,92 @@ async function ShareIG() {
 
   try {
 
+    const uid = document.getElementById("uid")?.value || "";
     const chance = document.getElementById("chance")?.innerText || "";
     const result = document.getElementById("result")?.innerText || "尚未抽卡";
-    const code = "XXXXXXXX";
 
-    // =========================
-    // 🖼 Canvas
-    // =========================
+    // ⭐ 建立 IG 畫布（9:16）
     const canvas = document.createElement("canvas");
     canvas.width = 1080;
     canvas.height = 1920;
+
     const ctx = canvas.getContext("2d");
 
-    ctx.textAlign = "center";
+    // =========================
+    // 🎨 背景（黑色漸層）
+    // =========================
+    const grad = ctx.createLinearGradient(0, 0, 0, 1920);
+    grad.addColorStop(0, "#111");
+    grad.addColorStop(1, "#000");
 
-    // =========================
-    // 🌌 背景（深色漸層）
-    // =========================
-    const bg = ctx.createLinearGradient(0, 0, 0, 1920);
-    bg.addColorStop(0, "#0b0b10");
-    bg.addColorStop(1, "#000000");
-    ctx.fillStyle = bg;
+    ctx.fillStyle = grad;
     ctx.fillRect(0, 0, 1080, 1920);
 
     // =========================
-    // 🎴 標題（弱化）
-    // =========================
-    ctx.fillStyle = "#ddd";
-    ctx.font = "bold 64px sans-serif";
-    ctx.fillText("🎴 抽卡結果", 540, 140);
-
-    ctx.fillStyle = "#666";
-    ctx.font = "32px sans-serif";
-    ctx.fillText("💰 " + chance, 540, 210);
-
-    // =========================
-    // ✨ 卡片主體（重點）
-    // =========================
-
-    const cardX = 340;
-    const cardY = 420;
-    const cardW = 400;
-    const cardH = 900;
-
-    ctx.save();
-
-    // 🌟 發光
-    ctx.shadowColor = "rgba(255, 215, 0, 0.85)";
-    ctx.shadowBlur = 80;
-
-    // 微傾斜（立體感）
-    ctx.translate(540, 860);
-    ctx.rotate(-0.03);
-    ctx.translate(-540, -860);
-
-    // 卡片背景
-    const cardGrad = ctx.createLinearGradient(cardX, cardY, cardX, cardY + cardH);
-    cardGrad.addColorStop(0, "#2a2a2a");
-    cardGrad.addColorStop(1, "#0a0a0a");
-
-    ctx.fillStyle = cardGrad;
-    roundRect(ctx, cardX, cardY, cardW, cardH, 40);
-    ctx.fill();
-
-    // 金色邊框
-    ctx.strokeStyle = "gold";
-    ctx.lineWidth = 6;
-    roundRect(ctx, cardX, cardY, cardW, cardH, 40);
-    ctx.stroke();
-
-    ctx.restore();
-
-    // =========================
-    // 🎉 稀有度（貼卡）
-    // =========================
-    ctx.fillStyle = "#ffd700";
-    ctx.font = "bold 72px sans-serif";
-    ctx.fillText(result, 540, 560);
-
-    // =========================
-    // 🎮 CODE（貼卡底部）
+    // 🏷 標題
     // =========================
     ctx.fillStyle = "#ffffff";
-    ctx.font = "36px monospace";
-    ctx.fillText("CODE: " + code, 540, 1260);
+    ctx.font = "bold 80px sans-serif";
+    ctx.textAlign = "center";
+    ctx.fillText("🎴 抽卡結果", 540, 200);
 
     // =========================
-    // 💬 底部文字
+    // 👤 使用者
     // =========================
-    ctx.fillStyle = "#444";
-    ctx.font = "28px sans-serif";
-    ctx.fillText("IG 分享專用卡片", 540, 1780);
+    ctx.font = "40px sans-serif";
+    ctx.fillStyle = "#aaa";
+    ctx.fillText(uid, 540, 320);
 
     // =========================
-    // 📤 輸出
+    // 💰 次數
+    // =========================
+    ctx.fillText(chance, 540, 420);
+
+    // =========================
+    // 🎉 結果框
+    // =========================
+    ctx.fillStyle = "#1a1a1a";
+    roundRect(ctx, 140, 600, 800, 600, 40);
+    ctx.fill();
+
+    // 外框金色
+    ctx.strokeStyle = "gold";
+    ctx.lineWidth = 6;
+    ctx.stroke();
+
+    // =========================
+    // 結果文字
+    // =========================
+    ctx.fillStyle = "#fff";
+    ctx.font = "bold 60px sans-serif";
+    ctx.fillText("結果", 540, 750);
+
+    ctx.font = "50px sans-serif";
+    wrapText(ctx, result, 540, 850, 700, 70);
+
+    // =========================
+    // footer
+    // =========================
+    ctx.fillStyle = "#666";
+    ctx.font = "30px sans-serif";
+    ctx.fillText("IG 分享專用卡片", 540, 1750);
+
+    // =========================
+    // 轉檔 & 分享
     // =========================
     canvas.toBlob(async (blob) => {
 
       const file = new File([blob], "ig-share.png", { type: "image/png" });
 
-      if (navigator.share && navigator.canShare?.({ files: [file] })) {
+      if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
+
         await navigator.share({
           files: [file],
           title: "抽卡結果"
         });
+
       } else {
+
         const a = document.createElement("a");
         a.href = URL.createObjectURL(blob);
         a.download = "ig-share.png";
@@ -131,4 +112,29 @@ function roundRect(ctx, x, y, w, h, r) {
   ctx.arcTo(x, y + h, x, y, r);
   ctx.arcTo(x, y, x + w, y, r);
   ctx.closePath();
+}
+
+// =========================
+// 🧩 自動換行
+// =========================
+function wrapText(ctx, text, x, y, maxWidth, lineHeight) {
+
+  const words = text.split("");
+  let line = "";
+
+  for (let n = 0; n < words.length; n++) {
+    let testLine = line + words[n];
+    let metrics = ctx.measureText(testLine);
+    let testWidth = metrics.width;
+
+    if (testWidth > maxWidth && n > 0) {
+      ctx.fillText(line, x, y);
+      line = words[n];
+      y += lineHeight;
+    } else {
+      line = testLine;
+    }
+  }
+
+  ctx.fillText(line, x, y);
 }
