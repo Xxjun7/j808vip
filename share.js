@@ -2,7 +2,7 @@ async function ShareIG() {
 
   try {
 
-    const uid = document.getElementById("uid")?.value || "";
+    const uid = document.getElementById("自訂文字")?.value || "";
     const chance = document.getElementById("chance")?.innerText || "";
     const resultHTML = document.getElementById("result")?.innerText || "尚未抽卡";
 
@@ -94,16 +94,16 @@ async function ShareIG() {
     // =========================
     // 🔘 按鈕（畫假的）
     // =========================
-    drawBtn(ctx, 260, 1450, 200, 80, "#222", "SSR分享");
-    drawBtn(ctx, 440, 1450, 220, 80, "#222", "複製驗證碼");
-    drawBtn(ctx, 660, 1450, 220, 80, "orange", "再抽一次");
+    drawBtn(ctx, 260, 1450, 200, 80, "#222", "📤 SSR分享");
+    drawBtn(ctx, 440, 1450, 220, 80, "#222", "📋 複製驗證碼");
+    drawBtn(ctx, 660, 1450, 220, 80, "orange", "🎴 再抽一次");
 
     // =========================
     // footer
     // =========================
     ctx.fillStyle = "#666";
     ctx.font = "30px sans-serif";
-    ctx.fillText("IG 分享專用卡片", 540, 1820);
+    ctx.fillText("自訂分享專用卡片", 540, 1820);
 
     // =========================
     // 📤 輸出
