@@ -37,7 +37,7 @@ async function ShareIG() {
     // =========================
     // 🔘 中間登出按鈕（假的）
     // =========================
-    drawBtn(ctx, 400, 380, 140, 60, "#222", "登出");
+    drawBtn(ctx, 470, 380, 140, 60, "#222", "登出");
    
     ctx.fillStyle = "#fff";
     ctx.font = "40px sans-serif";
