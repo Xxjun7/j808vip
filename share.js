@@ -63,7 +63,7 @@ async function ShareIG() {
     ctx.fillStyle = "#fff";
     ctx.font = "40px sans-serif";
     ctx.textAlign = "center";
-    ctx.fillText(chance, 540, 600);
+    ctx.fillText(chance, 540, 640);
 
     // 標題
     ctx.fillStyle = "#fff";
