@@ -35,7 +35,7 @@ async function ShareIG() {
     ctx.fillText("🎴 抽卡結果", 540, 220);
 
    
-    ctx.fillStyle = "#aaa";
+    ctx.fillStyle = "##fff";
     ctx.font = "40px sans-serif";
     // UID
     //ctx.fillText(uid, 540, 320);
