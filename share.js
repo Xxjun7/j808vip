@@ -39,22 +39,26 @@ async function ShareIG() {
     // =========================
     drawBtn(ctx, 470, 380, 140, 60, "#222", "登出");
    
-    ctx.fillStyle = "#fff";
-    ctx.font = "40px sans-serif";
+    //ctx.fillStyle = "#fff";
+    //ctx.font = "40px sans-serif";
+    //ctx.textAlign = "center";
     // =========================
     // UID
     //ctx.fillText(uid, 540, 320);
     // =========================
-    // =========================
-    // 次數
-    // =========================
-    ctx.textAlign = "center";
-    ctx.fillText(chance, 540, 550);
 
     // =========================
     // 🧱 中央黑卡（外框）
     // =========================
     drawRoundRect(ctx, 120, 520, 840, 1000, 40, "#111");
+    
+    // =========================
+    // 次數
+    // =========================
+    ctx.fillStyle = "#fff";
+    ctx.font = "40px sans-serif";
+    ctx.textAlign = "center";
+    ctx.fillText(chance, 540, 600);
 
     // =========================
     // 🎴 內部小卡（像畫面）
