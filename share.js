@@ -77,7 +77,7 @@ async function ShareIG() {
     ctx.font = "48px monospace";
 
     let code = resultHTML.replace("🎉 恭喜中獎", "").trim();
-    wrapText(ctx, code, 540, 1020, 260, 40);
+    wrapText(ctx, code, 540, 1020, 600, 60);
 
     // =========================
     // 🎉 中獎 / 未中
@@ -96,7 +96,7 @@ async function ShareIG() {
     ctx.font = "48px monospace";
     ctx.fillStyle = "#fff";
 
-    wrapText(ctx, code, 540, 1420, 300, 40);
+    wrapText(ctx, code, 540, 1420, 600, 60);
     }
 
     // =========================
