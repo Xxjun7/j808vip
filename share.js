@@ -53,17 +53,17 @@ async function ShareIG() {
     drawRoundRect(ctx, 120, 520, 840, 1000, 40, "#111");
     
     // =========================
+    // 🎴 內部小卡（像畫面）
+    // =========================
+    drawRoundRect(ctx, 260, 620, 560, 820, 30, "#0d0d0d");
+
+    // =========================
     // 次數
     // =========================
     ctx.fillStyle = "#fff";
     ctx.font = "40px sans-serif";
     ctx.textAlign = "center";
     ctx.fillText(chance, 540, 600);
-
-    // =========================
-    // 🎴 內部小卡（像畫面）
-    // =========================
-    drawRoundRect(ctx, 260, 620, 560, 820, 30, "#0d0d0d");
 
     // 標題
     ctx.fillStyle = "#fff";
