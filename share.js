@@ -2,7 +2,7 @@ async function ShareIG() {
 
   try {
 
-    const uid = document.getElementById("UID")?.value || "";
+    //const uid = document.getElementById("UID")?.value || "";
     const chance = document.getElementById("chance")?.innerText || "";
     const resultHTML = document.getElementById("result")?.innerText || "尚未抽卡";
 
@@ -34,11 +34,11 @@ async function ShareIG() {
     ctx.textAlign = "center";
     ctx.fillText("🎴 抽卡結果", 540, 220);
 
-    // UID
+   
     ctx.fillStyle = "#aaa";
     ctx.font = "40px sans-serif";
-    ctx.fillText(uid, 540, 320);
-
+    // UID
+    //ctx.fillText(uid, 540, 320);
     // 次數
     ctx.fillText(chance, 540, 400);
 
@@ -55,7 +55,7 @@ async function ShareIG() {
     // 標題
     ctx.fillStyle = "#fff";
     ctx.font = "bold 42px sans-serif";
-    ctx.fillText("抽卡遊戲", 540, 700);
+    ctx.fillText("可自訂文字", 540, 700);
 
     // =========================
     // 💡 金色卡片（發光）
