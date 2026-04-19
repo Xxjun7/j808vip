@@ -74,7 +74,7 @@ async function ShareIG() {
     ctx.font = "bold 34px sans-serif";
     ctx.fillText("🎉 文字可自訂", 540, 960);
 
-    ctx.font = "28px monospace";
+    ctx.font = "48px monospace";
 
     let code = resultHTML.replace("🎉 恭喜中獎", "").trim();
     wrapText(ctx, code, 540, 1020, 260, 40);
@@ -93,7 +93,7 @@ async function ShareIG() {
 
     // 👉 如果中獎，再多畫一行16位碼
     if (isWin) {
-    ctx.font = "32px monospace";
+    ctx.font = "48px monospace";
     ctx.fillStyle = "#fff";
 
     wrapText(ctx, code, 540, 1420, 300, 40);
