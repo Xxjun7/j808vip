@@ -86,10 +86,18 @@ async function ShareIG() {
     ctx.font = "bold 42px sans-serif";
 
     ctx.fillText(
-      isWin ? "🎉 恭喜中獎" : "未中獎",
-      540,
-      1350
+    isWin ? "🎉 恭喜中獎" : "未中獎",
+    540,
+    1350
     );
+
+    // 👉 如果中獎，再多畫一行16位碼
+    if (isWin) {
+    ctx.font = "32px monospace";
+    ctx.fillStyle = "#fff";
+
+    wrapText(ctx, code, 540, 1420, 300, 40);
+    }
 
     // =========================
     // 🔘 按鈕（畫假的）
