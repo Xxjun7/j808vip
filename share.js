@@ -39,7 +39,7 @@ async function ShareIG() {
     // =========================
     drawBtn(ctx, 400, 380, 140, 60, "#222", "登出");
    
-    ctx.fillStyle = "##fff";
+    ctx.fillStyle = "#fff";
     ctx.font = "40px sans-serif";
     // =========================
     // UID
@@ -48,6 +48,7 @@ async function ShareIG() {
     // =========================
     // 次數
     // =========================
+    ctx.textAlign = "center";
     ctx.fillText(chance, 540, 600);
 
     // =========================
