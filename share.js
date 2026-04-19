@@ -2,7 +2,7 @@ async function ShareIG() {
 
   try {
 
-    const uid = document.getElementById("自訂文字")?.value || "";
+    const uid = document.getElementById("UID")?.value || "";
     const chance = document.getElementById("chance")?.innerText || "";
     const resultHTML = document.getElementById("result")?.innerText || "尚未抽卡";
 
