@@ -40,7 +40,7 @@ async function ShareIG() {
     // UID
     //ctx.fillText(uid, 540, 320);
     // 次數
-    ctx.fillText(chance, 540, 400);
+    ctx.fillText(chance, 540, 450);
 
     // =========================
     // 🧱 中央黑卡（外框）
@@ -102,6 +102,7 @@ async function ShareIG() {
     // =========================
     // 🔘 按鈕（畫假的）
     // =========================
+    drawBtn(ctx, 540, 400, 220, 80, "#222", "登出");
     drawBtn(ctx, 260, 1450, 200, 80, "#222", "📤 SSR分享");
     drawBtn(ctx, 440, 1450, 220, 80, "#222", "📋 複製驗證碼");
     drawBtn(ctx, 660, 1450, 220, 80, "orange", "🎴 再抽一次");
