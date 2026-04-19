@@ -49,7 +49,7 @@ async function ShareIG() {
     // 次數
     // =========================
     ctx.textAlign = "center";
-    ctx.fillText(chance, 540, 600);
+    ctx.fillText(chance, 540, 580);
 
     // =========================
     // 🧱 中央黑卡（外框）
