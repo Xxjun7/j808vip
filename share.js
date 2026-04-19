@@ -48,7 +48,7 @@ async function ShareIG() {
     // =========================
     // 次數
     // =========================
-    ctx.textAlign = "center";
+    //ctx.textAlign = "center";
     ctx.fillText(chance, 540, 600);
 
     // =========================
