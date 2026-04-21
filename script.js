@@ -54,6 +54,14 @@ function logout() {
   updateLoginUI(false);
 }
 
+/* ================= 初始化 ================= */
+window.onload = function () {
+  const saved = localStorage.getItem("uid");
+  if (saved) document.getElementById("uid").value = saved;
+
+  document.getElementById("drawAgainBtn").onclick = createCards;
+};
+
 /* ================= 建卡 ================= */
 function createCards() {
 
@@ -61,7 +69,7 @@ function createCards() {
   cardsDiv.innerHTML = "";
 
   isDrawing = false;
-  canPickCard = true;
+  canPickCard = true;   // ⭐ 每一回合才允許點
 
   document.getElementById("overlay").classList.remove("show");
   document.getElementById("result").innerText = "";
@@ -80,9 +88,7 @@ function createCards() {
       </div>
     `;
 
-    // ⭐ 動態元素保留 onclick OK
     card.onclick = () => handleClick(card);
-
     cardsDiv.appendChild(card);
   }
 }
@@ -145,7 +151,7 @@ async function handleClick(card) {
   if (remainingTimes <= 0) return alert("已無抽卡次數");
 
   isDrawing = true;
-  canPickCard = false;
+  canPickCard = false; // ⭐ 抽一次後鎖死
 
   document.getElementById("overlay").classList.add("show");
 
@@ -183,9 +189,10 @@ async function handleClick(card) {
 
       inner.classList.add("flipped");
       inner.querySelector(".back").innerHTML =
-        data.win
-          ? `🎉 文字可自訂<br>${data.code.slice(0, 16)}`
-          : "未中獎";
+          data.win
+              ? `🎉 文字可自訂<br>${data.code.slice(0, 16)}`
+              : "未中獎";
+        
 
       requestAnimationFrame(() => {
 
@@ -263,26 +270,13 @@ function copyCode() {
   navigator.clipboard.writeText(lastCode);
 }
 
-/* ================= 統一事件綁定（🔥重點） ================= */
-window.addEventListener("DOMContentLoaded", () => {
+function capture() {
+  html2canvas(document.body).then(canvas => {
+    const a = document.createElement("a");
+    a.href = canvas.toDataURL();
+    a.download = "抽獎結果.png";
+    a.click();
+  });
+}
 
-  // 自動填入帳號
-  const saved = localStorage.getItem("uid");
-  if (saved) document.getElementById("uid").value = saved;
 
-  // 登入
-  document.getElementById("loginBtn")?.addEventListener("click", login);
-
-  // 登出
-  document.getElementById("logoutBtn")?.addEventListener("click", logout);
-
-  // 再抽一次
-  document.getElementById("drawAgainBtn")?.addEventListener("click", createCards);
-
-  // 分享（在 share.js）
-  document.getElementById("shareBtn")?.addEventListener("click", ShareIG);
-
-  // 複製
-  document.getElementById("copyBtn")?.addEventListener("click", copyCode);
-
-});
