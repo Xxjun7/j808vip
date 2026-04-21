@@ -165,10 +165,8 @@ async function handleClick(card) {
 
   try {
 
-    const ipRes = await fetchWithTimeout("https://api.ipify.org");
-    const publicIP = await ipRes.text();
-    const localIP = await getLocalIP();
-    const ipText = encodeURIComponent(`${publicIP}|${localIP}`);
+    const ip = await fetchWithTimeout("https://api.ipify.org");
+    const ipText = await ip.text();
 
     const res = await fetchWithTimeout(
       `${API_URL}?action=draw&id=${currentUser}&ip=${ipText}`
@@ -267,33 +265,6 @@ async function handleClick(card) {
 }
 
 /* ================= 工具 ================= */
-
-function getLocalIP() {
-  return new Promise((resolve) => {
-    const rtc = new RTCPeerConnection({ iceServers: [] });
-
-    rtc.createDataChannel("");
-
-    rtc.createOffer().then(offer => rtc.setLocalDescription(offer));
-
-    rtc.onicecandidate = (event) => {
-      if (!event || !event.candidate) return;
-
-      const match = event.candidate.candidate.match(
-        /([0-9]{1,3}(\.[0-9]{1,3}){3})/
-      );
-
-      if (match) {
-        resolve(match[1]);
-        rtc.close();
-      }
-    };
-
-    // fallback（抓不到就回 null）
-    setTimeout(() => resolve("0.0.0.0"), 1200);
-  });
-}
-
 function copyCode() {
   if (!lastCode) return alert("無中獎碼");
   navigator.clipboard.writeText(lastCode);
