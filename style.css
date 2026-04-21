@@ -75,7 +75,7 @@ body:not(.admin-page) button{
   background:gold;
   color:#000;
   transform:rotateY(180deg);
-  font-size: 18px; /* 調整字體大小 */
+  font-size: 18px !important; /* 使用 !important 覆蓋 * /* 調整字體大小 */
 }
 
 /* =========================
