@@ -18,8 +18,8 @@
 ========================= -->
 <div id="loginArea">
   <input id="uid" placeholder="輸入編號姓名">
-  <button id="loginBtn">登入</button>
-  <button id="logoutBtn" style="display:none;">登出</button>
+  <button id="loginBtn" onclick="login()">登入</button>
+  <button id="logoutBtn" onclick="logout()" style="display:none;">登出</button>
 </div>
 
 <!-- =========================
@@ -40,9 +40,9 @@
 ========================= -->
 <div id="actionBtns">
 
-  <button id="ShareIG()">📤 SSR分享</button>
+  <button onclick="ShareIG()">📤 SSR分享</button>
 
-  <button id="copyBtn" class="copy" style="display:none;">
+  <button id="copyBtn" onclick="copyCode()" class="copy" style="display:none;">
     📋 複製驗證碼
   </button>
 
@@ -53,11 +53,19 @@
 </div>
 
 <!-- =========================
-     📜 JS
+     📜 JS（正確載入順序）
 ========================= -->
 
+<!-- 主邏輯 -->
 <script src="script.js"></script>
-<script src="share.js"></script>
+
+<!-- 分享功能（SSR生成） -->
+<script defer src="share.js"></script>
+
+<!-- SSR重要：掛 global（避免 onclick 找不到） -->
+<script>
+  window.ShareIG = ShareIG;
+</script>
 
 <!-- overlay -->
 <div id="overlay"></div>
