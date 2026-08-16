@@ -51,34 +51,17 @@
             transform-origin: center center;
         }
 
-        /* 💡 手動旋轉關鍵修正：
-           1. 卡片區域轉為直排 (column)
-           2. 卡片容器調整比例
-           3. 將卡片反向旋轉 -90deg，讓卡片站立（直放）
-        */
+        /* 💡 手動旋轉時：保持橫排，並將寬度/間距單位改用 vh 鎖定視覺比例 */
         #game-container.force-rotated #card-area {
-            flex-direction: column !important;
-            gap: clamp(15px, 4vh, 40px) !important;
+            gap: clamp(10px, 2vh, 30px) !important;
         }
 
         #game-container.force-rotated .card-container {
-            /* 在旋轉 -90deg 情況下，用 height 控制直立時的卡片寬度 */
-            height: clamp(80px, 22vh, 180px) !important;
-            width: auto !important;
-            aspect-ratio: 3.5 / 2.5 !important;
-        }
-
-        #game-container.force-rotated .card {
-            transform: rotate(-90deg);
-            transform-origin: center center;
-        }
-
-        #game-container.force-rotated .card.flipped {
-            transform: rotate(-90deg) rotateY(180deg) !important;
+            width: clamp(90px, 25vh, 240px) !important;
         }
 
         #game-container.force-rotated .card-amount {
-            font-size: clamp(12px, 2.2vh, 20px) !important;
+            font-size: clamp(14px, 2.5vh, 24px) !important;
         }
 
         /* ==========================================
