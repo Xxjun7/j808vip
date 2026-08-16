@@ -202,7 +202,7 @@
             90%, 100% { transform: rotate(0deg); }
         }
 
-        /* 💡 右上角手動旋轉圓形按鈕 */
+        /* 右上角手動旋轉圓形按鈕 */
         .rotate-btn {
             position: absolute;
             top: 20px;
@@ -322,7 +322,7 @@
         const gameContainer = document.getElementById('game-container');
         const rotateBtn = document.getElementById('manual-rotate-btn');
 
-        // 根據設定決定是否加上 active 類別
+        // 根據設定決定初始是否加上 active 類別
         if (ENABLE_PORTRAIT_NOTICE) {
             noticeEl.classList.add('active');
         } else {
@@ -336,12 +336,27 @@
             gameContainer.classList.add('force-rotated');
         });
 
-        // 監聽手機實體轉向：若使用者手動把手機轉回橫向，則移除強制旋轉 CSS 類別
-        window.addEventListener('orientationchange', () => {
-            if (window.orientation === 90 || window.orientation === -90) {
+        // 💡 自動動態偵測螢幕方向切換
+        function checkOrientation() {
+            // 判斷當前是否為橫向模式
+            const isLandscape = window.matchMedia("(orientation: landscape)").matches;
+
+            if (isLandscape) {
+                // 若手機已被使用者實體旋轉至「橫向」，取消強制的 90 度 CSS 旋轉，並隱藏提示
                 gameContainer.classList.remove('force-rotated');
+                noticeEl.classList.remove('active');
+            } else {
+                // 若手機在「直向」狀態
+                if (!gameContainer.classList.contains('force-rotated') && ENABLE_PORTRAIT_NOTICE) {
+                    // 且沒有開啟手動旋轉時，重新將提示面板顯示出來
+                    noticeEl.classList.add('active');
+                }
             }
-        });
+        }
+
+        // 監聽螢幕旋轉與 Resize 事件
+        window.addEventListener('resize', checkOrientation);
+        window.addEventListener('orientationchange', checkOrientation);
 
         const rewards = ['$1,000', '$5,000', '$20,000', '$50,000', '$100,000', '$1,000,000'];
         const animatingCards = new Set();
