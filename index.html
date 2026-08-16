@@ -1,0 +1,397 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>金正旺銀行vip抽卡系統</title>
+    <style>
+        /* ==========================================
+           1. 全局基礎樣式設定
+           ========================================== */
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body, html {
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            font-family: 'Arial Black', Impact, sans-serif;
+            background-color: #080b10;
+        }
+
+        /* ==========================================
+           2. 遊戲主畫面容器
+           ========================================== */
+        #game-container {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background-image: url('image_6.png');
+            background-size: cover;
+            background-position: center;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+            transition: transform 0.3s ease, width 0.3s ease, height 0.3s ease;
+        }
+
+        /* 💡 當套用強制旋轉樣式類別時，將畫面旋轉 90 度並調換長寬 */
+        #game-container.force-rotated {
+            width: 100vh !important;
+            height: 100vw !important;
+            top: 50% !important;
+            left: 50% !important;
+            transform: translate(-50%, -50%) rotate(90deg) !important;
+            transform-origin: center center;
+        }
+
+        /* ==========================================
+           3. 卡片展示區域
+           ========================================== */
+        #card-area {
+            display: flex;
+            flex-direction: row;
+            justify-content: center;
+            align-items: center;
+            gap: clamp(10px, 2vw, 30px);
+            width: 100%;
+            max-width: 1000px;
+        }
+
+        /* 卡片最外層容器：負責 3D 透視與 Hover 浮起 */
+        .card-container {
+            width: clamp(90px, 25vw, 240px);
+            aspect-ratio: 2.5 / 3.5;
+            perspective: 1200px;
+            cursor: pointer;
+            user-select: none;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        /* ==========================================
+           4. 中間層：專門負責「搖晃蓄力」動畫
+           ========================================== */
+        .card-shaker {
+            width: 100%;
+            height: 100%;
+            will-change: transform;
+            transition: transform 0.3s ease;
+        }
+
+        /* 懸停時整張卡片稍微浮起 */
+        .card-container:hover .card-shaker {
+            transform: translateY(-10px) scale(1.03);
+        }
+
+        /* 搖晃 Keyframes */
+        .card-shaker.shaking {
+            animation: cardShake 0.5s ease-in-out forwards;
+        }
+
+        @keyframes cardShake {
+            0% { transform: scale(1) rotate(0deg); }
+            15% { transform: scale(1.05) rotate(-5deg) translateY(-5px); }
+            30% { transform: scale(1.05) rotate(5deg) translateY(-5px); }
+            45% { transform: scale(1.08) rotate(-5deg) translateY(-8px); }
+            60% { transform: scale(1.08) rotate(5deg) translateY(-8px); }
+            75% { transform: scale(1.1) rotate(-3deg) translateY(-10px); }
+            90% { transform: scale(1.1) rotate(3deg) translateY(-10px); }
+            100% { transform: scale(1) rotate(0deg); }
+        }
+
+        /* ==========================================
+           5. 核心 3D 翻牌層
+           ========================================== */
+        .card {
+            width: 100%;
+            height: 100%;
+            position: relative;
+            transform-style: preserve-3d;
+            -webkit-transform-style: preserve-3d;
+            transition: transform 0.8s cubic-bezier(0.34, 1.56, 0.64, 1);
+            border-radius: clamp(8px, 1.5vw, 16px);
+            will-change: transform;
+        }
+
+        /* 翻牌狀態：180 度旋轉 */
+        .card.flipped {
+            transform: rotateY(180deg);
+        }
+
+        /* ==========================================
+           6. 卡片正反面與文字樣式
+           ========================================== */
+        .card-face {
+            width: 100%;
+            height: 100%;
+            position: absolute;
+            top: 0;
+            left: 0;
+            -webkit-backface-visibility: hidden;
+            backface-visibility: hidden;
+            border-radius: clamp(8px, 1.5vw, 16px);
+            overflow: hidden;
+            background-size: 100% 100%;
+            background-position: center;
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.7), 0 0 15px rgba(0, 229, 255, 0.2);
+            border: 1px solid rgba(255, 215, 0, 0.3);
+            transform: translateZ(1px);
+        }
+
+        .card-back {
+            background-image: url('Card_Back.png');
+        }
+
+        .card-front {
+            background-image: url('Card_Front.png');
+            transform: rotateY(180deg) translateZ(1px);
+            position: relative;
+        }
+
+        .card-amount {
+            position: absolute;
+            top: 27.5%; 
+            left: 50%;
+            transform: translateX(-50%);
+            width: 70%;
+            text-align: center;
+            font-size: clamp(14px, 2.5vw, 24px);
+            font-weight: 900;
+            color: #fff6d1;
+            text-shadow: 0 0 5px #ffd700, 0 0 10px #ff8c00, 0 0 20px #ff0000;
+            letter-spacing: 1px;
+            pointer-events: none;
+        }
+
+        /* ==========================================
+           7. 橫向提示面板與右上角「手動旋轉」按鈕
+           ========================================== */
+        #portrait-notice {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: rgba(8, 11, 16, 0.95);
+            z-index: 9999;
+            color: #ffd700;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            padding: 20px;
+            font-size: 18px;
+        }
+
+        .phone-icon {
+            font-size: 48px;
+            margin-bottom: 15px;
+            animation: rotatePhone 2s infinite ease-in-out;
+        }
+
+        @keyframes rotatePhone {
+            0%, 10% { transform: rotate(0deg); }
+            40%, 60% { transform: rotate(-90deg); }
+            90%, 100% { transform: rotate(0deg); }
+        }
+
+        /* 💡 右上角手動旋轉圓形按鈕 */
+        .rotate-btn {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 4px;
+            background: rgba(255, 215, 0, 0.1);
+            border: 2px solid #ffd700;
+            color: #ffd700;
+            padding: 10px;
+            border-radius: 50%;
+            width: 70px;
+            height: 70px;
+            cursor: pointer;
+            box-shadow: 0 0 12px rgba(255, 215, 0, 0.3);
+            transition: transform 0.2s ease, background-color 0.2s ease;
+            user-select: none;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        .rotate-btn:active {
+            transform: scale(0.92);
+            background: rgba(255, 215, 0, 0.3);
+        }
+
+        .rotate-btn-icon {
+            font-size: 22px;
+            line-height: 1;
+        }
+
+        .rotate-btn-text {
+            font-size: 10px;
+            font-weight: bold;
+            letter-spacing: 0.5px;
+            line-height: 1;
+        }
+
+        /* 當符合直向 (portrait) 且開關啟用 (active) 時才顯示提示 */
+        @media screen and (orientation: portrait) {
+            #portrait-notice.active {
+                display: flex;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- 橫向提示面板 -->
+    <div id="portrait-notice">
+        <!-- 右上角手動旋轉按鈕 -->
+        <div class="rotate-btn" id="manual-rotate-btn">
+            <span class="rotate-btn-icon">🔄</span>
+            <span class="rotate-btn-text">手動旋轉</span>
+        </div>
+
+        <div class="phone-icon">📱</div>
+        <p>請將手機旋轉至「橫向」<br>獲得最佳 VIP 抽卡體驗</p>
+    </div>
+
+    <!-- 遊戲主區域 -->
+    <div id="game-container">
+        <div id="card-area">
+            <!-- 卡片 1 -->
+            <div class="card-container">
+                <div class="card-shaker">
+                    <div class="card">
+                        <div class="card-face card-back"></div>
+                        <div class="card-face card-front">
+                            <div class="card-amount">$10,000</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 卡片 2 -->
+            <div class="card-container">
+                <div class="card-shaker">
+                    <div class="card">
+                        <div class="card-face card-back"></div>
+                        <div class="card-face card-front">
+                            <div class="card-amount">$50,000</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 卡片 3 -->
+            <div class="card-container">
+                <div class="card-shaker">
+                    <div class="card">
+                        <div class="card-face card-back"></div>
+                        <div class="card-face card-front">
+                            <div class="card-amount">$100,000</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ==========================================
+        // ⚙️ 手動開關設定區 (Config)
+        // ==========================================
+        // true  = 開啟直向提示面板（直拿手機時會跳出提示）
+        // false = 關閉直向提示面板（不論怎麼拿都不會跳提示）
+        const ENABLE_PORTRAIT_NOTICE = true; 
+
+
+        // ==========================================
+        // 8. 系統邏輯
+        // ==========================================
+        const noticeEl = document.getElementById('portrait-notice');
+        const gameContainer = document.getElementById('game-container');
+        const rotateBtn = document.getElementById('manual-rotate-btn');
+
+        // 根據設定決定是否加上 active 類別
+        if (ENABLE_PORTRAIT_NOTICE) {
+            noticeEl.classList.add('active');
+        } else {
+            noticeEl.classList.remove('active');
+        }
+
+        // 點擊「手動旋轉」按鈕：關閉提示面板並強制旋轉畫面 90 度
+        rotateBtn.addEventListener('click', (e) => {
+            e.stopPropagation(); // 阻止觸發頁面其他點擊事件
+            noticeEl.classList.remove('active');
+            gameContainer.classList.add('force-rotated');
+        });
+
+        // 監聽手機實體轉向：若使用者手動把手機轉回橫向，則移除強制旋轉 CSS 類別
+        window.addEventListener('orientationchange', () => {
+            if (window.orientation === 90 || window.orientation === -90) {
+                gameContainer.classList.remove('force-rotated');
+            }
+        });
+
+        const rewards = ['$1,000', '$5,000', '$20,000', '$50,000', '$100,000', '$1,000,000'];
+        const animatingCards = new Set();
+
+        // 橫向鎖定嘗試
+        window.addEventListener('click', () => {
+            if (document.documentElement.requestFullscreen && !document.fullscreenElement) {
+                document.documentElement.requestFullscreen().then(() => {
+                    if (screen.orientation && screen.orientation.lock) {
+                        screen.orientation.lock('landscape').catch(() => {});
+                    }
+                }).catch(() => {});
+            }
+        }, { once: true });
+
+        // 點擊邏輯
+        document.querySelectorAll('.card-container').forEach(container => {
+            const shaker = container.querySelector('.card-shaker');
+            const card = container.querySelector('.card');
+            const amountEl = container.querySelector('.card-amount');
+
+            container.addEventListener('click', () => {
+                if (animatingCards.has(card)) return;
+
+                // 翻開卡片
+                if (!card.classList.contains('flipped')) {
+                    animatingCards.add(card);
+
+                    const randomReward = rewards[Math.floor(Math.random() * rewards.length)];
+                    amountEl.textContent = randomReward;
+
+                    shaker.classList.add('shaking');
+
+                    setTimeout(() => {
+                        shaker.classList.remove('shaking');
+                        card.classList.add('flipped');
+
+                        setTimeout(() => {
+                            animatingCards.delete(card);
+                        }, 800);
+                    }, 500);
+
+                } 
+                // 蓋回卡片
+                else {
+                    card.classList.remove('flipped');
+                }
+            });
+        });
+    </script>
+
+</body>
+</html>
