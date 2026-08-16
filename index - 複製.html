@@ -1,0 +1,381 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>幸運至尊卡牌 - 橫版 3D 抽卡系統</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            /* 暗色系奢華賭場風格背景 */
+            background: radial-gradient(circle at center, #2a080c 0%, #0d0204 100%);
+            color: #ffffff;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            overflow-x: hidden; /* 確保全局不出現橫向滾動條 */
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        h1 {
+            font-size: clamp(1.8rem, 5vw, 3rem); /* 隨螢幕動態縮放文字 */
+            font-weight: 800;
+            background: linear-gradient(180deg, #ffe066 0%, #d4af37 50%, #8a6410 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            text-shadow: 0 4px 15px rgba(0, 0, 0, 0.8);
+            letter-spacing: 2px;
+            margin-bottom: 8px;
+        }
+
+        p.subtitle {
+            color: #d4af37;
+            font-size: clamp(0.9rem, 3vw, 1.1rem);
+            letter-spacing: 1px;
+        }
+
+        /* --------------------------------------------------
+         * 卡片容器與 RWD 自適應佈局
+         * -------------------------------------------------- */
+        .cards-container {
+            display: flex;
+            gap: 20px;
+            width: 100%;
+            max-width: 1100px; /* 電腦端最大寬度 */
+            justify-content: center;
+            align-items: center;
+            margin-bottom: 35px;
+            /* 關鍵：使用 perspective 建立立體空間感 */
+            perspective: 1200px;
+            padding: 10px;
+        }
+
+        /* --------------------------------------------------
+         * 單張卡片 3D 結構（橫版設計）
+         * -------------------------------------------------- */
+        .card {
+            /* 橫版比例：寬大於高 */
+            width: 320px;
+            height: 200px;
+            max-width: 100%; /* 防止手機螢幕過窄時溢出 */
+            position: relative;
+            cursor: pointer;
+            border-radius: 16px;
+            
+            /* 保持 3D 空間獨立 */
+            transform-style: preserve-3d;
+            /* 沿 Y 軸旋轉動畫，搭配平滑貝茲曲線 */
+            transition: transform 0.8s cubic-bezier(0.175, 0.885, 0.32, 1.275), box-shadow 0.3s ease;
+        }
+
+        /* Hover 立體浮動特效 */
+        .card:hover {
+            transform: translateY(-10px) rotateX(8deg) rotateY(-5deg);
+            box-shadow: 0 20px 35px rgba(212, 175, 55, 0.35);
+        }
+
+        /* JavaScript 加入 .flipped 類別時沿 Y 軸旋轉 180 度 */
+        .card.flipped {
+            transform: rotateY(180deg);
+        }
+        
+        /* 翻牌後 hover 依然保持對應方向的浮動 */
+        .card.flipped:hover {
+            transform: rotateY(180deg) translateY(-10px) rotateX(-8deg);
+        }
+
+        /* 正反兩面共通樣式 */
+        .card-face {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            border-radius: 16px;
+            /* 使用 backface-visibility: hidden 避免翻牌穿幫 */
+            backface-visibility: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 20px 25px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.7);
+            border: 2px solid #d4af37;
+            overflow: hidden;
+        }
+
+        /* --------------------------------------------------
+         * 卡片背面（未翻開）
+         * -------------------------------------------------- */
+        .card-back {
+            background: radial-gradient(circle, #2c251e 0%, #110d0a 100%);
+            outline: 2px solid #5a4510;
+            outline-offset: -6px;
+            flex-direction: row; /* 橫向排版 */
+            justify-content: center;
+            gap: 15px;
+        }
+
+        .card-back .card-logo {
+            font-size: 2.8rem;
+            color: #ffd700;
+            text-shadow: 0 0 15px rgba(255, 215, 0, 0.8);
+            animation: pulseGlow 2s infinite alternate;
+        }
+
+        .card-back span {
+            font-size: 1.2rem;
+            font-weight: bold;
+            color: #d4af37;
+            letter-spacing: 3px;
+        }
+
+        /* --------------------------------------------------
+         * 卡片正面（預設旋轉 180 度）
+         * -------------------------------------------------- */
+        .card-front {
+            background: linear-gradient(135deg, #1f1f2e 0%, #0a0a12 100%);
+            /* 正面預設沿 Y 軸旋轉 180 度 */
+            transform: rotateY(180deg);
+            outline: 2px solid #b8860b;
+            outline-offset: -6px;
+            flex-direction: row; /* 橫向佈局：左圖右文 */
+            gap: 15px;
+        }
+
+        .card-front .icon-area {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-width: 80px;
+        }
+
+        .card-front .card-icon {
+            font-size: 3rem;
+            filter: drop-shadow(0 0 10px rgba(255, 215, 0, 0.6));
+        }
+
+        .card-front .rarity {
+            font-size: 0.75rem;
+            font-weight: bold;
+            color: #ffd700;
+            background: rgba(212, 175, 55, 0.2);
+            padding: 2px 8px;
+            border-radius: 12px;
+            border: 1px solid #d4af37;
+            margin-top: 5px;
+            white-space: nowrap;
+        }
+
+        .card-front .info-area {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            text-align: left;
+            flex: 1;
+        }
+
+        .card-front h3 {
+            font-size: 1.2rem;
+            color: #ffffff;
+            margin-bottom: 6px;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.8);
+        }
+
+        .card-front p {
+            font-size: 0.85rem;
+            color: #cccccc;
+            line-height: 1.35;
+        }
+
+        /* --------------------------------------------------
+         * 按鈕區塊
+         * -------------------------------------------------- */
+        .action-area {
+            display: flex;
+            gap: 20px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        .btn {
+            background: linear-gradient(180deg, #ffe066 0%, #d4af37 50%, #996515 100%);
+            color: #1a0003;
+            border: 2px solid #fff5cc;
+            padding: 12px 35px;
+            font-size: 1.1rem;
+            font-weight: 800;
+            border-radius: 50px;
+            cursor: pointer;
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.6);
+            transition: all 0.3s ease;
+            letter-spacing: 1px;
+        }
+
+        .btn:hover {
+            transform: translateY(-3px) scale(1.03);
+            box-shadow: 0 10px 25px rgba(255, 215, 0, 0.5);
+        }
+
+        .btn-reset {
+            background: linear-gradient(180deg, #4a4a4a 0%, #2b2b2b 100%);
+            color: #d4af37;
+            border: 2px solid #777;
+        }
+
+        @keyframes pulseGlow {
+            0% { transform: scale(1); text-shadow: 0 0 10px rgba(255, 215, 0, 0.5); }
+            100% { transform: scale(1.08); text-shadow: 0 0 22px rgba(255, 215, 0, 0.9); }
+        }
+
+        /* --------------------------------------------------
+         * 手機/平板 響應式調整（防止邊界溢出）
+         * -------------------------------------------------- */
+        @media (max-width: 900px) {
+            .cards-container {
+                flex-direction: column; /* 平板/手機端轉為直向排列 */
+                align-items: center;
+            }
+
+            .card {
+                width: 100%;
+                max-width: 340px; /* 手機端適應寬度 */
+                height: 180px;   /* 手機端稍微縮小高度 */
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <h1>🎰 幸運至尊卡牌 🎰</h1>
+        <p class="subtitle">點擊卡片翻開屬於你的三大橫版命運！</p>
+    </header>
+
+    <!-- 三張橫向卡牌區域 -->
+    <div class="cards-container">
+        <!-- 卡片 0 -->
+        <div class="card" id="card-0" onclick="flipCard(0)">
+            <div class="card-face card-back">
+                <div class="card-logo">🎰</div>
+                <span>未知命運</span>
+            </div>
+            <div class="card-face card-front">
+                <div class="icon-area">
+                    <div class="card-icon">🐉</div>
+                    <div class="rarity">SSR 傳說級</div>
+                </div>
+                <div class="info-area">
+                    <h3 id="title-0">星穹神龍</h3>
+                    <p id="desc-0">擁有毀天滅地的強大原力，庇護主人。</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- 卡片 1 -->
+        <div class="card" id="card-1" onclick="flipCard(1)">
+            <div class="card-face card-back">
+                <div class="card-logo">🎰</div>
+                <span>未知命運</span>
+            </div>
+            <div class="card-face card-front">
+                <div class="icon-area">
+                    <div class="card-icon">⚔️</div>
+                    <div class="rarity">SR 史詩級</div>
+                </div>
+                <div class="info-area">
+                    <h3 id="title-1">時空雙刃</h3>
+                    <p id="desc-1">能劃破維度裂縫，速度超越光速的神兵。</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- 卡片 2 -->
+        <div class="card" id="card-2" onclick="flipCard(2)">
+            <div class="card-face card-back">
+                <div class="card-logo">🎰</div>
+                <span>未知命運</span>
+            </div>
+            <div class="card-face card-front">
+                <div class="icon-area">
+                    <div class="card-icon">🔮</div>
+                    <div class="rarity">SSR 傳說級</div>
+                </div>
+                <div class="info-area">
+                    <h3 id="title-2">全知水晶球</h3>
+                    <p id="desc-2">洞悉宇宙萬物過去與未來的至高寶物。</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 按鈕控制區 -->
+    <div class="action-area">
+        <button class="btn" onclick="drawAllCards()">🎲 一鍵開牌</button>
+        <button class="btn btn-reset" onclick="resetCards()">🎴 重新洗牌</button>
+    </div>
+
+    <script>
+        // 隨機獎項資料庫
+        const rewards = [
+            { rarity: "SSR 傳說級", icon: "🐉", title: "星穹神龍", desc: "擁有毀天滅地的強大原力，庇護主人。" },
+            { rarity: "SR 史詩級", icon: "⚔️", title: "時空雙刃", desc: "能劃破維度裂縫，速度超越光速的神兵。" },
+            { rarity: "SSR 傳說級", icon: "🔮", title: "全知水晶球", desc: "洞悉宇宙萬物過去與未來的至高寶物。" },
+            { rarity: "R 稀有級", icon: "🛡️", title: "鈦金聖盾", desc: "絕對防禦，能抵擋任何強力物理攻擊。" },
+            { rarity: "SSR 傳說級", icon: "👑", title: "至尊皇冠", desc: "象徵賭界至高無上的尊榮權力。" },
+            { rarity: "SR 史詩級", icon: "💎", title: "幸運鑽石", desc: "帶來源源不絕財富與極致幸運。" }
+        ];
+
+        // 隨機更新卡牌內容
+        function updateCardContent(index) {
+            const randomReward = rewards[Math.floor(Math.random() * rewards.length)];
+            const cardElement = document.getElementById(`card-${index}`);
+            
+            cardElement.querySelector('.rarity').innerText = randomReward.rarity;
+            cardElement.querySelector('.card-icon').innerText = randomReward.icon;
+            document.getElementById(`title-${index}`).innerText = randomReward.title;
+            document.getElementById(`desc-${index}`).innerText = randomReward.desc;
+        }
+
+        // 單張卡片點擊翻牌
+        function flipCard(index) {
+            const card = document.getElementById(`card-${index}`);
+            if (!card.classList.contains('flipped')) {
+                updateCardContent(index);
+            }
+            // 切換 .flipped 類別觸發 CSS 旋轉動畫
+            card.classList.toggle('flipped');
+        }
+
+        // 一鍵開牌
+        function drawAllCards() {
+            for (let i = 0; i < 3; i++) {
+                const card = document.getElementById(`card-${i}`);
+                updateCardContent(i);
+                setTimeout(() => {
+                    card.classList.add('flipped');
+                }, i * 180); // 錯開時間差，營造節奏感
+            }
+        }
+
+        // 重新洗牌（蓋牌）
+        function resetCards() {
+            for (let i = 0; i < 3; i++) {
+                const card = document.getElementById(`card-${i}`);
+                card.classList.remove('flipped');
+            }
+        }
+    </script>
+</body>
+</html>
