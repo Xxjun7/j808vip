@@ -51,13 +51,13 @@
             transform-origin: center center;
         }
 
-        /* 💡 手動旋轉專用修飾：補償卡片大小，防止視覺上變小、變遠 */
+        /* 💡 手動旋轉精準比例：微調至與自動橫向一致的視覺比例 */
         #game-container.force-rotated .card-container {
-            width: clamp(120px, 28vh, 260px) !important;
+            width: clamp(80px, 22vw, 155px) !important;
         }
 
         #game-container.force-rotated .card-amount {
-            font-size: clamp(16px, 3.5vh, 28px) !important;
+            font-size: clamp(12px, 2.5vw, 20px) !important;
         }
 
         /* ==========================================
