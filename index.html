@@ -51,13 +51,18 @@
             transform-origin: center center;
         }
 
-        /* 💡 手動旋轉精準比例：微調至與自動橫向一致的視覺比例 */
+        /* 💡 手動旋轉關鍵修正：把卡片排列轉 90 度，並改用 vh 鎖定與圖一相同的尺寸 */
+        #game-container.force-rotated #card-area {
+            flex-direction: column !important;
+            gap: clamp(10px, 2vh, 30px) !important;
+        }
+
         #game-container.force-rotated .card-container {
-            width: clamp(80px, 22vw, 155px) !important;
+            width: clamp(90px, 25vh, 240px) !important;
         }
 
         #game-container.force-rotated .card-amount {
-            font-size: clamp(12px, 2.5vw, 20px) !important;
+            font-size: clamp(14px, 2.5vh, 24px) !important;
         }
 
         /* ==========================================
