@@ -1,0 +1,506 @@
+請先不要直接重寫整個專案。
+請先依照我提供的 Console 錯誤與原始碼定位問題，再提供精確的替換區塊。
+
+我現在有一個非常重要的新 Console 診斷結果。
+
+請先不要猜測 autoplay，也不要先修改音效播放程式。
+
+目前 Console 是：
+
+VM527:67 Uncaught SyntaxError: Failed to execute 'write' on 'Document': Unexpected token '<' (at VM527:67:1)
+    at submitTryit (網頁編輯v23.html:1454:23)
+
+VM543:67 Uncaught SyntaxError: Failed to execute 'write' on 'Document': Unexpected token '<' (at VM543:67:1)
+    at submitTryit (網頁編輯v23.html:1454:23)
+    at applyAndRunLocalFiles (網頁編輯v23.html:1663:9)
+
+VM547:67 Uncaught SyntaxError: Failed to execute 'write' on 'Document': Unexpected token '<' (at VM547:67:1)
+    at submitTryit (網頁編輯v23.html:1454:23)
+
+然後我的音效測試：
+
+const sounds = {
+  bgm: new Audio('bgm01.mp3'),
+  shake: new Audio('shake01.mp3'),
+  flip: new Audio('flip01.mp3'),
+  win: new Audio('win01.mp3')
+};
+
+console.log 顯示：
+
+BGM: https://xxjun7.github.io/jkey/bgm01.mp3
+Shake: https://xxjun7.github.io/jkey/shake01.mp3
+Flip: https://xxjun7.github.io/jkey/flip01.mp3
+Win: https://xxjun7.github.io/jkey/win01.mp3
+
+接著：
+
+GET https://xxjun7.github.io/jkey/bgm01.mp3 404 (Not Found)
+GET https://xxjun7.github.io/jkey/shake01.mp3 404
+GET https://xxjun7.github.io/jkey/win01.mp3 404
+GET https://xxjun7.github.io/jkey/flip01.mp3 404
+
+所以目前已經可以確認：
+
+「本地資源暫存區」中的 mp3 沒有成功攔截 new Audio('xxx.mp3')。
+
+而且 submitTryit() 本身還存在：
+
+document.write()
+
+產生：
+
+Unexpected token '<'
+
+的錯誤。
+
+請針對我之前提供的完整程式碼，進行精確修正。
+
+==================================================
+第一優先：修正 document.write() 的 SyntaxError
+==================================================
+
+目前 submitTryit()：
+
+const localInterceptor = createLocalResourceInterceptorScript();
+
+if (text.includes('<head>')) {
+  text = text.replace('<head>', '<head>' + localInterceptor + inspectorScript);
+} else {
+  text = localInterceptor + inspectorScript + text;
+}
+
+const wrapper = document.getElementById("iframewrapper");
+wrapper.innerHTML = "";
+
+const ifr = document.createElement("iframe");
+ifr.setAttribute("frameborder", "0");
+ifr.setAttribute("allow", "autoplay; fullscreen; picture-in-picture");
+ifr.setAttribute("id", "iframeResult");
+wrapper.appendChild(ifr);
+
+const ifrw = ifr.contentWindow || ifr.contentDocument;
+
+ifrw.document.open();
+ifrw.document.write(text);
+ifrw.document.close();
+
+請仔細檢查：
+
+createLocalResourceInterceptorScript()
+
+是否產生了不合法的：
+
+<script>...</script>
+
+內容。
+
+尤其注意：
+
+JavaScript 字串裡面的：
+
+</script>
+
+會被 HTML parser 提前視為 script 結束。
+
+請檢查目前使用的：
+
+<\\/script>
+
+是否真的能避免這個問題。
+
+不要猜。
+
+請把 createLocalResourceInterceptorScript() 回傳的最終字串實際邏輯檢查清楚。
+
+如果目前寫法不安全，請改成真正安全的：
+
+<\/script>
+
+或其他可靠方式。
+
+==================================================
+第二優先：確認 iframe 內的 interceptor 是否真的有執行
+==================================================
+
+請在：
+
+createLocalResourceInterceptorScript()
+
+最前面加入明確 debug：
+
+console.log('[LocalResource] interceptor injected');
+
+以及：
+
+console.log('[LocalResource] initial map:', LOCAL_RESOURCE_MAP);
+
+如果 iframe 正常執行，Console 必須可以看到：
+
+[LocalResource] interceptor injected
+
+而不是完全沒有。
+
+==================================================
+第三優先：修正 new Audio()
+==================================================
+
+目前：
+
+new Audio('bgm01.mp3')
+
+結果是：
+
+https://xxjun7.github.io/jkey/bgm01.mp3
+
+代表：
+
+resolve('bgm01.mp3')
+
+沒有成功在 new Audio() 建立時把它轉換成 Blob URL。
+
+請重新檢查：
+
+window.Audio
+
+攔截器。
+
+必須保證：
+
+new Audio('bgm01.mp3')
+
+在 constructor 執行期間就解析成：
+
+blob:...
+
+例如：
+
+[LocalAudio] request: bgm01.mp3
+[LocalAudio] normalized: bgm01.mp3
+[LocalAudio] resolved: blob:....
+
+然後：
+
+audio.src
+
+必須是 Blob URL。
+
+==================================================
+第四優先：不要只修 window.Audio
+==================================================
+
+以下全部都要支援：
+
+1.
+
+new Audio('bgm01.mp3');
+
+2.
+
+const audio = new Audio();
+audio.src = 'bgm01.mp3';
+
+3.
+
+const audio = document.createElement('audio');
+audio.src = 'bgm01.mp3';
+
+4.
+
+audio.setAttribute('src', 'bgm01.mp3');
+
+5.
+
+<audio src="bgm01.mp3">
+
+6.
+
+<source src="bgm01.mp3">
+
+7.
+
+fetch('bgm01.mp3')
+
+8.
+
+XMLHttpRequest
+
+==================================================
+第五優先：確認初始 map
+==================================================
+
+目前 createLocalResourceInterceptorScript()：
+
+const resources = {};
+localResourceMap.forEach((item, key) => {
+  resources[key] = item.url;
+});
+
+const safeJson = JSON.stringify(resources);
+
+請確保：
+
+bgm01.mp3
+
+會出現在：
+
+LOCAL_RESOURCE_MAP
+
+裡。
+
+例如 iframe console 應該出現：
+
+{
+  "bgm01.mp3": "blob:...",
+  "shake01.mp3": "blob:...",
+  "flip01.mp3": "blob:...",
+  "win01.mp3": "blob:..."
+}
+
+如果這裡沒有 mp3，就不要繼續改 Audio，先修 localResourceMap → interceptor 的資料傳遞。
+
+==================================================
+第六優先：確認 resolve()
+==================================================
+
+請加入：
+
+console.log('[LocalResource] resolve request:', v);
+
+console.log('[LocalResource] normalized:', norm(v));
+
+console.log('[LocalResource] result:', map.get(norm(v)));
+
+測試：
+
+resolve('bgm01.mp3')
+
+應該得到：
+
+blob:...
+
+而不是 null。
+
+==================================================
+第七優先：檢查 submitTryit 的執行順序
+==================================================
+
+非常重要：
+
+使用者程式：
+
+const sounds = {
+  bgm: new Audio('bgm01.mp3')
+};
+
+是在 iframe document.write() 時執行。
+
+因此：
+
+LOCAL_RESOURCE_MAP
+
+必須在使用者程式碼執行之前存在。
+
+不能：
+
+先執行使用者程式
+↓
+再 postMessage
+↓
+才建立 localResourceMap
+
+這樣一定太晚。
+
+目前：
+
+setTimeout(() => syncLocalResourcesToIframe(ifr), 0);
+
+只能當作「後續同步」。
+
+不能依賴它作為第一次資源初始化。
+
+==================================================
+第八優先：修正資源同步
+==================================================
+
+保留：
+
+syncLocalResourcesToIframe(ifr)
+
+但是：
+
+createLocalResourceInterceptorScript()
+
+產生的：
+
+LOCAL_RESOURCE_MAP
+
+必須包含目前所有本地資源。
+
+==================================================
+第九優先：加入完整診斷
+==================================================
+
+請在 iframe interceptor 中加入：
+
+window.__LOCAL_RESOURCE_DEBUG__ = true;
+
+並提供：
+
+window.testLocalAudioResource = function(src) {
+  console.log('=== Local Audio Test ===');
+
+  console.log('requested:', src);
+
+  const normalized = norm(src);
+  console.log('normalized:', normalized);
+
+  const resolved = resolve(src);
+  console.log('resolved:', resolved);
+
+  const audio = new OriginalAudio();
+
+  if (resolved) {
+    audio.src = resolved;
+  } else {
+    audio.src = src;
+  }
+
+  console.log('audio.src:', audio.src);
+  console.log('audio.currentSrc:', audio.currentSrc);
+
+  audio.addEventListener('loadedmetadata', function() {
+    console.log('[LocalAudio] loadedmetadata');
+    console.log('duration:', audio.duration);
+    console.log('readyState:', audio.readyState);
+  });
+
+  audio.addEventListener('canplay', function() {
+    console.log('[LocalAudio] canplay');
+  });
+
+  audio.addEventListener('error', function() {
+    console.error('[LocalAudio] ERROR', {
+      src: audio.src,
+      currentSrc: audio.currentSrc,
+      error: audio.error
+    });
+  });
+
+  audio.load();
+
+  return audio;
+};
+
+==================================================
+第十優先：不要把問題歸因於 autoplay
+==================================================
+
+目前確實還有：
+
+「瀏覽器阻止自動播放，等待使用者互動」
+
+但這不是目前第一個問題。
+
+因為現在連：
+
+audio.src
+
+都已經是：
+
+https://xxjun7.github.io/jkey/bgm01.mp3
+
+而不是 Blob URL。
+
+所以目前優先順序必須是：
+
+1. 修復 document.write() SyntaxError
+2. 確認 interceptor 成功注入
+3. 確認 LOCAL_RESOURCE_MAP 存在
+4. 確認 resolve('bgm01.mp3') 得到 Blob URL
+5. 確認 new Audio() 使用 Blob URL
+6. 最後才處理 play()
+
+==================================================
+第十一優先：請直接給我可替換程式碼
+==================================================
+
+不要只說：
+
+「你應該修改 Audio interceptor」
+
+請直接提供完整可替換版本。
+
+尤其是：
+
+A. createLocalResourceInterceptorScript()
+
+B. resolveLocalResourceUrl()
+
+C. submitTryit()
+
+如果需要修改其他函式，也請完整提供。
+
+==================================================
+第十二優先：修改後驗收
+==================================================
+
+修改完成後，我會重新加入：
+
+bgm01.mp3
+shake01.mp3
+flip01.mp3
+win01.mp3
+
+並按：
+
+「本地資源已套用至預覽」
+
+然後執行：
+
+const sounds = {
+  bgm: new Audio('bgm01.mp3'),
+  shake: new Audio('shake01.mp3'),
+  flip: new Audio('flip01.mp3'),
+  win: new Audio('win01.mp3')
+};
+
+console.log('BGM:', sounds.bgm.src, sounds.bgm.currentSrc);
+console.log('Shake:', sounds.shake.src, sounds.shake.currentSrc);
+console.log('Flip:', sounds.flip.src, sounds.flip.currentSrc);
+console.log('Win:', sounds.win.src, sounds.win.currentSrc);
+
+正確結果必須是：
+
+blob:...
+
+而不是：
+
+https://xxjun7.github.io/jkey/bgm01.mp3
+
+並且 Console 不可以再出現：
+
+Unexpected token '<'
+
+也不可以再出現：
+
+GET https://xxjun7.github.io/jkey/bgm01.mp3 404
+
+==================================================
+
+最後請按照：
+
+【問題 1：Unexpected token '<'】
+【問題 2：Audio 沒有被 localResourceMap 攔截】
+【問題 3：iframe 初始資源同步時機】
+【問題 4：Audio 動態建立與 src 賦值】
+【完整修改程式碼】
+【修改後測試方法】
+
+順序回答。
+
+不要修改我的遊戲端：
+
+new Audio('bgm01.mp3')
+
+這種寫法必須保持不變。
