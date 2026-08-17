@@ -293,9 +293,8 @@
 </head>
 <body>
 
-    <!-- 音樂與音效標籤 (背景音樂改讀取本地 mu01.mp3) -->
+    <!-- 音樂標籤 (背景音樂讀取本地 mu01.mp3) -->
     <audio id="bgm" loop preload="auto" src="mu01.mp3"></audio>
-    <audio id="sfx-flip" preload="auto" src="https://cdn.pixabay.com/download/audio/2022/03/24/audio_c299edb44e.mp3?filename=card-flip-89312.mp3"></audio>
 
     <!-- 橫向提示面板 -->
     <div id="portrait-notice">
@@ -310,7 +309,7 @@
 
     <!-- 遊戲主區域 -->
     <div id="game-container">
-        <!-- 💡 音效控制按鈕放置於 game-container 內，跟隨 force-rotated 一起旋轉 90 度 -->
+        <!-- 音效控制按鈕放置於 game-container 內，跟隨 force-rotated 一起旋轉 90 度 -->
         <div class="sound-toggle-btn" id="sound-toggle">
             <span id="sound-icon">🔊</span>
             <span id="sound-text">音樂: ON</span>
@@ -370,7 +369,6 @@
         
         // 音效元件
         const bgm = document.getElementById('bgm');
-        const sfxFlip = document.getElementById('sfx-flip');
         const soundToggleBtn = document.getElementById('sound-toggle');
         const soundIcon = document.getElementById('sound-icon');
         const soundText = document.getElementById('sound-text');
@@ -378,11 +376,58 @@
         let isSoundEnabled = true;
         let isBgmStarted = false;
 
-        bgm.volume = 0.4;
-        sfxFlip.volume = 0.8;
+        // 降低背景音樂音量，避免蓋掉翻牌聲
+        bgm.volume = 0.15;
+
+        // 音訊上下文（用於合成翻牌音效）
+        let audioCtx = null;
+
+        function playFlipSound() {
+            if (!isSoundEnabled) return;
+
+            if (!audioCtx) {
+                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            }
+            if (audioCtx.state === 'suspended') {
+                audioCtx.resume();
+            }
+
+            const bufferSize = audioCtx.sampleRate * 0.12;
+            const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+            const output = buffer.getChannelData(0);
+
+            for (let i = 0; i < bufferSize; i++) {
+                output[i] = Math.random() * 2 - 1;
+            }
+
+            const whiteNoise = audioCtx.createBufferSource();
+            whiteNoise.buffer = buffer;
+
+            const filter = audioCtx.createBiquadFilter();
+            filter.type = 'lowpass';
+            filter.frequency.setValueAtTime(1000, audioCtx.currentTime);
+            filter.frequency.exponentialRampToValueAtTime(150, audioCtx.currentTime + 0.12);
+
+            const gain = audioCtx.createGain();
+            gain.gain.setValueAtTime(0.9, audioCtx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.12);
+
+            whiteNoise.connect(filter);
+            filter.connect(gain);
+            gain.connect(audioCtx.destination);
+
+            whiteNoise.start();
+        }
 
         // 解鎖並播放背景音樂
         function triggerAudio() {
+            if (!audioCtx) {
+                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            }
+            if (audioCtx.state === 'suspended') {
+                audioCtx.resume();
+            }
+
             if (isSoundEnabled && !isBgmStarted) {
                 bgm.play().then(() => {
                     isBgmStarted = true;
@@ -488,10 +533,7 @@
                         card.classList.add('flipped');
 
                         // 播放翻卡音效
-                        if (isSoundEnabled) {
-                            sfxFlip.currentTime = 0;
-                            sfxFlip.play().catch(() => {});
-                        }
+                        playFlipSound();
 
                         setTimeout(() => {
                             animatingCards.delete(card);
@@ -502,10 +544,7 @@
                 // 蓋回卡片
                 else {
                     card.classList.remove('flipped');
-                    if (isSoundEnabled) {
-                        sfxFlip.currentTime = 0;
-                        sfxFlip.play().catch(() => {});
-                    }
+                    playFlipSound();
                 }
             });
         });
