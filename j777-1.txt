@@ -1,0 +1,738 @@
+請仔細檢查我這個 HTML/JavaScript 編輯器中的「本地資源暫存區」功能。
+
+目前問題：
+
+我在「本地資源暫存區」加入了音效檔，例如：
+
+bgm01.mp3
+shake01.mp3
+flip01.mp3
+win01.mp3
+
+而且畫面上顯示本地資源已加入、已套用。
+
+我的使用程式碼是：
+
+const sounds = {
+  bgm: new Audio('bgm01.mp3'),
+  shake: new Audio('shake01.mp3'),
+  flip: new Audio('flip01.mp3'),
+  win: new Audio('win01.mp3')
+};
+
+但是執行預覽後完全沒有音效。
+
+請注意：
+
+1. 不要把問題簡單歸因於瀏覽器 autoplay。
+2. 我的測試程式會在使用者點擊按鈕後呼叫 play()，所以請不要把「瀏覽器阻擋自動播放」當成主要原因。
+3. 請從我目前的「localResourceMap → Blob URL → iframe → interceptor → Audio」整條流程檢查。
+4. 不要破壞目前 img、video、audio、source、script、link、iframe、object、embed 以及 CSS url() 的本地資源功能。
+5. 不要移除目前的本地資源暫存功能。
+6. 不要改成讓使用者每次都必須手動輸入 Blob URL。
+7. 不要要求使用者修改自己的遊戲程式碼。
+8. 最終目標是讓使用者可以直接寫：
+   
+   new Audio('bgm01.mp3')
+
+   或：
+
+   const audio = new Audio('./bgm01.mp3');
+
+   或：
+
+   audio.src = 'bgm01.mp3';
+
+   或：
+
+   audio.src = './bgm01.mp3';
+
+   都可以正確找到「本地資源暫存區」裡的音效。
+
+==================================================
+一、請先檢查目前 localResourceMap
+==================================================
+
+目前資源加入方式：
+
+const key = normalizeLocalResourceKey(file.name);
+
+localResourceMap.set(key, {
+  file,
+  url,
+  size: file.size,
+  type: file.type || '',
+  name: file.name
+});
+
+請確認：
+
+bgm01.mp3
+
+會被儲存成：
+
+bgm01.mp3
+
+而：
+
+./bgm01.mp3
+
+也可以透過 normalizeLocalResourceKey() 找到：
+
+bgm01.mp3
+
+不要改壞目前的 key normalization。
+
+==================================================
+二、加強 resolveLocalResourceUrl()
+==================================================
+
+請讓：
+
+resolveLocalResourceUrl('bgm01.mp3')
+
+resolveLocalResourceUrl('./bgm01.mp3')
+
+resolveLocalResourceUrl('/bgm01.mp3')
+
+resolveLocalResourceUrl('folder/bgm01.mp3')
+
+都能正常處理。
+
+尤其要注意 URL 中：
+
+?
+#
+
+以及：
+
+../
+./
+
+的處理。
+
+如果找不到資源，不要靜默失敗。
+
+請增加 console.warn，例如：
+
+[LocalResource] 找不到資源：bgm01.mp3
+
+如果成功找到：
+
+[LocalResource] resolved: bgm01.mp3 -> blob:...
+
+==================================================
+三、重點修改 Audio 攔截器
+==================================================
+
+目前 createLocalResourceInterceptorScript() 裡面有：
+
+if(window.Audio){
+  const OriginalAudio=window.Audio;
+  window.Audio=function(src){
+    const audio=new OriginalAudio();
+    if(typeof src==='string') audio.src=resolve(src)||src;
+    return audio;
+  };
+  window.Audio.prototype=OriginalAudio.prototype;
+}
+
+請不要只做最小修改。
+
+請重新設計成更可靠的 Audio 攔截方式。
+
+要求：
+
+A.
+
+new Audio('bgm01.mp3')
+
+建立時就必須：
+
+1. 呼叫 resolve()
+2. 找到 Blob URL
+3. 將真正的 Blob URL 設定給 audio.src
+4. 保留原本 HTMLAudioElement 的行為
+
+B.
+
+以下都必須支援：
+
+new Audio('bgm01.mp3')
+
+new Audio('./bgm01.mp3')
+
+const a = new Audio();
+a.src = 'bgm01.mp3';
+
+const a = document.createElement('audio');
+a.src = 'bgm01.mp3';
+
+a.setAttribute('src', 'bgm01.mp3');
+
+C.
+
+必須處理：
+
+audio.src = 'bgm01.mp3'
+
+以及：
+
+audio.setAttribute('src', 'bgm01.mp3')
+
+D.
+
+請確認不會因為覆寫：
+
+window.Audio
+
+而造成：
+
+instanceof HTMLAudioElement
+
+prototype
+
+play()
+
+pause()
+
+load()
+
+currentTime
+
+volume
+
+loop
+
+muted
+
+等原生功能異常。
+
+==================================================
+四、請加入 audio 元素的攔截
+==================================================
+
+除了 new Audio() 之外，也請確保：
+
+<audio src="bgm01.mp3"></audio>
+
+<source src="bgm01.mp3">
+
+都可以正常解析。
+
+例如：
+
+<audio id="bgm" controls>
+  <source src="bgm01.mp3" type="audio/mpeg">
+</audio>
+
+也必須正常。
+
+==================================================
+五、非常重要：處理動態建立的 Audio
+==================================================
+
+以下程式：
+
+const audio = new Audio();
+audio.src = 'bgm01.mp3';
+
+以及：
+
+const audio = new Audio('bgm01.mp3');
+
+以及：
+
+const audio = document.createElement('audio');
+audio.src = 'bgm01.mp3';
+
+全部都要正常。
+
+請不要只處理 HTML 原始碼。
+
+==================================================
+六、檢查 fetch / XMLHttpRequest
+==================================================
+
+目前 interceptor 已經有：
+
+window.fetch
+
+XMLHttpRequest.prototype.open
+
+請確認：
+
+fetch('bgm01.mp3')
+
+也可以解析成本地 Blob URL。
+
+例如：
+
+fetch('bgm01.mp3')
+  .then(r => r.blob())
+
+必須正常。
+
+XMLHttpRequest 也要支援。
+
+==================================================
+七、檢查 iframe 初始資源同步時機
+==================================================
+
+目前 submitTryit()：
+
+1. rewriteLocalResourceReferences()
+2. createLocalResourceInterceptorScript()
+3. 將 interceptor 注入 iframe
+4. document.write()
+5. setTimeout(() => syncLocalResourcesToIframe(ifr), 0)
+
+請仔細檢查這裡是否存在 race condition。
+
+要求：
+
+「初始 localResourceMap」必須在使用者程式碼執行 new Audio() 之前就可以使用。
+
+因為：
+
+const sounds = {
+  bgm: new Audio('bgm01.mp3'),
+  shake: new Audio('shake01.mp3')
+};
+
+是在使用者程式碼載入時立即執行。
+
+因此不能依賴 postMessage 晚一點才同步。
+
+請確保：
+
+createLocalResourceInterceptorScript()
+
+裡面的 LOCAL_RESOURCE_MAP
+
+在使用者程式碼執行前就已經存在。
+
+==================================================
+八、增加「本地音效資源除錯功能」
+==================================================
+
+請新增一個通用 debug 函式：
+
+function debugLocalAudioResource(src) {}
+
+或放在 iframe interceptor 裡。
+
+當程式執行：
+
+new Audio('bgm01.mp3')
+
+時，console 應該能看到類似：
+
+[LocalAudio] request: bgm01.mp3
+[LocalAudio] normalized: bgm01.mp3
+[LocalAudio] resolved: blob:...
+[LocalAudio] audio created successfully
+
+如果找不到：
+
+[LocalAudio] NOT FOUND: bgm01.mp3
+
+如果 audio 發生錯誤：
+
+audio.addEventListener('error', ...)
+
+請輸出：
+
+src
+currentSrc
+error.code
+error.message（如果瀏覽器提供）
+
+方便之後判斷到底是：
+
+1. 找不到本地資源
+2. Blob URL 錯誤
+3. MIME type 問題
+4. audio 載入失敗
+5. play() 失敗
+
+==================================================
+九、加入資源載入成功檢查
+==================================================
+
+當本地資源是音效檔時：
+
+mp3
+wav
+ogg
+m4a
+aac
+flac
+
+請在必要時可以檢查：
+
+audio.readyState
+
+audio.networkState
+
+audio.currentSrc
+
+audio.src
+
+並在錯誤時 console.warn。
+
+不要影響正常播放。
+
+==================================================
+十、檢查 MIME type
+==================================================
+
+目前：
+
+file.type || ''
+
+如果使用者拖曳或選擇 mp3，瀏覽器通常會得到：
+
+audio/mpeg
+
+但如果某些環境 file.type 是空字串，請不要因此導致音效無法使用。
+
+Blob URL 本身仍然應該可以使用。
+
+請不要硬編碼所有音效都是 audio/mpeg。
+
+==================================================
+十一、請修正本地資源同步
+==================================================
+
+目前：
+
+syncLocalResourcesToIframe(ifr)
+
+會：
+
+iframe.contentWindow.postMessage({
+  type: 'LOCAL_RESOURCE_MAP',
+  resources: resources
+}, '*');
+
+請保留。
+
+但請確認 iframe 收到：
+
+LOCAL_RESOURCE_MAP
+
+之後：
+
+map.clear();
+
+Object.entries(...)
+
+不會讓原本可用的資源突然消失。
+
+如果需要，請改成：
+
+更新 map
+
+而不是不必要地清空造成短暫資源不存在。
+
+==================================================
+十二、請檢查 URL.createObjectURL / revokeObjectURL
+==================================================
+
+目前：
+
+const url = URL.createObjectURL(file);
+
+刪除時：
+
+URL.revokeObjectURL(old.url);
+
+這個邏輯基本上要保留。
+
+但是請確認：
+
+如果使用者更新：
+
+bgm01.mp3
+
+舊 Blob URL 被 revoke 後：
+
+新的 Blob URL
+
+會同步到 iframe。
+
+如果資源被刪除：
+
+iframe 裡不應該繼續使用舊 URL。
+
+==================================================
+十三、請特別檢查這個情況
+==================================================
+
+使用者先加入：
+
+bgm01.mp3
+
+然後按「套用」。
+
+接著：
+
+submitTryit()
+
+iframe 建立。
+
+然後使用者程式碼立即執行：
+
+const bgm = new Audio('bgm01.mp3');
+
+必須成功。
+
+另外：
+
+使用者新增 shake01.mp3
+
+再按套用。
+
+原本 bgm01.mp3 不應該失效。
+
+==================================================
+十四、請不要破壞目前的 rewriteLocalResourceReferences()
+==================================================
+
+目前：
+
+rewriteLocalResourceReferences(html)
+
+主要處理：
+
+<img src="">
+<audio src="">
+<video src="">
+<source src="">
+<script src="">
+<link href="">
+<iframe src="">
+<object data="">
+<embed src="">
+
+以及：
+
+CSS url()
+
+這些功能都要保留。
+
+但是請理解：
+
+JavaScript：
+
+new Audio('bgm01.mp3')
+
+不能依靠 rewriteLocalResourceReferences()。
+
+必須由 iframe interceptor 處理。
+
+==================================================
+十五、請增加一個本地資源測試函式
+==================================================
+
+請新增：
+
+function testLocalAudioResource(name) {}
+
+或其他合理名稱。
+
+例如：
+
+testLocalAudioResource('bgm01.mp3');
+
+可以檢查：
+
+1. localResourceMap 是否存在
+2. normalize 後的 key
+3. Blob URL
+4. MIME type
+5. 是否可以建立 Audio
+6. audio.src
+7. audio.currentSrc
+8. audio.load()
+9. canplay / loadedmetadata / error
+
+並輸出清楚的 console 訊息。
+
+例如：
+
+=== Local Audio Test ===
+requested: bgm01.mp3
+normalized: bgm01.mp3
+found: true
+blobURL: blob:...
+mime: audio/mpeg
+audio.src: blob:...
+readyState: ...
+========================
+
+==================================================
+十六、請注意使用者測試程式
+==================================================
+
+我會用：
+
+const sounds = {
+  bgm: new Audio('bgm01.mp3'),
+  shake: new Audio('shake01.mp3'),
+  flip: new Audio('flip01.mp3'),
+  win: new Audio('win01.mp3')
+};
+
+然後在使用者點擊事件中：
+
+sounds.shake.currentTime = 0;
+sounds.shake.play();
+
+這代表不要把「Autoplay Policy」當成這次問題的主要原因。
+
+請優先確保：
+
+new Audio('xxx.mp3')
+
+真的拿到了：
+
+blob:https://...
+
+或相應的 Blob URL。
+
+==================================================
+十七、最重要的修改原則
+==================================================
+
+請不要只告訴我問題在哪裡。
+
+請直接修改我現有程式碼。
+
+需要修改的地方請完整列出：
+
+【修改 1】
+原本哪一段
+
+↓
+
+修改成什麼
+
+【修改 2】
+原本哪一段
+
+↓
+
+修改成什麼
+
+【修改 3】
+原本哪一段
+
+↓
+
+修改成什麼
+
+如果 createLocalResourceInterceptorScript() 需要整段替換，請直接提供「完整可替換版本」。
+
+不要只給片段，避免我貼錯位置。
+
+==================================================
+十八、最終驗收條件
+==================================================
+
+修改完成後，以下全部必須成立：
+
+①
+
+new Audio('bgm01.mp3')
+
+可以找到本地資源。
+
+②
+
+new Audio('./bgm01.mp3')
+
+可以找到本地資源。
+
+③
+
+const a = new Audio();
+a.src = 'bgm01.mp3';
+
+可以找到本地資源。
+
+④
+
+document.createElement('audio').src = 'bgm01.mp3'
+
+可以找到本地資源。
+
+⑤
+
+<audio src="bgm01.mp3">
+
+可以找到本地資源。
+
+⑥
+
+<source src="bgm01.mp3">
+
+可以找到本地資源。
+
+⑦
+
+fetch('bgm01.mp3')
+
+可以找到本地資源。
+
+⑧
+
+XMLHttpRequest
+
+可以找到本地資源。
+
+⑨
+
+加入多個本地音效：
+
+bgm01.mp3
+shake01.mp3
+flip01.mp3
+win01.mp3
+
+全部可以同時使用。
+
+⑩
+
+更新其中一個檔案後，新的 Blob URL 可以立即生效。
+
+⑪
+
+刪除資源後，不會殘留舊 Blob URL。
+
+⑫
+
+原本圖片、影片、CSS url()、script 等本地資源功能不能被破壞。
+
+⑬
+
+不要要求我修改：
+
+new Audio('bgm01.mp3')
+
+這種使用方式。
+
+⑭
+
+不要把音效路徑改成 Blob URL 寫死。
+
+使用者程式碼仍然只需要：
+
+new Audio('bgm01.mp3');
+
+==================================================
+
+請先分析目前程式碼為什麼 Audio 沒有成功解析本地資源，再進行修改。
+
+最後請用「問題原因 → 修改位置 → 完整修改程式碼 → 測試方法」的順序回答。
