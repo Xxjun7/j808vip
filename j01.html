@@ -174,6 +174,7 @@
             text-align: center;
             padding: 20px;
             font-size: 18px;
+            cursor: pointer;
         }
 
         .phone-icon {
@@ -269,9 +270,9 @@
 </head>
 <body>
 
-    <!-- 音樂與音效標籤（使用公用線上免費音效資源） -->
-    <audio id="bgm" loop preload="auto" src="https://assets.mixkit.co/music/preview/mixkit-game-level-music-689.mp3"></audio>
-    <audio id="sfx-flip" preload="auto" src="https://assets.mixkit.co/active_storage/sfx/2019/2019-preview.mp3"></audio>
+    <!-- 音樂與音效標籤 (使用可靠的無版權音樂源) -->
+    <audio id="bgm" loop preload="auto" src="https://cdn.pixabay.com/download/audio/2022/03/15/audio_c8c8a73223.mp3?filename=casino-night-10906.mp3"></audio>
+    <audio id="sfx-flip" preload="auto" src="https://cdn.pixabay.com/download/audio/2022/03/24/audio_c299edb44e.mp3?filename=card-flip-89312.mp3"></audio>
 
     <!-- 音效控制按鈕 -->
     <div class="sound-toggle-btn" id="sound-toggle">
@@ -287,7 +288,7 @@
         </div>
 
         <div class="phone-icon">📱</div>
-        <p>請將手機旋轉至「橫向」<br>獲得最佳 VIP 抽卡體驗</p>
+        <p>請將手機旋轉至「橫向」<br>點擊任意處開始 VIP 抽卡體驗</p>
     </div>
 
     <!-- 遊戲主區域 -->
@@ -335,7 +336,7 @@
         const gameContainer = document.getElementById('game-container');
         const rotateBtn = document.getElementById('manual-rotate-btn');
         
-        // 音效相關元件
+        // 音效元件
         const bgm = document.getElementById('bgm');
         const sfxFlip = document.getElementById('sfx-flip');
         const soundToggleBtn = document.getElementById('sound-toggle');
@@ -343,24 +344,23 @@
         const soundText = document.getElementById('sound-text');
 
         let isSoundEnabled = true;
-        let isBgmPlaying = false;
+        let isBgmStarted = false;
 
-        // 設定背景音樂音量
         bgm.volume = 0.4;
         sfxFlip.volume = 0.8;
 
-        // 音樂播放邏輯
-        function playBGM() {
-            if (isSoundEnabled && !isBgmPlaying) {
+        // 解鎖並播放背景音樂
+        function triggerAudio() {
+            if (isSoundEnabled && !isBgmStarted) {
                 bgm.play().then(() => {
-                    isBgmPlaying = true;
-                }).catch(() => {
-                    // 自動播放障礙排除
+                    isBgmStarted = true;
+                }).catch(err => {
+                    console.log("等待使用者互動以播放音效:", err);
                 });
             }
         }
 
-        // 開關音效與音樂
+        // 音樂開關按鈕
         soundToggleBtn.addEventListener('click', (e) => {
             e.stopPropagation();
             isSoundEnabled = !isSoundEnabled;
@@ -369,13 +369,13 @@
                 soundToggleBtn.classList.remove('muted');
                 soundIcon.textContent = '🔊';
                 soundText.textContent = '音樂: ON';
-                playBGM();
+                bgm.play();
+                isBgmStarted = true;
             } else {
                 soundToggleBtn.classList.add('muted');
                 soundIcon.textContent = '🔇';
                 soundText.textContent = '音樂: OFF';
                 bgm.pause();
-                isBgmPlaying = false;
             }
         });
 
@@ -385,21 +385,26 @@
             noticeEl.classList.remove('active');
         }
 
-        // 點擊「手動旋轉」：開啟全螢幕、開始音樂並旋轉
+        // 點擊手動旋轉
         rotateBtn.addEventListener('click', (e) => {
             e.stopPropagation();
             noticeEl.classList.remove('active');
             gameContainer.classList.add('force-rotated');
-            playBGM();
+            triggerAudio();
         });
 
+        // 點擊直向提示遮罩的任意處
+        noticeEl.addEventListener('click', () => {
+            triggerAudio();
+        });
+
+        // 動態偵測方向
         function checkOrientation() {
             const isLandscape = window.matchMedia("(orientation: landscape)").matches;
 
             if (isLandscape) {
                 gameContainer.classList.remove('force-rotated');
                 noticeEl.classList.remove('active');
-                playBGM(); // 當切換至橫向時開始播放背景音樂
             } else {
                 if (!gameContainer.classList.contains('force-rotated') && ENABLE_PORTRAIT_NOTICE) {
                     noticeEl.classList.add('active');
@@ -413,8 +418,9 @@
         const rewards = ['$1,000', '$5,000', '$20,000', '$50,000', '$100,000', '$1,000,000'];
         const animatingCards = new Set();
 
+        // 任何點擊行為解鎖音樂音效
         window.addEventListener('click', () => {
-            playBGM(); // 點擊螢幕任何地方嘗試觸發播放
+            triggerAudio();
 
             if (document.documentElement.requestFullscreen && !document.fullscreenElement) {
                 document.documentElement.requestFullscreen().then(() => {
@@ -423,7 +429,7 @@
                     }
                 }).catch(() => {});
             }
-        }, { once: true });
+        });
 
         // 卡片點擊 logic
         document.querySelectorAll('.card-container').forEach(container => {
@@ -432,6 +438,8 @@
             const amountEl = container.querySelector('.card-amount');
 
             container.addEventListener('click', () => {
+                triggerAudio(); // 點擊卡片時確保背景音樂已觸發
+
                 if (animatingCards.has(card)) return;
 
                 if (!card.classList.contains('flipped')) {
