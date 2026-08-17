@@ -1,0 +1,1122 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>金正旺銀行vip抽卡系統</title>
+
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body,
+        html {
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            font-family: 'Arial Black', Impact, sans-serif;
+            background-color: #080b10;
+        }
+
+        #game-container {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+
+            background-image: url('image_6.png');
+            background-size: cover;
+            background-position: center;
+
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+
+            transition:
+                transform 0.3s ease,
+                width 0.3s ease,
+                height 0.3s ease;
+        }
+
+        #game-container.force-rotated {
+            width: 100vh !important;
+            height: 100vw !important;
+            top: 50% !important;
+            left: 50% !important;
+
+            transform:
+                translate(-50%, -50%)
+                rotate(90deg) !important;
+
+            transform-origin: center center;
+        }
+
+        #game-container.force-rotated #card-area {
+            gap: clamp(10px, 2vh, 30px) !important;
+        }
+
+        #game-container.force-rotated .card-container {
+            width: clamp(90px, 25vh, 240px) !important;
+        }
+
+        #game-container.force-rotated .card-amount {
+            font-size: clamp(14px, 2.5vh, 24px) !important;
+        }
+
+        #card-area {
+            display: flex;
+            flex-direction: row;
+            justify-content: center;
+            align-items: center;
+
+            gap: clamp(10px, 2vw, 30px);
+
+            width: 100%;
+            max-width: 1000px;
+        }
+
+        .card-container {
+            width: clamp(90px, 25vw, 240px);
+            aspect-ratio: 2.5 / 3.5;
+
+            perspective: 1200px;
+            cursor: pointer;
+            user-select: none;
+
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        .card-shaker {
+            width: 100%;
+            height: 100%;
+
+            will-change: transform;
+
+            transition:
+                transform 0.3s ease;
+        }
+
+        .card-container:hover .card-shaker {
+            transform:
+                translateY(-10px)
+                scale(1.03);
+        }
+
+        .card-shaker.shaking {
+            animation:
+                cardShake 0.5s ease-in-out forwards;
+        }
+
+        @keyframes cardShake {
+            0% {
+                transform:
+                    scale(1)
+                    rotate(0deg);
+            }
+
+            15% {
+                transform:
+                    scale(1.05)
+                    rotate(-5deg)
+                    translateY(-5px);
+            }
+
+            30% {
+                transform:
+                    scale(1.05)
+                    rotate(5deg)
+                    translateY(-5px);
+            }
+
+            45% {
+                transform:
+                    scale(1.08)
+                    rotate(-5deg)
+                    translateY(-8px);
+            }
+
+            60% {
+                transform:
+                    scale(1.08)
+                    rotate(5deg)
+                    translateY(-8px);
+            }
+
+            75% {
+                transform:
+                    scale(1.1)
+                    rotate(-3deg)
+                    translateY(-10px);
+            }
+
+            90% {
+                transform:
+                    scale(1.1)
+                    rotate(3deg)
+                    translateY(-10px);
+            }
+
+            100% {
+                transform:
+                    scale(1)
+                    rotate(0deg);
+            }
+        }
+
+        .card {
+            width: 100%;
+            height: 100%;
+
+            position: relative;
+
+            transform-style: preserve-3d;
+            -webkit-transform-style: preserve-3d;
+
+            transition:
+                transform 0.8s
+                cubic-bezier(0.34, 1.56, 0.64, 1);
+
+            border-radius: clamp(8px, 1.5vw, 16px);
+
+            will-change: transform;
+        }
+
+        .card.flipped {
+            transform: rotateY(180deg);
+        }
+
+        .card-face {
+            width: 100%;
+            height: 100%;
+
+            position: absolute;
+            top: 0;
+            left: 0;
+
+            -webkit-backface-visibility: hidden;
+            backface-visibility: hidden;
+
+            border-radius: clamp(8px, 1.5vw, 16px);
+
+            overflow: hidden;
+
+            background-size: 100% 100%;
+            background-position: center;
+
+            box-shadow:
+                0 8px 25px rgba(0, 0, 0, 0.7),
+                0 0 15px rgba(0, 229, 255, 0.2);
+
+            border:
+                1px solid rgba(255, 215, 0, 0.3);
+
+            transform: translateZ(1px);
+        }
+
+        .card-back {
+            background-image: url('Card_Back.png');
+        }
+
+        .card-front {
+            background-image: url('Card_Front.png');
+
+            transform:
+                rotateY(180deg)
+                translateZ(1px);
+
+            position: relative;
+        }
+
+        .card-amount {
+            position: absolute;
+
+            top: 27.5%;
+            left: 50%;
+
+            transform: translateX(-50%);
+
+            width: 70%;
+
+            text-align: center;
+
+            font-size:
+                clamp(14px, 2.5vw, 24px);
+
+            font-weight: 900;
+
+            color: #fff6d1;
+
+            text-shadow:
+                0 0 5px #ffd700,
+                0 0 10px #ff8c00,
+                0 0 20px #ff0000;
+
+            letter-spacing: 1px;
+
+            pointer-events: none;
+        }
+
+        /* ==========================================
+           控制按鈕
+        ========================================== */
+
+        .ui-btn {
+            position: absolute;
+
+            display: flex;
+            flex-direction: column;
+
+            align-items: center;
+            justify-content: center;
+
+            gap: 4px;
+
+            background:
+                rgba(255, 215, 0, 0.1);
+
+            border:
+                2px solid #ffd700;
+
+            color: #ffd700;
+
+            padding: 10px;
+
+            border-radius: 50%;
+
+            width: 60px;
+            height: 60px;
+
+            cursor: pointer;
+
+            box-shadow:
+                0 0 12px rgba(255, 215, 0, 0.3);
+
+            transition:
+                transform 0.2s ease,
+                background-color 0.2s ease;
+
+            user-select: none;
+
+            z-index: 100;
+
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        .ui-btn:active {
+            transform: scale(0.92);
+
+            background:
+                rgba(255, 215, 0, 0.3);
+        }
+
+        .ui-btn-icon {
+            font-size: 20px;
+            line-height: 1;
+        }
+
+        .ui-btn-text {
+            font-size: 9px;
+            font-weight: bold;
+            letter-spacing: 0.5px;
+            line-height: 1;
+        }
+
+        /* 音效按鈕 */
+
+        #audio-btn {
+            top: 20px;
+            left: 20px;
+        }
+
+        /* ==========================================
+           直向提示
+        ========================================== */
+
+        #portrait-notice {
+            display: none;
+
+            position: fixed;
+
+            top: 0;
+            left: 0;
+
+            width: 100vw;
+            height: 100vh;
+
+            background:
+                rgba(8, 11, 16, 0.95);
+
+            z-index: 9999;
+
+            color: #ffd700;
+
+            flex-direction: column;
+
+            justify-content: center;
+            align-items: center;
+
+            text-align: center;
+
+            padding: 20px;
+
+            font-size: 18px;
+        }
+
+        .phone-icon {
+            font-size: 48px;
+
+            margin-bottom: 15px;
+
+            animation:
+                rotatePhone 2s infinite ease-in-out;
+        }
+
+        @keyframes rotatePhone {
+            0%,
+            10% {
+                transform: rotate(0deg);
+            }
+
+            40%,
+            60% {
+                transform: rotate(-90deg);
+            }
+
+            90%,
+            100% {
+                transform: rotate(0deg);
+            }
+        }
+
+        .rotate-btn {
+            top: 20px;
+            right: 20px;
+
+            width: 70px;
+            height: 70px;
+        }
+
+        @media screen and (orientation: portrait) {
+            #portrait-notice.active {
+                display: flex;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <!-- ==========================================
+         橫向提示面板
+    ========================================== -->
+
+    <div id="portrait-notice">
+
+        <div class="ui-btn rotate-btn" id="manual-rotate-btn">
+            <span class="ui-btn-icon">🔄</span>
+            <span class="ui-btn-text">手動旋轉</span>
+        </div>
+
+        <div class="phone-icon">
+            📱
+        </div>
+
+        <p>
+            請將手機旋轉至「橫向」
+            <br>
+            獲得最佳 VIP 抽卡體驗
+        </p>
+
+    </div>
+
+
+    <!-- ==========================================
+         遊戲主區域
+    ========================================== -->
+
+    <div id="game-container">
+
+        <!-- 音效切換按鈕 -->
+        <div class="ui-btn" id="audio-btn">
+
+            <span
+                class="ui-btn-icon"
+                id="audio-icon">
+                🔊
+            </span>
+
+            <span
+                class="ui-btn-text"
+                id="audio-text">
+                音樂開
+            </span>
+
+        </div>
+
+
+        <!-- ==========================================
+             抽卡區域
+        ========================================== -->
+
+        <div id="card-area">
+
+            <!-- 卡片 1 -->
+
+            <div class="card-container">
+
+                <div class="card-shaker">
+
+                    <div class="card">
+
+                        <div class="card-face card-back"></div>
+
+                        <div class="card-face card-front">
+
+                            <div class="card-amount">
+                                $10,000
+                            </div>
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+
+            <!-- 卡片 2 -->
+
+            <div class="card-container">
+
+                <div class="card-shaker">
+
+                    <div class="card">
+
+                        <div class="card-face card-back"></div>
+
+                        <div class="card-face card-front">
+
+                            <div class="card-amount">
+                                $50,000
+                            </div>
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+
+            <!-- 卡片 3 -->
+
+            <div class="card-container">
+
+                <div class="card-shaker">
+
+                    <div class="card">
+
+                        <div class="card-face card-back"></div>
+
+                        <div class="card-face card-front">
+
+                            <div class="card-amount">
+                                $100,000
+                            </div>
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <script>
+
+        // ==========================================
+        // 🎵 音效系統
+        // ==========================================
+
+        const sounds = {
+
+            // BGM：使用本地音樂
+            bgm: new Audio('bgm01.mp3'),
+
+            // 抽卡搖晃音效
+            shake: new Audio(
+                'https://assets.mixkit.co/active_storage/sfx/2013/2013-preview.mp3'
+            ),
+
+            // 翻牌音效
+            flip: new Audio(
+                'https://assets.mixkit.co/active_storage/sfx/2000/2000-preview.mp3'
+            ),
+
+            // 中獎音效
+            win: new Audio(
+                'https://assets.mixkit.co/active_storage/sfx/2015/2015-preview.mp3'
+            )
+
+        };
+
+
+        // ==========================================
+        // 🎵 音效音量設定
+        // ==========================================
+
+        sounds.bgm.loop = true;
+        sounds.bgm.volume = 0.4;
+
+        sounds.shake.volume = 0.6;
+        sounds.flip.volume = 0.7;
+        sounds.win.volume = 0.8;
+
+
+        // ==========================================
+        // 🔇 音樂狀態
+        // ==========================================
+
+        let isMuted = false;
+
+        // 是否已經成功啟動 BGM
+        let bgmStarted = false;
+
+
+        // ==========================================
+        // 🔊 播放音效
+        // ==========================================
+
+        function playSFX(audioObj) {
+
+            if (isMuted) {
+                return;
+            }
+
+            audioObj.currentTime = 0;
+
+            audioObj.play().catch(() => {});
+
+        }
+
+
+        // ==========================================
+        // 🎵 BGM 自動播放
+        // ==========================================
+
+        // 網頁載入後立即嘗試播放
+        window.addEventListener('load', () => {
+
+            if (isMuted) {
+                return;
+            }
+
+            sounds.bgm.play()
+                .then(() => {
+
+                    // 瀏覽器允許自動播放
+                    bgmStarted = true;
+
+                    console.log(
+                        'BGM 自動播放成功'
+                    );
+
+                })
+                .catch(() => {
+
+                    // 瀏覽器阻止自動播放
+                    // 等待使用者互動
+                    console.log(
+                        '瀏覽器阻止自動播放，等待使用者互動'
+                    );
+
+                });
+
+        });
+
+
+        // ==========================================
+        // 🎵 第一次使用者互動啟動 BGM
+        // ==========================================
+
+        function startBGM(event) {
+
+            // 如果是音樂按鈕，不在這裡處理
+            // 讓音樂按鈕自己的開關邏輯處理
+            if (
+                event &&
+                event.target &&
+                event.target.closest('#audio-btn')
+            ) {
+                return;
+            }
+
+            // 已經啟動或目前靜音
+            if (bgmStarted || isMuted) {
+                return;
+            }
+
+            sounds.bgm.play()
+                .then(() => {
+
+                    bgmStarted = true;
+
+                    console.log(
+                        '使用者互動後 BGM 開始播放'
+                    );
+
+                })
+                .catch(() => {
+
+                    // 如果播放失敗
+                    // 保留下一次互動再次嘗試
+                    bgmStarted = false;
+
+                });
+
+        }
+
+
+        // 使用者第一次點擊
+        document.addEventListener(
+            'click',
+            startBGM,
+            { passive: true }
+        );
+
+
+        // 使用者第一次觸控
+        document.addEventListener(
+            'touchstart',
+            startBGM,
+            { passive: true }
+        );
+
+
+        // ==========================================
+        // 🔊 音樂開關按鈕
+        // ==========================================
+
+        const audioBtn =
+            document.getElementById('audio-btn');
+
+        const audioIcon =
+            document.getElementById('audio-icon');
+
+        const audioText =
+            document.getElementById('audio-text');
+
+
+        audioBtn.addEventListener('click', (e) => {
+
+            // 防止事件繼續傳到其他地方
+            e.stopPropagation();
+
+            // 切換靜音狀態
+            isMuted = !isMuted;
+
+
+            // ==========================
+            // 靜音
+            // ==========================
+
+            if (isMuted) {
+
+                sounds.bgm.pause();
+
+                audioIcon.textContent = '🔇';
+                audioText.textContent = '靜音';
+
+            }
+
+            // ==========================
+            // 開啟音樂
+            // ==========================
+
+            else {
+
+                sounds.bgm.play()
+                    .then(() => {
+
+                        bgmStarted = true;
+
+                    })
+                    .catch(() => {
+
+                        console.log(
+                            '無法立即播放 BGM'
+                        );
+
+                    });
+
+                audioIcon.textContent = '🔊';
+                audioText.textContent = '音樂開';
+
+            }
+
+        });
+
+
+        // ==========================================
+        // 🛑 離開頁面停止所有聲音
+        // ==========================================
+
+        function stopAllAudio() {
+
+            Object.values(sounds).forEach(audio => {
+
+                audio.pause();
+
+            });
+
+        }
+
+
+        // ==========================================
+        // 📱 分頁切換
+        // ==========================================
+
+        document.addEventListener(
+            'visibilitychange',
+            () => {
+
+                if (document.hidden) {
+
+                    // 離開分頁
+                    sounds.bgm.pause();
+
+                }
+
+                else {
+
+                    // 回到分頁
+                    if (!isMuted) {
+
+                        sounds.bgm.play()
+                            .then(() => {
+
+                                bgmStarted = true;
+
+                            })
+                            .catch(() => {});
+
+                    }
+
+                }
+
+            }
+        );
+
+
+        // ==========================================
+        // 🛑 離開網頁
+        // ==========================================
+
+        window.addEventListener(
+            'pagehide',
+            stopAllAudio
+        );
+
+        window.addEventListener(
+            'beforeunload',
+            stopAllAudio
+        );
+
+
+        // ==========================================
+        // ⚙️ 系統設定
+        // ==========================================
+
+        const ENABLE_PORTRAIT_NOTICE = true;
+
+        const noticeEl =
+            document.getElementById(
+                'portrait-notice'
+            );
+
+        const gameContainer =
+            document.getElementById(
+                'game-container'
+            );
+
+        const rotateBtn =
+            document.getElementById(
+                'manual-rotate-btn'
+            );
+
+
+        // 初始顯示橫向提示
+        if (ENABLE_PORTRAIT_NOTICE) {
+
+            noticeEl.classList.add('active');
+
+        }
+
+
+        // ==========================================
+        // 🔄 手動旋轉
+        // ==========================================
+
+        rotateBtn.addEventListener(
+            'click',
+            (e) => {
+
+                e.stopPropagation();
+
+                noticeEl.classList.remove(
+                    'active'
+                );
+
+                gameContainer.classList.add(
+                    'force-rotated'
+                );
+
+            }
+        );
+
+
+        // ==========================================
+        // 📱 檢查方向
+        // ==========================================
+
+        function checkOrientation() {
+
+            const isLandscape =
+                window.matchMedia(
+                    '(orientation: landscape)'
+                ).matches;
+
+
+            if (isLandscape) {
+
+                gameContainer.classList.remove(
+                    'force-rotated'
+                );
+
+                noticeEl.classList.remove(
+                    'active'
+                );
+
+            }
+
+            else {
+
+                if (
+                    !gameContainer.classList.contains(
+                        'force-rotated'
+                    ) &&
+                    ENABLE_PORTRAIT_NOTICE
+                ) {
+
+                    noticeEl.classList.add(
+                        'active'
+                    );
+
+                }
+
+            }
+
+        }
+
+
+        window.addEventListener(
+            'resize',
+            checkOrientation
+        );
+
+        window.addEventListener(
+            'orientationchange',
+            checkOrientation
+        );
+
+
+        // ==========================================
+        // 🎁 抽卡獎勵
+        // ==========================================
+
+        const rewards = [
+            '$1,000',
+            '$5,000',
+            '$20,000',
+            '$50,000',
+            '$100,000',
+            '$1,000,000'
+        ];
+
+
+        // 正在動畫中的卡片
+        const animatingCards = new Set();
+
+
+        // ==========================================
+        // 🃏 抽卡系統
+        // ==========================================
+
+        document
+            .querySelectorAll('.card-container')
+            .forEach(container => {
+
+                const shaker =
+                    container.querySelector(
+                        '.card-shaker'
+                    );
+
+                const card =
+                    container.querySelector(
+                        '.card'
+                    );
+
+                const amountEl =
+                    container.querySelector(
+                        '.card-amount'
+                    );
+
+
+                container.addEventListener(
+                    'click',
+                    () => {
+
+                        // 防止動畫期間重複點擊
+                        if (
+                            animatingCards.has(card)
+                        ) {
+
+                            return;
+
+                        }
+
+
+                        // ==================================
+                        // 翻開卡片
+                        // ==================================
+
+                        if (
+                            !card.classList.contains(
+                                'flipped'
+                            )
+                        ) {
+
+                            animatingCards.add(
+                                card
+                            );
+
+
+                            // 隨機獎金
+                            const randomReward =
+                                rewards[
+                                    Math.floor(
+                                        Math.random() *
+                                        rewards.length
+                                    )
+                                ];
+
+
+                            amountEl.textContent =
+                                randomReward;
+
+
+                            // 播放搖晃音效
+                            playSFX(
+                                sounds.shake
+                            );
+
+
+                            // 卡片搖晃
+                            shaker.classList.add(
+                                'shaking'
+                            );
+
+
+                            // ==================================
+                            // 搖晃結束 → 翻牌
+                            // ==================================
+
+                            setTimeout(
+                                () => {
+
+                                    shaker.classList.remove(
+                                        'shaking'
+                                    );
+
+
+                                    // 翻牌音效
+                                    playSFX(
+                                        sounds.flip
+                                    );
+
+
+                                    // 中獎音效
+                                    setTimeout(
+                                        () => {
+
+                                            playSFX(
+                                                sounds.win
+                                            );
+
+                                        },
+                                        200
+                                    );
+
+
+                                    // 翻牌
+                                    card.classList.add(
+                                        'flipped'
+                                    );
+
+
+                                    // 動畫完成
+                                    setTimeout(
+                                        () => {
+
+                                            animatingCards.delete(
+                                                card
+                                            );
+
+                                        },
+                                        800
+                                    );
+
+                                },
+                                500
+                            );
+
+                        }
+
+
+                        // ==================================
+                        // 蓋回卡片
+                        // ==================================
+
+                        else {
+
+                            playSFX(
+                                sounds.flip
+                            );
+
+                            card.classList.remove(
+                                'flipped'
+                            );
+
+                        }
+
+                    }
+                );
+
+            });
+
+    </script>
+
+</body>
+</html>
