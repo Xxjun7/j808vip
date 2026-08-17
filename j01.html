@@ -5,6 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>金正旺銀行vip抽卡系統</title>
     <style>
+        /* ==========================================
+           1. 全局基礎樣式設定
+           ========================================== */
         * {
             box-sizing: border-box;
             margin: 0;
@@ -19,6 +22,9 @@
             background-color: #080b10;
         }
 
+        /* ==========================================
+           2. 遊戲主畫面容器
+           ========================================== */
         #game-container {
             position: absolute;
             top: 0;
@@ -35,6 +41,7 @@
             transition: transform 0.3s ease, width 0.3s ease, height 0.3s ease;
         }
 
+        /* 💡 強制旋轉樣式：將畫面旋轉 90 度並調換長寬 */
         #game-container.force-rotated {
             width: 100vh !important;
             height: 100vw !important;
@@ -56,6 +63,15 @@
             font-size: clamp(14px, 2.5vh, 24px) !important;
         }
 
+        /* 音樂控制按鈕在強制旋轉模式下的位移修正 */
+        #game-container.force-rotated #audio-control-btn {
+            top: 20px;
+            right: 20px;
+        }
+
+        /* ==========================================
+           3. 卡片展示區域
+           ========================================== */
         #card-area {
             display: flex;
             flex-direction: row;
@@ -75,6 +91,9 @@
             -webkit-tap-highlight-color: transparent;
         }
 
+        /* ==========================================
+           4. 中間層：專門負責「搖晃蓄力」動畫
+           ========================================== */
         .card-shaker {
             width: 100%;
             height: 100%;
@@ -101,6 +120,9 @@
             100% { transform: scale(1) rotate(0deg); }
         }
 
+        /* ==========================================
+           5. 核心 3D 翻牌層
+           ========================================== */
         .card {
             width: 100%;
             height: 100%;
@@ -116,6 +138,9 @@
             transform: rotateY(180deg);
         }
 
+        /* ==========================================
+           6. 卡片正反面與文字樣式
+           ========================================== */
         .card-face {
             width: 100%;
             height: 100%;
@@ -158,6 +183,9 @@
             pointer-events: none;
         }
 
+        /* ==========================================
+           7. 橫向提示面板與 UI 按鈕
+           ========================================== */
         #portrait-notice {
             display: none;
             position: fixed;
@@ -188,6 +216,7 @@
             90%, 100% { transform: rotate(0deg); }
         }
 
+        /* 旋轉按鈕 */
         .rotate-btn {
             position: absolute;
             top: 20px;
@@ -228,36 +257,49 @@
             line-height: 1;
         }
 
-        /* 音效控制按鈕樣式 */
-        .sound-toggle-btn {
+        /* 音效開關按鈕 (放在遊戲容器內以隨容器旋轉) */
+        .audio-btn {
             position: absolute;
             top: 20px;
-            left: 20px;
+            right: 20px;
             z-index: 100;
             display: flex;
+            flex-direction: column;
             align-items: center;
             justify-content: center;
-            gap: 6px;
+            gap: 2px;
             background: rgba(0, 0, 0, 0.6);
             border: 2px solid #ffd700;
             color: #ffd700;
-            padding: 8px 16px;
-            border-radius: 20px;
+            border-radius: 50%;
+            width: 60px;
+            height: 60px;
             cursor: pointer;
-            font-size: 14px;
-            box-shadow: 0 0 10px rgba(255, 215, 0, 0.3);
-            transition: all 0.2s ease;
+            box-shadow: 0 0 12px rgba(255, 215, 0, 0.3);
+            transition: transform 0.2s ease, opacity 0.2s ease;
             user-select: none;
+            -webkit-tap-highlight-color: transparent;
         }
 
-        .sound-toggle-btn:active {
-            transform: scale(0.95);
+        .audio-btn:active {
+            transform: scale(0.92);
         }
 
-        .sound-toggle-btn.muted {
+        .audio-btn.muted {
             border-color: #888;
             color: #888;
             box-shadow: none;
+        }
+
+        .audio-btn-icon {
+            font-size: 20px;
+            line-height: 1;
+        }
+
+        .audio-btn-text {
+            font-size: 9px;
+            font-weight: bold;
+            line-height: 1;
         }
 
         @media screen and (orientation: portrait) {
@@ -268,16 +310,6 @@
     </style>
 </head>
 <body>
-
-    <!-- 音樂與音效標籤（使用公用線上免費音效資源） -->
-    <audio id="bgm" loop preload="auto" src="https://assets.mixkit.co/music/preview/mixkit-game-level-music-689.mp3"></audio>
-    <audio id="sfx-flip" preload="auto" src="https://assets.mixkit.co/active_storage/sfx/2019/2019-preview.mp3"></audio>
-
-    <!-- 音效控制按鈕 -->
-    <div class="sound-toggle-btn" id="sound-toggle">
-        <span id="sound-icon">🔊</span>
-        <span id="sound-text">音樂: ON</span>
-    </div>
 
     <!-- 橫向提示面板 -->
     <div id="portrait-notice">
@@ -292,7 +324,14 @@
 
     <!-- 遊戲主區域 -->
     <div id="game-container">
+        <!-- 音樂開關按鈕（放於內部，手動旋轉時會自動旋轉） -->
+        <div class="audio-btn" id="audio-control-btn">
+            <span class="audio-btn-icon" id="audio-icon">🔊</span>
+            <span class="audio-btn-text" id="audio-text">音效開啟</span>
+        </div>
+
         <div id="card-area">
+            <!-- 卡片 1 -->
             <div class="card-container">
                 <div class="card-shaker">
                     <div class="card">
@@ -304,6 +343,7 @@
                 </div>
             </div>
 
+            <!-- 卡片 2 -->
             <div class="card-container">
                 <div class="card-shaker">
                     <div class="card">
@@ -315,6 +355,7 @@
                 </div>
             </div>
 
+            <!-- 卡片 3 -->
             <div class="card-container">
                 <div class="card-shaker">
                     <div class="card">
@@ -328,56 +369,151 @@
         </div>
     </div>
 
+    <!-- 本地背景音樂檔 -->
+    <audio id="bgm" src="bgm01.mp3" loop></audio>
+
     <script>
+        // ==========================================
+        // ⚙️ 設定區 (Config)
+        // ==========================================
         const ENABLE_PORTRAIT_NOTICE = true; 
+        const BGM_VOLUME = 0.25; // BGM 音量設定 (0.0 ~ 1.0)，設定小聲避免覆蓋開牌音效
 
-        const noticeEl = document.getElementById('portrait-notice');
-        const gameContainer = document.getElementById('game-container');
-        const rotateBtn = document.getElementById('manual-rotate-btn');
-        
-        // 音效相關元件
-        const bgm = document.getElementById('bgm');
-        const sfxFlip = document.getElementById('sfx-flip');
-        const soundToggleBtn = document.getElementById('sound-toggle');
-        const soundIcon = document.getElementById('sound-icon');
-        const soundText = document.getElementById('sound-text');
+        // ==========================================
+        // 音效系統 (Web Audio API)
+        // ==========================================
+        let isAudioMuted = false;
+        let audioCtx = null;
 
-        let isSoundEnabled = true;
-        let isBgmPlaying = false;
+        function getAudioContext() {
+            if (!audioCtx) {
+                const AudioContext = window.AudioContext || window.webkitAudioContext;
+                audioCtx = new AudioContext();
+            }
+            if (audioCtx.state === 'suspended') {
+                audioCtx.resume();
+            }
+            return audioCtx;
+        }
 
-        // 設定背景音樂音量
-        bgm.volume = 0.4;
-        sfxFlip.volume = 0.8;
+        // 合成卡片洗牌/蓄力搖晃音效 (撲克牌快速滑動聲)
+        function playSwooshSound() {
+            if (isAudioMuted) return;
+            try {
+                const ctx = getAudioContext();
+                const bufferSize = ctx.sampleRate * 0.15;
+                const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
+                const output = buffer.getChannelData(0);
+                for (let i = 0; i < bufferSize; i++) {
+                    output[i] = Math.random() * 2 - 1;
+                }
 
-        // 音樂播放邏輯
-        function playBGM() {
-            if (isSoundEnabled && !isBgmPlaying) {
-                bgm.play().then(() => {
-                    isBgmPlaying = true;
-                }).catch(() => {
-                    // 自動播放障礙排除
-                });
+                const whiteNoise = ctx.createBufferSource();
+                whiteNoise.buffer = buffer;
+
+                const filter = ctx.createBiquadFilter();
+                filter.type = 'bandpass';
+                filter.frequency.setValueAtTime(800, ctx.currentTime);
+                filter.Q.setValueAtTime(3, ctx.currentTime);
+
+                const gain = ctx.createGain();
+                gain.gain.setValueAtTime(0.01, ctx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.2, ctx.currentTime + 0.05);
+                gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.15);
+
+                whiteNoise.connect(filter);
+                filter.connect(gain);
+                gain.connect(ctx.destination);
+
+                whiteNoise.start();
+            } catch (e) {
+                console.error(e);
             }
         }
 
-        // 開關音效與音樂
-        soundToggleBtn.addEventListener('click', (e) => {
-            e.stopPropagation();
-            isSoundEnabled = !isSoundEnabled;
+        // 合成 VIP 揭牌中獎音效 (金色閃耀清脆和絃 + 擬真卡片轉動)
+        function playCardFlipRewardSound() {
+            if (isAudioMuted) return;
+            try {
+                const ctx = getAudioContext();
+                const now = ctx.currentTime;
 
-            if (isSoundEnabled) {
-                soundToggleBtn.classList.remove('muted');
-                soundIcon.textContent = '🔊';
-                soundText.textContent = '音樂: ON';
-                playBGM();
-            } else {
-                soundToggleBtn.classList.add('muted');
-                soundIcon.textContent = '🔇';
-                soundText.textContent = '音樂: OFF';
+                // 1. 卡片風聲 (Card Flip Woosh)
+                const oscWoosh = ctx.createOscillator();
+                const gainWoosh = ctx.createGain();
+                oscWoosh.type = 'sine';
+                oscWoosh.frequency.setValueAtTime(150, now);
+                oscWoosh.frequency.exponentialRampToValueAtTime(600, now + 0.1);
+                gainWoosh.gain.setValueAtTime(0.2, now);
+                gainWoosh.gain.exponentialRampToValueAtTime(0.01, now + 0.12);
+                oscWoosh.connect(gainWoosh);
+                gainWoosh.connect(ctx.destination);
+                oscWoosh.start(now);
+                oscWoosh.stop(now + 0.12);
+
+                // 2. VIP 金卡開牌慶祝和弦 (C Maj9 亮麗音階)
+                const freqs = [523.25, 659.25, 783.99, 987.77, 1046.50]; // C5, E5, G5, B5, C6
+                freqs.forEach((freq, index) => {
+                    const osc = ctx.createOscillator();
+                    const gain = ctx.createGain();
+                    
+                    osc.type = 'triangle';
+                    osc.frequency.setValueAtTime(freq, now + 0.08 + (index * 0.04));
+
+                    gain.gain.setValueAtTime(0, now + 0.08 + (index * 0.04));
+                    gain.gain.linearRampToValueAtTime(0.18, now + 0.1 + (index * 0.04));
+                    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.6 + (index * 0.04));
+
+                    osc.connect(gain);
+                    gain.connect(ctx.destination);
+
+                    osc.start(now + 0.08 + (index * 0.04));
+                    osc.stop(now + 0.7 + (index * 0.04));
+                });
+            } catch (e) {
+                console.error(e);
+            }
+        }
+
+        // ==========================================
+        // 系統邏輯
+        // ==========================================
+        const noticeEl = document.getElementById('portrait-notice');
+        const gameContainer = document.getElementById('game-container');
+        const rotateBtn = document.getElementById('manual-rotate-btn');
+        const bgm = document.getElementById('bgm');
+        const audioControlBtn = document.getElementById('audio-control-btn');
+        const audioIcon = document.getElementById('audio-icon');
+        const audioText = document.getElementById('audio-text');
+
+        // 初始化背景音樂音量
+        bgm.volume = BGM_VOLUME;
+
+        // 音訊開關點擊邏輯
+        audioControlBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            isAudioMuted = !isAudioMuted;
+
+            if (isAudioMuted) {
                 bgm.pause();
-                isBgmPlaying = false;
+                audioControlBtn.classList.add('muted');
+                audioIcon.textContent = '🔇';
+                audioText.textContent = '音效關閉';
+            } else {
+                bgm.play().catch(() => {});
+                audioControlBtn.classList.remove('muted');
+                audioIcon.textContent = '🔊';
+                audioText.textContent = '音效開啟';
             }
         });
+
+        // 嘗試播放音樂 (遵循瀏覽器 Autoplay 政策)
+        function tryPlayBGM() {
+            getAudioContext();
+            if (!isAudioMuted && bgm.paused) {
+                bgm.play().catch(() => {});
+            }
+        }
 
         if (ENABLE_PORTRAIT_NOTICE) {
             noticeEl.classList.add('active');
@@ -385,21 +521,21 @@
             noticeEl.classList.remove('active');
         }
 
-        // 點擊「手動旋轉」：開啟全螢幕、開始音樂並旋轉
+        // 點擊「手動旋轉」按鈕
         rotateBtn.addEventListener('click', (e) => {
             e.stopPropagation();
+            tryPlayBGM();
             noticeEl.classList.remove('active');
             gameContainer.classList.add('force-rotated');
-            playBGM();
         });
 
+        // 偵測螢幕方向切換
         function checkOrientation() {
             const isLandscape = window.matchMedia("(orientation: landscape)").matches;
 
             if (isLandscape) {
                 gameContainer.classList.remove('force-rotated');
                 noticeEl.classList.remove('active');
-                playBGM(); // 當切換至橫向時開始播放背景音樂
             } else {
                 if (!gameContainer.classList.contains('force-rotated') && ENABLE_PORTRAIT_NOTICE) {
                     noticeEl.classList.add('active');
@@ -413,8 +549,9 @@
         const rewards = ['$1,000', '$5,000', '$20,000', '$50,000', '$100,000', '$1,000,000'];
         const animatingCards = new Set();
 
+        // 頁面首次點擊激活 Web Audio 與全螢幕
         window.addEventListener('click', () => {
-            playBGM(); // 點擊螢幕任何地方嘗試觸發播放
+            tryPlayBGM();
 
             if (document.documentElement.requestFullscreen && !document.fullscreenElement) {
                 document.documentElement.requestFullscreen().then(() => {
@@ -425,15 +562,17 @@
             }
         }, { once: true });
 
-        // 卡片點擊 logic
+        // 點擊抽卡邏輯
         document.querySelectorAll('.card-container').forEach(container => {
             const shaker = container.querySelector('.card-shaker');
             const card = container.querySelector('.card');
             const amountEl = container.querySelector('.card-amount');
 
             container.addEventListener('click', () => {
+                tryPlayBGM();
                 if (animatingCards.has(card)) return;
 
+                // 翻開卡片
                 if (!card.classList.contains('flipped')) {
                     animatingCards.add(card);
 
@@ -441,31 +580,27 @@
                     amountEl.textContent = randomReward;
 
                     shaker.classList.add('shaking');
+                    playSwooshSound(); // 播放蓄力搖晃滑動聲
 
                     setTimeout(() => {
                         shaker.classList.remove('shaking');
                         card.classList.add('flipped');
-
-                        // 播放翻卡音效
-                        if (isSoundEnabled) {
-                            sfxFlip.currentTime = 0;
-                            sfxFlip.play().catch(() => {});
-                        }
+                        playCardFlipRewardSound(); // 播放開牌VIP和絃聲
 
                         setTimeout(() => {
                             animatingCards.delete(card);
                         }, 800);
                     }, 500);
 
-                } else {
+                } 
+                // 蓋回卡片
+                else {
                     card.classList.remove('flipped');
-                    if (isSoundEnabled) {
-                        sfxFlip.currentTime = 0;
-                        sfxFlip.play().catch(() => {});
-                    }
+                    playSwooshSound();
                 }
             });
         });
     </script>
+
 </body>
 </html>
