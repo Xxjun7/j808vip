@@ -1,0 +1,92 @@
+請只修改「本地資源暫存區 / iframe 本地資源攔截器」相關程式，不要修改其他功能。
+
+目前 Console 出現：
+
+Uncaught SyntaxError: Failed to execute 'write' on 'Document': Unexpected token '<'
+
+我檢查 submitTryit() 產生的 iframe HTML，發現 createLocalResourceInterceptorScript() 回傳的內容裡出現：
+
+<\/script>
+
+例如：
+
+window.__LOCAL_RESOURCE_READY__=true;
+})();
+<\/script>
+<script>
+
+這會導致 document.write() 寫入 iframe 時，前面的 script 沒有正確結束，後面的 <script> 被當成 JavaScript 內容解析，因此產生 Unexpected token '<'。
+
+請修正 createLocalResourceInterceptorScript()：
+
+1. 最終傳給 document.write() 的 HTML 字串中，必須是真正的：
+</script>
+
+不能是：
+<\/script>
+
+2. 但是 createLocalResourceInterceptorScript() 本身如果位於外層 HTML 的 <script> 區塊內，不能直接在 JavaScript 原始碼中寫：
+</script>
+
+避免外層 HTML parser 提前結束 script。
+
+請使用安全的字串組合方式，例如：
+
+'</' + 'script>'
+
+或：
+
+'<script>' + code + '</' + 'script>'
+
+確保函式最後實際回傳的字串是：
+
+<script>
+...
+</script>
+
+而不是：
+
+<script>
+...
+<\/script>
+
+3. 請檢查 createLocalResourceInterceptorScript() 裡所有 script 結束標籤，只修正這個 escaping 問題。
+
+4. 不要刪除目前的本地資源攔截功能，包括：
+- src
+- href
+- data
+- CSS url()
+- setAttribute
+- HTMLImageElement.src
+- HTMLMediaElement.src
+- HTMLScriptElement.src
+- HTMLSourceElement.src
+- HTMLLinkElement.href
+- fetch()
+- XMLHttpRequest
+- Audio()
+- window.Image
+- MutationObserver
+- LOCAL_RESOURCE_MAP
+- parent → iframe 的 postMessage 同步
+
+5. submitTryit() 不要重新設計，只要確保 createLocalResourceInterceptorScript() 產生合法 HTML。
+
+6. 修正後請特別確認 console 印出的：
+
+========== [DEBUG IFRAME HTML] ==========
+
+裡面應該看到：
+
+<script>
+(function(){
+...
+})();
+</script>
+
+而不能看到：
+
+<\/script>
+
+7. 請只提供「需要替換的 createLocalResourceInterceptorScript() 函式完整版本」，不要修改其他功能。
