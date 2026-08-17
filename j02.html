@@ -171,7 +171,7 @@
 
     <script>
         // ==========================================
-        // 🎵 音效系統設定 (BGM 已改為本地 bgm01.mp3)
+        // 🎵 音效系統設定 (BGM 使用本地 bgm01.mp3)
         // ==========================================
         const sounds = {
             bgm: new Audio('bgm01.mp3'),
@@ -219,6 +219,30 @@
                 sounds.bgm.play().catch(() => {});
             }
         }, { once: true });
+
+        // ==========================================
+        // 🛑 離開頁面自動停止聲音控制邏輯
+        // ==========================================
+        function stopAllAudio() {
+            Object.values(sounds).forEach(audio => {
+                audio.pause();
+            });
+        }
+
+        // 當頁面切換背景、跳轉或分頁隱藏時觸發
+        document.addEventListener('visibilitychange', () => {
+            if (document.hidden) {
+                sounds.bgm.pause();
+            } else {
+                if (!isMuted) {
+                    sounds.bgm.play().catch(() => {});
+                }
+            }
+        });
+
+        // 離開或關閉頁面時徹底關閉所有聲音
+        window.addEventListener('pagehide', stopAllAudio);
+        window.addEventListener('beforeunload', stopAllAudio);
 
         // ==========================================
         // ⚙️ 系統與抽卡邏輯
