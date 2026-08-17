@@ -5,41 +5,103 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>金正旺銀行vip抽卡系統</title>
     <style>
-        * { box-sizing: border-box; margin: 0; padding: 0; }
-        body, html { width: 100%; height: 100%; overflow: hidden; font-family: 'Arial Black', Impact, sans-serif; background-color: #080b10; }
+        /* ==========================================
+           1. 全局基礎樣式設定
+           ========================================== */
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
 
+        body, html {
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            font-family: 'Arial Black', Impact, sans-serif;
+            background-color: #080b10;
+        }
+
+        /* ==========================================
+           2. 遊戲主畫面容器
+           ========================================== */
         #game-container {
-            position: absolute; top: 0; left: 0; width: 100vw; height: 100vh;
-            background-image: url('image_6.png'); background-size: cover; background-position: center;
-            display: flex; justify-content: center; align-items: center; padding: 20px;
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background-image: url('image_6.png');
+            background-size: cover;
+            background-position: center;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
             transition: transform 0.3s ease, width 0.3s ease, height 0.3s ease;
         }
 
+        /* 強制旋轉樣式：將畫面旋轉 90 度並調換長寬 */
         #game-container.force-rotated {
-            width: 100vh !important; height: 100vw !important;
-            top: 50% !important; left: 50% !important;
+            width: 100vh !important;
+            height: 100vw !important;
+            top: 50% !important;
+            left: 50% !important;
             transform: translate(-50%, -50%) rotate(90deg) !important;
             transform-origin: center center;
         }
 
-        #game-container.force-rotated #card-area { gap: clamp(10px, 2vh, 30px) !important; }
-        #game-container.force-rotated .card-container { width: clamp(90px, 25vh, 240px) !important; }
-        #game-container.force-rotated .card-amount { font-size: clamp(14px, 2.5vh, 24px) !important; }
+        #game-container.force-rotated #card-area {
+            gap: clamp(10px, 2vh, 30px) !important;
+        }
 
+        #game-container.force-rotated .card-container {
+            width: clamp(90px, 25vh, 240px) !important;
+        }
+
+        #game-container.force-rotated .card-amount {
+            font-size: clamp(14px, 2.5vh, 24px) !important;
+        }
+
+        /* ==========================================
+           3. 卡片展示區域
+           ========================================== */
         #card-area {
-            display: flex; flex-direction: row; justify-content: center; align-items: center;
-            gap: clamp(10px, 2vw, 30px); width: 100%; max-width: 1000px;
+            display: flex;
+            flex-direction: row;
+            justify-content: center;
+            align-items: center;
+            gap: clamp(10px, 2vw, 30px);
+            width: 100%;
+            max-width: 1000px;
         }
 
         .card-container {
-            width: clamp(90px, 25vw, 240px); aspect-ratio: 2.5 / 3.5;
-            perspective: 1200px; cursor: pointer; user-select: none;
+            width: clamp(90px, 25vw, 240px);
+            aspect-ratio: 2.5 / 3.5;
+            perspective: 1200px;
+            cursor: pointer;
+            user-select: none;
             -webkit-tap-highlight-color: transparent;
         }
 
-        .card-shaker { width: 100%; height: 100%; will-change: transform; transition: transform 0.3s ease; }
-        .card-container:hover .card-shaker { transform: translateY(-10px) scale(1.03); }
-        .card-shaker.shaking { animation: cardShake 0.5s ease-in-out forwards; }
+        /* ==========================================
+           4. 中間層：專門負責「搖晃蓄力」動畫
+           ========================================== */
+        .card-shaker {
+            width: 100%;
+            height: 100%;
+            will-change: transform;
+            transition: transform 0.3s ease;
+        }
+
+        .card-container:hover .card-shaker {
+            transform: translateY(-10px) scale(1.03);
+        }
+
+        .card-shaker.shaking {
+            animation: cardShake 0.5s ease-in-out forwards;
+        }
 
         @keyframes cardShake {
             0% { transform: scale(1) rotate(0deg); }
@@ -52,78 +114,168 @@
             100% { transform: scale(1) rotate(0deg); }
         }
 
+        /* ==========================================
+           5. 核心 3D 翻牌層
+           ========================================== */
         .card {
-            width: 100%; height: 100%; position: relative;
-            transform-style: preserve-3d; -webkit-transform-style: preserve-3d;
+            width: 100%;
+            height: 100%;
+            position: relative;
+            transform-style: preserve-3d;
+            -webkit-transform-style: preserve-3d;
             transition: transform 0.8s cubic-bezier(0.34, 1.56, 0.64, 1);
-            border-radius: clamp(8px, 1.5vw, 16px); will-change: transform;
+            border-radius: clamp(8px, 1.5vw, 16px);
+            will-change: transform;
         }
 
-        .card.flipped { transform: rotateY(180deg); }
+        .card.flipped {
+            transform: rotateY(180deg);
+        }
 
+        /* ==========================================
+           6. 卡片正反面與文字樣式
+           ========================================== */
         .card-face {
-            width: 100%; height: 100%; position: absolute; top: 0; left: 0;
-            -webkit-backface-visibility: hidden; backface-visibility: hidden;
-            border-radius: clamp(8px, 1.5vw, 16px); overflow: hidden;
-            background-size: 100% 100%; background-position: center;
+            width: 100%;
+            height: 100%;
+            position: absolute;
+            top: 0;
+            left: 0;
+            -webkit-backface-visibility: hidden;
+            backface-visibility: hidden;
+            border-radius: clamp(8px, 1.5vw, 16px);
+            overflow: hidden;
+            background-size: 100% 100%;
+            background-position: center;
             box-shadow: 0 8px 25px rgba(0, 0, 0, 0.7), 0 0 15px rgba(0, 229, 255, 0.2);
-            border: 1px solid rgba(255, 215, 0, 0.3); transform: translateZ(1px);
+            border: 1px solid rgba(255, 215, 0, 0.3);
+            transform: translateZ(1px);
         }
 
-        .card-back { background-image: url('Card_Back.png'); }
-        .card-front { background-image: url('Card_Front.png'); transform: rotateY(180deg) translateZ(1px); position: relative; }
+        .card-back {
+            background-image: url('Card_Back.png');
+        }
+
+        .card-front {
+            background-image: url('Card_Front.png');
+            transform: rotateY(180deg) translateZ(1px);
+            position: relative;
+        }
 
         .card-amount {
-            position: absolute; top: 27.5%; left: 50%; transform: translateX(-50%);
-            width: 70%; text-align: center; font-size: clamp(14px, 2.5vw, 24px);
-            font-weight: 900; color: #fff6d1;
+            position: absolute;
+            top: 27.5%; 
+            left: 50%;
+            transform: translateX(-50%);
+            width: 70%;
+            text-align: center;
+            font-size: clamp(14px, 2.5vw, 24px);
+            font-weight: 900;
+            color: #fff6d1;
             text-shadow: 0 0 5px #ffd700, 0 0 10px #ff8c00, 0 0 20px #ff0000;
-            letter-spacing: 1px; pointer-events: none;
+            letter-spacing: 1px;
+            pointer-events: none;
         }
 
-        /* 控制按鈕通用樣式 */
+        /* ==========================================
+           7. UI 控制按鈕通用樣式與位置
+           ========================================== */
         .ui-btn {
-            position: absolute; display: flex; flex-direction: column;
-            align-items: center; justify-content: center; gap: 4px;
-            background: rgba(255, 215, 0, 0.1); border: 2px solid #ffd700;
-            color: #ffd700; padding: 10px; border-radius: 50%;
-            width: 60px; height: 60px; cursor: pointer;
+            position: fixed;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 4px;
+            background: rgba(255, 215, 0, 0.1);
+            border: 2px solid #ffd700;
+            color: #ffd700;
+            padding: 10px;
+            border-radius: 50%;
+            width: 65px;
+            height: 65px;
+            cursor: pointer;
             box-shadow: 0 0 12px rgba(255, 215, 0, 0.3);
             transition: transform 0.2s ease, background-color 0.2s ease;
-            user-select: none; z-index: 100;
+            user-select: none;
+            z-index: 10000;
             -webkit-tap-highlight-color: transparent;
         }
-        .ui-btn:active { transform: scale(0.92); background: rgba(255, 215, 0, 0.3); }
-        .ui-btn-icon { font-size: 20px; line-height: 1; }
-        .ui-btn-text { font-size: 9px; font-weight: bold; letter-spacing: 0.5px; line-height: 1; }
 
-        /* 音效按鈕位置 */
-        #audio-btn { top: 20px; left: 20px; }
-
-        #portrait-notice {
-            display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
-            background: rgba(8, 11, 16, 0.95); z-index: 9999; color: #ffd700;
-            flex-direction: column; justify-content: center; align-items: center;
-            text-align: center; padding: 20px; font-size: 18px;
+        .ui-btn:active {
+            transform: scale(0.92);
+            background: rgba(255, 215, 0, 0.3);
         }
 
-        .phone-icon { font-size: 48px; margin-bottom: 15px; animation: rotatePhone 2s infinite ease-in-out; }
+        .ui-btn-icon {
+            font-size: 20px;
+            line-height: 1;
+        }
+
+        .ui-btn-text {
+            font-size: 9px;
+            font-weight: bold;
+            letter-spacing: 0.5px;
+            line-height: 1;
+        }
+
+        /* 左上角音樂控制按鈕 */
+        #audio-btn {
+            top: 20px;
+            left: 20px;
+        }
+
+        /* ==========================================
+           8. 橫向提示面板
+           ========================================== */
+        #portrait-notice {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: rgba(8, 11, 16, 0.95);
+            z-index: 9999;
+            color: #ffd700;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            padding: 20px;
+            font-size: 18px;
+        }
+
+        .phone-icon {
+            font-size: 48px;
+            margin-bottom: 15px;
+            animation: rotatePhone 2s infinite ease-in-out;
+        }
+
         @keyframes rotatePhone {
             0%, 10% { transform: rotate(0deg); }
             40%, 60% { transform: rotate(-90deg); }
             90%, 100% { transform: rotate(0deg); }
         }
 
-        .rotate-btn { top: 20px; right: 20px; width: 70px; height: 70px; }
+        /* 右上角手動旋轉按鈕 */
+        .rotate-btn {
+            top: 20px;
+            right: 20px;
+            width: 70px;
+            height: 70px;
+        }
 
         @media screen and (orientation: portrait) {
-            #portrait-notice.active { display: flex; }
+            #portrait-notice.active {
+                display: flex;
+            }
         }
     </style>
 </head>
 <body>
 
-    <!-- 音效切換按鈕 -->
+    <!-- 音效切換按鈕 (固定左上角) -->
     <div class="ui-btn" id="audio-btn">
         <span class="ui-btn-icon" id="audio-icon">🔊</span>
         <span class="ui-btn-text" id="audio-text">音樂開</span>
@@ -131,10 +283,12 @@
 
     <!-- 橫向提示面板 -->
     <div id="portrait-notice">
+        <!-- 右上角手動旋轉按鈕 -->
         <div class="ui-btn rotate-btn" id="manual-rotate-btn">
             <span class="ui-btn-icon">🔄</span>
             <span class="ui-btn-text">手動旋轉</span>
         </div>
+
         <div class="phone-icon">📱</div>
         <p>請將手機旋轉至「橫向」<br>獲得最佳 VIP 抽卡體驗</p>
     </div>
@@ -142,27 +296,38 @@
     <!-- 遊戲主區域 -->
     <div id="game-container">
         <div id="card-area">
+            <!-- 卡片 1 -->
             <div class="card-container">
                 <div class="card-shaker">
                     <div class="card">
                         <div class="card-face card-back"></div>
-                        <div class="card-face card-front"><div class="card-amount">$10,000</div></div>
+                        <div class="card-face card-front">
+                            <div class="card-amount">$10,000</div>
+                        </div>
                     </div>
                 </div>
             </div>
+
+            <!-- 卡片 2 -->
             <div class="card-container">
                 <div class="card-shaker">
                     <div class="card">
                         <div class="card-face card-back"></div>
-                        <div class="card-face card-front"><div class="card-amount">$50,000</div></div>
+                        <div class="card-face card-front">
+                            <div class="card-amount">$50,000</div>
+                        </div>
                     </div>
                 </div>
             </div>
+
+            <!-- 卡片 3 -->
             <div class="card-container">
                 <div class="card-shaker">
                     <div class="card">
                         <div class="card-face card-back"></div>
-                        <div class="card-face card-front"><div class="card-amount">$100,000</div></div>
+                        <div class="card-face card-front">
+                            <div class="card-amount">$100,000</div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -171,7 +336,7 @@
 
     <script>
         // ==========================================
-        // 🎵 音效系統設定
+        // 🎵 1. 音效系統與瀏覽器限制自動解鎖
         // ==========================================
         const sounds = {
             bgm: new Audio('https://assets.mixkit.co/music/preview/mixkit-casino-lounge-432.mp3'),
@@ -187,14 +352,37 @@
         sounds.win.volume = 0.8;
 
         let isMuted = false;
+        let audioInitialized = false;
+
+        // 解鎖並播放背景音樂
+        function initAudio() {
+            if (audioInitialized || isMuted) return;
+
+            sounds.bgm.play().then(() => {
+                audioInitialized = true;
+                // 成功播放後，移除全局監聽
+                document.removeEventListener('pointerdown', initAudio);
+                document.removeEventListener('touchstart', initAudio);
+                document.removeEventListener('click', initAudio);
+            }).catch(() => {
+                // 等待下次互動再嘗試
+            });
+        }
+
+        // 監聽各種使用者首次點擊/觸控行為，解除自動播放限制
+        document.addEventListener('pointerdown', initAudio);
+        document.addEventListener('touchstart', initAudio);
+        document.addEventListener('click', initAudio);
 
         function playSFX(audioObj) {
             if (isMuted) return;
+            if (!audioInitialized) initAudio();
+
             audioObj.currentTime = 0;
             audioObj.play().catch(() => {});
         }
 
-        // 音樂開關按鈕控制
+        // 音樂開關按鈕
         const audioBtn = document.getElementById('audio-btn');
         const audioIcon = document.getElementById('audio-icon');
         const audioText = document.getElementById('audio-text');
@@ -207,28 +395,28 @@
                 audioIcon.textContent = '🔇';
                 audioText.textContent = '靜音';
             } else {
-                sounds.bgm.play().catch(() => {});
                 audioIcon.textContent = '🔊';
                 audioText.textContent = '音樂開';
+                initAudio();
+                if (audioInitialized) {
+                    sounds.bgm.play().catch(() => {});
+                }
             }
         });
 
-        // 瀏覽器互動限制：首次點擊時播放背景音樂
-        window.addEventListener('click', () => {
-            if (!isMuted && sounds.bgm.paused) {
-                sounds.bgm.play().catch(() => {});
-            }
-        }, { once: true });
-
         // ==========================================
-        // ⚙️ 系統與抽卡邏輯
+        // ⚙️ 2. 手動開關與方向偵測
         // ==========================================
         const ENABLE_PORTRAIT_NOTICE = true; 
         const noticeEl = document.getElementById('portrait-notice');
         const gameContainer = document.getElementById('game-container');
         const rotateBtn = document.getElementById('manual-rotate-btn');
 
-        if (ENABLE_PORTRAIT_NOTICE) noticeEl.classList.add('active');
+        if (ENABLE_PORTRAIT_NOTICE) {
+            noticeEl.classList.add('active');
+        } else {
+            noticeEl.classList.remove('active');
+        }
 
         rotateBtn.addEventListener('click', (e) => {
             e.stopPropagation();
@@ -238,6 +426,7 @@
 
         function checkOrientation() {
             const isLandscape = window.matchMedia("(orientation: landscape)").matches;
+
             if (isLandscape) {
                 gameContainer.classList.remove('force-rotated');
                 noticeEl.classList.remove('active');
@@ -251,6 +440,20 @@
         window.addEventListener('resize', checkOrientation);
         window.addEventListener('orientationchange', checkOrientation);
 
+        // 全螢幕橫向鎖定嘗試
+        window.addEventListener('click', () => {
+            if (document.documentElement.requestFullscreen && !document.fullscreenElement) {
+                document.documentElement.requestFullscreen().then(() => {
+                    if (screen.orientation && screen.orientation.lock) {
+                        screen.orientation.lock('landscape').catch(() => {});
+                    }
+                }).catch(() => {});
+            }
+        }, { once: true });
+
+        // ==========================================
+        // 🃏 3. 抽卡邏輯與音效配合
+        // ==========================================
         const rewards = ['$1,000', '$5,000', '$20,000', '$50,000', '$100,000', '$1,000,000'];
         const animatingCards = new Set();
 
@@ -269,16 +472,14 @@
                     const randomReward = rewards[Math.floor(Math.random() * rewards.length)];
                     amountEl.textContent = randomReward;
 
-                    // 播放搖晃音效
                     playSFX(sounds.shake);
                     shaker.classList.add('shaking');
 
                     setTimeout(() => {
                         shaker.classList.remove('shaking');
                         
-                        // 播放翻卡與中獎音效
                         playSFX(sounds.flip);
-                        setTimeout(() => playSFX(sounds.win), 200);
+                        setTimeout(() => playSFX(sounds.win), 150);
 
                         card.classList.add('flipped');
 
@@ -296,5 +497,6 @@
             });
         });
     </script>
+
 </body>
 </html>
