@@ -5,6 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>金正旺銀行vip抽卡系統</title>
     <style>
+        /* ==========================================
+           1. 全局基礎樣式設定
+           ========================================== */
         * {
             box-sizing: border-box;
             margin: 0;
@@ -19,6 +22,9 @@
             background-color: #080b10;
         }
 
+        /* ==========================================
+           2. 遊戲主畫面容器
+           ========================================== */
         #game-container {
             position: absolute;
             top: 0;
@@ -35,6 +41,7 @@
             transition: transform 0.3s ease, width 0.3s ease, height 0.3s ease;
         }
 
+        /* 💡 強制旋轉樣式：將畫面旋轉 90 度並調換長寬 */
         #game-container.force-rotated {
             width: 100vh !important;
             height: 100vw !important;
@@ -56,6 +63,9 @@
             font-size: clamp(14px, 2.5vh, 24px) !important;
         }
 
+        /* ==========================================
+           3. 卡片展示區域
+           ========================================== */
         #card-area {
             display: flex;
             flex-direction: row;
@@ -75,6 +85,9 @@
             -webkit-tap-highlight-color: transparent;
         }
 
+        /* ==========================================
+           4. 搖晃蓄力動畫
+           ========================================== */
         .card-shaker {
             width: 100%;
             height: 100%;
@@ -101,6 +114,9 @@
             100% { transform: scale(1) rotate(0deg); }
         }
 
+        /* ==========================================
+           5. 核心 3D 翻牌層
+           ========================================== */
         .card {
             width: 100%;
             height: 100%;
@@ -116,6 +132,9 @@
             transform: rotateY(180deg);
         }
 
+        /* ==========================================
+           6. 卡片正反面與文字樣式
+           ========================================== */
         .card-face {
             width: 100%;
             height: 100%;
@@ -158,6 +177,9 @@
             pointer-events: none;
         }
 
+        /* ==========================================
+           7. 提示面板與開關按鈕
+           ========================================== */
         #portrait-notice {
             display: none;
             position: fixed;
@@ -229,7 +251,7 @@
             line-height: 1;
         }
 
-        /* 音效控制按鈕樣式 */
+        /* 💡 音效控制按鈕：放於 #game-container 內部，隨全畫面一起旋轉 */
         .sound-toggle-btn {
             position: absolute;
             top: 20px;
@@ -249,6 +271,7 @@
             box-shadow: 0 0 10px rgba(255, 215, 0, 0.3);
             transition: all 0.2s ease;
             user-select: none;
+            -webkit-tap-highlight-color: transparent;
         }
 
         .sound-toggle-btn:active {
@@ -270,15 +293,9 @@
 </head>
 <body>
 
-    <!-- 音樂與音效標籤 (使用可靠的無版權音樂源) -->
-    <audio id="bgm" loop preload="auto" src="https://cdn.pixabay.com/download/audio/2022/03/15/audio_c8c8a73223.mp3?filename=casino-night-10906.mp3"></audio>
+    <!-- 音樂與音效標籤 (背景音樂改讀取本地 mu01.mp3) -->
+    <audio id="bgm" loop preload="auto" src="mu01.mp3"></audio>
     <audio id="sfx-flip" preload="auto" src="https://cdn.pixabay.com/download/audio/2022/03/24/audio_c299edb44e.mp3?filename=card-flip-89312.mp3"></audio>
-
-    <!-- 音效控制按鈕 -->
-    <div class="sound-toggle-btn" id="sound-toggle">
-        <span id="sound-icon">🔊</span>
-        <span id="sound-text">音樂: ON</span>
-    </div>
 
     <!-- 橫向提示面板 -->
     <div id="portrait-notice">
@@ -293,7 +310,14 @@
 
     <!-- 遊戲主區域 -->
     <div id="game-container">
+        <!-- 💡 音效控制按鈕放置於 game-container 內，跟隨 force-rotated 一起旋轉 90 度 -->
+        <div class="sound-toggle-btn" id="sound-toggle">
+            <span id="sound-icon">🔊</span>
+            <span id="sound-text">音樂: ON</span>
+        </div>
+
         <div id="card-area">
+            <!-- 卡片 1 -->
             <div class="card-container">
                 <div class="card-shaker">
                     <div class="card">
@@ -305,6 +329,7 @@
                 </div>
             </div>
 
+            <!-- 卡片 2 -->
             <div class="card-container">
                 <div class="card-shaker">
                     <div class="card">
@@ -316,6 +341,7 @@
                 </div>
             </div>
 
+            <!-- 卡片 3 -->
             <div class="card-container">
                 <div class="card-shaker">
                     <div class="card">
@@ -330,8 +356,14 @@
     </div>
 
     <script>
+        // ==========================================
+        // ⚙️ 手動開關設定區 (Config)
+        // ==========================================
         const ENABLE_PORTRAIT_NOTICE = true; 
 
+        // ==========================================
+        // 系統邏輯
+        // ==========================================
         const noticeEl = document.getElementById('portrait-notice');
         const gameContainer = document.getElementById('game-container');
         const rotateBtn = document.getElementById('manual-rotate-btn');
@@ -360,7 +392,7 @@
             }
         }
 
-        // 音樂開關按鈕
+        // 音樂開關按鈕控制
         soundToggleBtn.addEventListener('click', (e) => {
             e.stopPropagation();
             isSoundEnabled = !isSoundEnabled;
@@ -398,7 +430,7 @@
             triggerAudio();
         });
 
-        // 動態偵測方向
+        // 動態偵測螢幕方向切換
         function checkOrientation() {
             const isLandscape = window.matchMedia("(orientation: landscape)").matches;
 
@@ -418,7 +450,7 @@
         const rewards = ['$1,000', '$5,000', '$20,000', '$50,000', '$100,000', '$1,000,000'];
         const animatingCards = new Set();
 
-        // 任何點擊行為解鎖音樂音效
+        // 點擊頁面觸發全螢幕與解鎖音樂
         window.addEventListener('click', () => {
             triggerAudio();
 
@@ -431,7 +463,7 @@
             }
         });
 
-        // 卡片點擊 logic
+        // 卡片點擊邏輯
         document.querySelectorAll('.card-container').forEach(container => {
             const shaker = container.querySelector('.card-shaker');
             const card = container.querySelector('.card');
@@ -442,6 +474,7 @@
 
                 if (animatingCards.has(card)) return;
 
+                // 翻開卡片
                 if (!card.classList.contains('flipped')) {
                     animatingCards.add(card);
 
@@ -465,7 +498,9 @@
                         }, 800);
                     }, 500);
 
-                } else {
+                } 
+                // 蓋回卡片
+                else {
                     card.classList.remove('flipped');
                     if (isSoundEnabled) {
                         sfxFlip.currentTime = 0;
@@ -475,5 +510,6 @@
             });
         });
     </script>
+
 </body>
 </html>
