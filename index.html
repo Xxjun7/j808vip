@@ -45,7 +45,8 @@
         }
 
         #game-container.force-rotated {
-            width: 100vh !important;
+            position: fixed !important;
+            width: 100dvh !important;
             height: 100vw !important;
             top: 50% !important;
             left: 50% !important;
@@ -58,15 +59,15 @@
         }
 
         #game-container.force-rotated #card-area {
-            gap: clamp(10px, 2vh, 30px) !important;
+            gap: clamp(10px, 2dvh, 30px) !important;
         }
 
         #game-container.force-rotated .card-container {
-            width: clamp(90px, 25vh, 240px) !important;
+            width: clamp(90px, 25dvh, 240px) !important;
         }
 
         #game-container.force-rotated .card-amount {
-            font-size: clamp(14px, 2.5vh, 24px) !important;
+            font-size: clamp(14px, 2.5dvh, 24px) !important;
         }
 
         #card-area {
@@ -877,6 +878,8 @@
                 gameContainer.classList.add(
                     'force-rotated'
                 );
+
+                window.dispatchEvent(new Event('resize'));
 
             }
         );
