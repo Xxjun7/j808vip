@@ -410,7 +410,7 @@
             <span class="ui-btn-text" id="audio-text">音樂開</span>
         </div>
 
-        <!-- 抽卡區域 (3張獨立卡片) -->
+        <!-- 抽卡區域 -->
         <div id="card-area">
             <div class="card-container" data-index="0">
                 <div class="card-shaker">
@@ -446,7 +446,7 @@
 
     </div>
 
-    <!-- Firebase 邏輯整合與獨立卡片抽獎核心 -->
+    <!-- Firebase 邏輯整合與獨立抽卡核心 -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/12.18.0/firebase-app.js";
         import { getAnalytics } from "https://www.gstatic.com/firebasejs/12.18.0/firebase-analytics.js";
@@ -483,12 +483,12 @@
         let currentUserData = null;
         const animatingCards = new Set();
 
-        // 記錄 3 張卡片各自的狀態 (儲存已翻開時產生的金額數值)
-        const cardStates = {
-            0: { lockedAmount: null },
-            1: { lockedAmount: null },
-            2: { lockedAmount: null }
-        };
+        // 獨立卡片狀態陣列 (每張卡片記錄是否已翻開及其決定的獎項數值)
+        const cardStates = [
+            { isFlipped: false, prize: null },
+            { isFlipped: false, prize: null },
+            { isFlipped: false, prize: null }
+        ];
 
         window.addEventListener('DOMContentLoaded', () => {
             const savedUser = localStorage.getItem('vip_current_user');
@@ -515,7 +515,7 @@
             }
         }
 
-        // 綁定登入驗證
+        // 登入驗證
         loginSubmitBtn.addEventListener('click', async () => {
             const val = loginInput.value.trim();
             if (!val) {
@@ -561,12 +561,12 @@
             currentUserData = null;
             
             // 重置卡片狀態
-            cardStates[0].lockedAmount = null;
-            cardStates[1].lockedAmount = null;
-            cardStates[2].lockedAmount = null;
-            cardContainers.forEach(container => {
-                container.querySelector('.card').classList.remove('flipped');
-                container.querySelector('.card-amount').textContent = '--';
+            cardStates.forEach((state, i) => {
+                state.isFlipped = false;
+                state.prize = null;
+                const cardEl = cardContainers[i].querySelector('.card');
+                cardEl.classList.remove('flipped');
+                cardContainers[i].querySelector('.card-amount').textContent = '--';
             });
 
             loginModal.style.display = 'flex';
@@ -604,7 +604,6 @@
 
         // 核心抽獎與結果計算邏輯
         function calculatePrize(data, nextDrawnCount) {
-            // 1. 檢查是否剛好符合特定金額的指定中次數 (target 欄位設定)
             const targets = {
                 100: data.target100,
                 500: data.target500,
@@ -619,7 +618,6 @@
                 }
             }
 
-            // 2. 依據中獎率 (winRate) 判斷是否中獎
             const winRate = data.winRate !== undefined ? Number(data.winRate) : 50;
             const roll = Math.random() * 100;
             
@@ -627,14 +625,12 @@
                 return 0; // 未中獎
             }
 
-            // 3. 若中獎，從常見獎項中隨機派發一個
             const defaultPrizePool = [100, 500, 1000, 2000];
             return defaultPrizePool[Math.floor(Math.random() * defaultPrizePool.length)];
         }
 
-        // 綁定獨立卡片點擊互動
-        cardContainers.forEach(container => {
-            const cardIndex = container.getAttribute('data-index');
+        // 綁定各卡片獨立點擊事件
+        cardContainers.forEach((container, index) => {
             const card = container.querySelector('.card');
             const shaker = container.querySelector('.card-shaker');
             const amountEl = container.querySelector('.card-amount');
@@ -647,22 +643,23 @@
 
                 if (animatingCards.has(card)) return;
 
-                const isFlipped = card.classList.contains('flipped');
+                const currentState = cardStates[index];
 
-                // 情況 A：要把已翻開的卡片「翻回背面」
-                if (isFlipped) {
+                // 如果卡片目前是正面（已翻開），點擊則將其翻回背面，不扣除次數
+                if (currentState.isFlipped) {
                     animatingCards.add(card);
                     if (typeof playSFX === 'function' && window.sounds) {
                         playSFX(window.sounds.flip);
                     }
                     card.classList.remove('flipped');
+                    currentState.isFlipped = false;
                     setTimeout(() => {
                         animatingCards.delete(card);
                     }, 800);
                     return;
                 }
 
-                // 情況 B：要將背面的卡片「翻開正面」
+                // 若卡片是背面，準備翻開（需檢查剩餘次數）
                 const currentChances = currentUserData.chances !== undefined ? currentUserData.chances : 0;
                 if (currentChances <= 0) {
                     alert('剩餘可抽次數不足！');
@@ -671,24 +668,23 @@
 
                 animatingCards.add(card);
 
-                // 檢查這張卡片是否已經有被鎖定的數值，若無則透過演算法產生新數值
-                if (cardStates[cardIndex].lockedAmount === null) {
+                // 首次翻開或重新翻開時若無指定固定數值，則透過演算法產生新面額
+                if (currentState.prize === null) {
                     const currentDrawnCount = currentUserData.drawnCount !== undefined ? currentUserData.drawnCount : 0;
                     const nextDrawnCount = currentDrawnCount + 1;
                     const prizeResult = calculatePrize(currentUserData, nextDrawnCount);
-                    cardStates[cardIndex].lockedAmount = prizeResult;
+                    currentState.prize = prizeResult;
                 }
 
-                const prize = cardStates[cardIndex].lockedAmount;
-                amountEl.textContent = prize > 0 ? `$${prize}` : '銘謝惠顧';
+                amountEl.textContent = currentState.prize > 0 ? `$${currentState.prize}` : '銘謝惠顧';
 
-                // 播放搖晃音效與動畫
+                // 播放音效與搖晃動畫
                 if (typeof playSFX === 'function' && window.sounds) {
                     playSFX(window.sounds.shake);
                 }
                 shaker.classList.add('shaking');
 
-                // 即時扣除 Firebase 次數 (chances -1, drawnCount +1)
+                // 即時扣除 Firebase 次數與累計已抽次數
                 try {
                     const userDocRef = doc(db, "users", currentUserId);
                     await updateDoc(userDocRef, {
@@ -706,8 +702,8 @@
                         setTimeout(() => playSFX(window.sounds.win), 200);
                     }
 
-                    // 翻轉顯示正面
                     card.classList.add('flipped');
+                    currentState.isFlipped = true;
 
                     setTimeout(() => {
                         animatingCards.delete(card);
@@ -812,7 +808,6 @@
             }
         }
 
-        rotateBtn.click(function(e) { /* fallback */ });
         rotateBtn.addEventListener('click', (e) => {
             e.stopPropagation();
             noticeEl.classList.remove('active');
