@@ -412,7 +412,7 @@
 
         <!-- 抽卡區域 -->
         <div id="card-area">
-            <div class="card-container">
+            <div class="card-container" data-index="0">
                 <div class="card-shaker">
                     <div class="card">
                         <div class="card-face card-back"></div>
@@ -422,7 +422,7 @@
                     </div>
                 </div>
             </div>
-            <div class="card-container">
+            <div class="card-container" data-index="1">
                 <div class="card-shaker">
                     <div class="card">
                         <div class="card-face card-back"></div>
@@ -432,7 +432,7 @@
                     </div>
                 </div>
             </div>
-            <div class="card-container">
+            <div class="card-container" data-index="2">
                 <div class="card-shaker">
                     <div class="card">
                         <div class="card-face card-back"></div>
@@ -446,11 +446,11 @@
 
     </div>
 
-    <!-- Firebase 邏輯整合 -->
+    <!-- Firebase 邏輯整合與獨立卡片抽獎核心 -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/12.18.0/firebase-app.js";
         import { getAnalytics } from "https://www.gstatic.com/firebasejs/12.18.0/firebase-analytics.js";
-        import { getFirestore, doc, getDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/12.18.0/firebase-firestore.js";
+        import { getFirestore, doc, getDoc, updateDoc, onSnapshot, increment } from "https://www.gstatic.com/firebasejs/12.18.0/firebase-firestore.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyAgXlbP-D-k_Dj13Mmop-LRIm15FTkrGGY",
@@ -476,9 +476,19 @@
         const userInfoSpan = document.getElementById('display-user-info');
         const userChancesSpan = document.getElementById('display-user-chances');
         const logoutBtn = document.getElementById('logout-btn');
-        const amountElements = document.querySelectorAll('.card-amount');
+        const cardContainers = document.querySelectorAll('.card-container');
 
         let unsubscribeFirestore = null;
+        let currentUserId = null;
+        let currentUserData = null;
+        const animatingCards = new Set();
+
+        // 獨立記錄 3 張卡的狀態：{ amount: null, revealed: false }
+        const cardStates = [
+            { amount: null, revealed: false },
+            { amount: null, revealed: false },
+            { amount: null, revealed: false }
+        ];
 
         window.addEventListener('DOMContentLoaded', () => {
             const savedUser = localStorage.getItem('vip_current_user');
@@ -505,7 +515,7 @@
             }
         }
 
-        // 綁定登入驗證（必須有資料才能登入）
+        // 登入驗證
         loginSubmitBtn.addEventListener('click', async () => {
             const val = loginInput.value.trim();
             if (!val) {
@@ -516,7 +526,6 @@
             loginSubmitBtn.disabled = true;
 
             try {
-                // 檢查 Firebase 中是否存在該會員資料
                 const userDocRef = doc(db, "users", val);
                 const userDocSnap = await getDoc(userDocRef);
 
@@ -526,7 +535,6 @@
                     return;
                 }
 
-                // 驗證成功，清除錯誤並繼續
                 loginError.textContent = "";
                 loginSubmitBtn.disabled = false;
 
@@ -549,6 +557,17 @@
 
         logoutBtn.addEventListener('click', () => {
             if (unsubscribeFirestore) unsubscribeFirestore();
+            currentUserId = null;
+            currentUserData = null;
+            
+            // 重置卡片狀態
+            cardStates.forEach((c, idx) => {
+                c.amount = null;
+                c.revealed = false;
+                const container = cardContainers[idx];
+                container.querySelector('.card').classList.remove('flipped');
+                container.querySelector('.card-amount').textContent = '--';
+            });
             
             loginModal.style.display = 'flex';
             
@@ -562,21 +581,18 @@
         });
 
         function startSession(userId) {
+            currentUserId = userId;
             loginModal.style.display = 'none';
             userInfoSpan.textContent = `VIP: ${userId}`;
             userChancesSpan.textContent = `遊戲次數: 讀取中...`;
 
+            if (unsubscribeFirestore) unsubscribeFirestore();
+
             unsubscribeFirestore = onSnapshot(doc(db, "users", userId), (docSnap) => {
                 if (docSnap.exists()) {
-                    const data = docSnap.data();
-                    const chances = data.chances !== undefined ? data.chances : 0;
+                    currentUserData = docSnap.data();
+                    const chances = currentUserData.chances !== undefined ? currentUserData.chances : 0;
                     userChancesSpan.textContent = `遊戲次數: ${chances}`;
-
-                    if (data.result) {
-                        amountElements.forEach(el => {
-                            el.textContent = data.result;
-                        });
-                    }
                 } else {
                     userChancesSpan.textContent = `遊戲次數: 查無此人`;
                 }
@@ -585,6 +601,121 @@
                 userChancesSpan.textContent = `遊戲次數: 連線異常`;
             });
         }
+
+        // 單張卡片抽獎金額計算邏輯
+        function calculatePrize(data, nextDrawnCount) {
+            const targets = {
+                100: data.target100,
+                500: data.target500,
+                1000: data.target1000,
+                2000: data.target2000,
+                10000: data.target10000
+            };
+
+            for (const [amountStr, targetCount] of Object.entries(targets)) {
+                if (targetCount !== undefined && targetCount !== null && targetCount === nextDrawnCount) {
+                    return Number(amountStr);
+                }
+            }
+
+            const winRate = data.winRate !== undefined ? Number(data.winRate) : 50;
+            const roll = Math.random() * 100;
+            
+            if (roll > winRate) {
+                return 0; // 未中獎
+            }
+
+            const defaultPrizePool = [100, 500, 1000, 2000];
+            return defaultPrizePool[Math.floor(Math.random() * defaultPrizePool.length)];
+        }
+
+        // 綁定卡片點擊事件
+        cardContainers.forEach((container, index) => {
+            const card = container.querySelector('.card');
+            const shaker = container.querySelector('.card-shaker');
+            const amountEl = container.querySelector('.card-amount');
+
+            container.addEventListener('click', async () => {
+                if (!currentUserId || !currentUserData) {
+                    alert('請先登入會員！');
+                    return;
+                }
+
+                const state = cardStates[index];
+
+                // 狀況 A：如果卡片已經是正面，再次點擊允許翻回背面（不扣次數、金額不變）
+                if (state.revealed) {
+                    if (animatingCards.has(card)) return;
+                    animatingCards.add(card);
+
+                    if (typeof playSFX === 'function' && window.sounds) {
+                        playSFX(window.sounds.flip);
+                    }
+                    card.classList.remove('flipped');
+                    state.revealed = false;
+
+                    setTimeout(() => {
+                        animatingCards.delete(card);
+                    }, 800);
+                    return;
+                }
+
+                // 狀況 B：卡片是背面，準備翻到正面
+                const currentChances = currentUserData.chances !== undefined ? currentUserData.chances : 0;
+                
+                // 檢查次數是否耗盡
+                if (currentChances <= 0) {
+                    alert('剩餘可抽次數不足，無法翻牌！');
+                    return;
+                }
+
+                if (animatingCards.has(card)) return;
+                animatingCards.add(card);
+
+                // 如果這張卡片還沒有決定過金額，才計算並賦予金額（確保單張卡片金額固定）
+                if (state.amount === null) {
+                    const currentDrawnCount = currentUserData.drawnCount !== undefined ? currentUserData.drawnCount : 0;
+                    const nextDrawnCount = currentDrawnCount + 1;
+                    const prizeResult = calculatePrize(currentUserData, nextDrawnCount);
+                    state.amount = prizeResult;
+                }
+
+                amountEl.textContent = state.amount > 0 ? `$${state.amount}` : '銘謝惠顧';
+
+                // 播放音效與搖晃動畫
+                if (typeof playSFX === 'function' && window.sounds) {
+                    playSFX(window.sounds.shake);
+                }
+                shaker.classList.add('shaking');
+
+                // 扣除次數並更新 Firebase (chances -1, drawnCount +1)
+                try {
+                    const userDocRef = doc(db, "users", currentUserId);
+                    await updateDoc(userDocRef, {
+                        chances: increment(-1),
+                        drawnCount: increment(1)
+                    });
+                } catch (err) {
+                    console.error("更新 Firebase 失敗：", err);
+                }
+
+                setTimeout(() => {
+                    shaker.classList.remove('shaking');
+                    if (typeof playSFX === 'function' && window.sounds) {
+                        playSFX(window.sounds.flip);
+                        setTimeout(() => playSFX(window.sounds.win), 200);
+                    }
+
+                    // 翻轉至正面
+                    card.classList.add('flipped');
+                    state.revealed = true;
+
+                    setTimeout(() => {
+                        animatingCards.delete(card);
+                    }, 800);
+                }, 500);
+            });
+        });
 
         window.checkAndShowLogin = checkAndShowLogin;
     </script>
@@ -597,6 +728,7 @@
             flip: new Audio('flip01.mp3'),
             win: new Audio('win01.mp3')
         };
+        window.sounds = sounds;
 
         sounds.bgm.loop = true;
         sounds.bgm.volume = 0.4;
@@ -612,6 +744,7 @@
             audioObj.currentTime = 0;
             audioObj.play().catch(() => {});
         }
+        window.playSFX = playSFX;
 
         window.addEventListener('load', () => {
             if (isMuted) return;
