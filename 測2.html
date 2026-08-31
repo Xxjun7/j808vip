@@ -483,7 +483,7 @@
         let currentUserData = null;
         const animatingCards = new Set();
 
-        // 獨立卡片狀態陣列 (每張卡片記錄是否已翻開及其決定的獎項數值)
+        // 獨立卡片狀態陣列
         const cardStates = [
             { isFlipped: false, prize: null },
             { isFlipped: false, prize: null },
@@ -645,7 +645,7 @@
 
                 const currentState = cardStates[index];
 
-                // 如果卡片目前是正面（已翻開），點擊則將其翻回背面，不扣除次數
+                // 如果卡片目前是正面（已翻開），點擊則將其「翻回背面」，並清除該張卡的記憶（重置 prize）
                 if (currentState.isFlipped) {
                     animatingCards.add(card);
                     if (typeof playSFX === 'function' && window.sounds) {
@@ -653,6 +653,7 @@
                     }
                     card.classList.remove('flipped');
                     currentState.isFlipped = false;
+                    currentState.prize = null; // 清除數值，下次翻開時重新走設定與演算
                     setTimeout(() => {
                         animatingCards.delete(card);
                     }, 800);
@@ -668,13 +669,11 @@
 
                 animatingCards.add(card);
 
-                // 首次翻開或重新翻開時若無指定固定數值，則透過演算法產生新面額
-                if (currentState.prize === null) {
-                    const currentDrawnCount = currentUserData.drawnCount !== undefined ? currentUserData.drawnCount : 0;
-                    const nextDrawnCount = currentDrawnCount + 1;
-                    const prizeResult = calculatePrize(currentUserData, nextDrawnCount);
-                    currentState.prize = prizeResult;
-                }
+                // 首次翻開或重新翻開：嚴格依照目前資料庫設定與演算法重新計算面額
+                const currentDrawnCount = currentUserData.drawnCount !== undefined ? currentUserData.drawnCount : 0;
+                const nextDrawnCount = currentDrawnCount + 1;
+                const prizeResult = calculatePrize(currentUserData, nextDrawnCount);
+                currentState.prize = prizeResult;
 
                 amountEl.textContent = currentState.prize > 0 ? `$${currentState.prize}` : '銘謝惠顧';
 
