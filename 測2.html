@@ -241,7 +241,7 @@
             transform: scale(0.95);
         }
 
-        /* 登入遮罩 Modal (預設隱藏，待橫向確認後或直接開啟，這裡透過 JS 控制優先級) */
+        /* 登入遮罩 Modal */
         #login-modal {
             position: fixed;
             top: 0;
@@ -251,7 +251,7 @@
             background-image: url('image_7.png');
             background-size: cover;
             background-position: center;
-            display: none; /* 預設不顯示，由直向檢查或載入後決定 */
+            display: none;
             justify-content: center;
             align-items: center;
             z-index: 10000;
@@ -332,7 +332,7 @@
             width: 100vw;
             height: 100vh;
             background: rgba(8, 11, 16, 0.95);
-            z-index: 10005; /* 確保高於登入 Modal，達到優先顯示效果 */
+            z-index: 10005;
             color: #ffd700;
             flex-direction: column;
             justify-content: center;
@@ -384,7 +384,7 @@
         </div>
     </div>
 
-    <!-- 橫向提示面板 (優先顯示) -->
+    <!-- 橫向提示面板 -->
     <div id="portrait-notice">
         <div class="ui-btn rotate-btn" id="manual-rotate-btn">
             <span class="ui-btn-icon">🔄</span>
@@ -412,7 +412,6 @@
 
         <!-- 抽卡區域 -->
         <div id="card-area">
-            <!-- 卡片 1 -->
             <div class="card-container">
                 <div class="card-shaker">
                     <div class="card">
@@ -423,7 +422,6 @@
                     </div>
                 </div>
             </div>
-            <!-- 卡片 2 -->
             <div class="card-container">
                 <div class="card-shaker">
                     <div class="card">
@@ -434,7 +432,6 @@
                     </div>
                 </div>
             </div>
-            <!-- 卡片 3 -->
             <div class="card-container">
                 <div class="card-shaker">
                     <div class="card">
@@ -453,7 +450,7 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/12.18.0/firebase-app.js";
         import { getAnalytics } from "https://www.gstatic.com/firebasejs/12.18.0/firebase-analytics.js";
-        import { getFirestore, doc, onSnapshot } from "https://www.gstatic.com/firebasejs/12.18.0/firebase-firestore.js";
+        import { getFirestore, doc, getDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/12.18.0/firebase-firestore.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyAgXlbP-D-k_Dj13Mmop-LRIm15FTkrGGY",
@@ -484,7 +481,6 @@
         let unsubscribeFirestore = null;
 
         window.addEventListener('DOMContentLoaded', () => {
-            // 讀取先前記住的輸入文字（但不自動登入，必須重新整理/重開後手動登入）
             const savedUser = localStorage.getItem('vip_current_user');
             const savedRemember = localStorage.getItem('vip_remember_me') === 'true';
 
@@ -495,7 +491,6 @@
                 loginInput.value = '';
             }
 
-            // 確保每次重整頁面，都會跳出登入框（若直向則會優先被直向提示覆蓋）
             checkAndShowLogin();
         });
 
@@ -503,7 +498,6 @@
             const isLandscape = window.matchMedia('(orientation: landscape)').matches;
             const noticeEl = document.getElementById('portrait-notice');
             
-            // 如果是橫向，或者直向提示已經被手動關閉，才顯示登入 Modal
             if (isLandscape || !noticeEl.classList.contains('active')) {
                 loginModal.style.display = 'flex';
             } else {
@@ -511,23 +505,46 @@
             }
         }
 
-        loginSubmitBtn.addEventListener('click', () => {
+        // 綁定登入驗證（必須有資料才能登入）
+        loginSubmitBtn.addEventListener('click', async () => {
             const val = loginInput.value.trim();
             if (!val) {
                 loginError.textContent = "請輸入編號姓名！";
                 return;
             }
-            loginError.textContent = "";
+            loginError.textContent = "驗證中...";
+            loginSubmitBtn.disabled = true;
 
-            if (rememberMeCheckbox.checked) {
-                localStorage.setItem('vip_current_user', val);
-                localStorage.setItem('vip_remember_me', 'true');
-            } else {
-                localStorage.removeItem('vip_current_user');
-                localStorage.setItem('vip_remember_me', 'false');
+            try {
+                // 檢查 Firebase 中是否存在該會員資料
+                const userDocRef = doc(db, "users", val);
+                const userDocSnap = await getDoc(userDocRef);
+
+                if (!userDocSnap.exists()) {
+                    loginError.textContent = "查無此 VIP 資料，請確認輸入是否正確！";
+                    loginSubmitBtn.disabled = false;
+                    return;
+                }
+
+                // 驗證成功，清除錯誤並繼續
+                loginError.textContent = "";
+                loginSubmitBtn.disabled = false;
+
+                if (rememberMeCheckbox.checked) {
+                    localStorage.setItem('vip_current_user', val);
+                    localStorage.setItem('vip_remember_me', 'true');
+                } else {
+                    localStorage.removeItem('vip_current_user');
+                    localStorage.setItem('vip_remember_me', 'false');
+                }
+
+                startSession(val);
+
+            } catch (error) {
+                console.error("登入驗證錯誤：", error);
+                loginError.textContent = "連線異常，請稍後再試！";
+                loginSubmitBtn.disabled = false;
             }
-
-            startSession(val);
         });
 
         logoutBtn.addEventListener('click', () => {
@@ -535,7 +552,6 @@
             
             loginModal.style.display = 'flex';
             
-            // 如果沒勾選記住我，清空輸入框文字
             if (!rememberMeCheckbox.checked) {
                 loginInput.value = '';
                 localStorage.removeItem('vip_current_user');
@@ -658,7 +674,7 @@
             const isLandscape = window.matchMedia('(orientation: landscape)').matches;
             if (!isLandscape) {
                 noticeEl.classList.add('active');
-                loginModal.style.display = 'none'; // 優先顯示直向提示，隱藏登入框
+                loginModal.style.display = 'none';
             } else {
                 noticeEl.classList.remove('active');
             }
@@ -669,7 +685,6 @@
             noticeEl.classList.remove('active');
             gameContainer.classList.add('force-rotated');
             
-            // 旋轉提示關閉後，才判斷並顯示登入框
             if (window.checkAndShowLogin) {
                 window.checkAndShowLogin();
             }
@@ -681,14 +696,13 @@
             if (isLandscape) {
                 gameContainer.classList.remove('force-rotated');
                 noticeEl.classList.remove('active');
-                // 轉成橫向時，如果還沒登入，跳出登入框
                 if (window.checkAndShowLogin) {
                     window.checkAndShowLogin();
                 }
             } else {
                 if (!gameContainer.classList.contains('force-rotated') && ENABLE_PORTRAIT_NOTICE) {
                     noticeEl.classList.add('active');
-                    loginModal.style.display = 'none'; // 轉回直向時優先顯示提示並遮擋登入
+                    loginModal.style.display = 'none';
                 }
             }
         }
