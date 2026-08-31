@@ -1,0 +1,446 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>金正旺銀行 VIP 後台管理系統</title>
+    <link rel="icon" type="image/x-icon" href="./Jicon.ico">
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Arial', sans-serif;
+            background-color: #080b10;
+            color: #ffd700;
+            padding: 20px;
+        }
+
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            border-bottom: 2px solid #ffd700;
+            padding-bottom: 10px;
+        }
+
+        h1 {
+            font-size: 24px;
+            text-shadow: 0 0 10px rgba(255, 215, 0, 0.5);
+        }
+
+        .btn {
+            background: linear-gradient(135deg, #ffd700, #ff8c00);
+            border: none;
+            color: #080b10;
+            padding: 8px 16px;
+            border-radius: 6px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+
+        .btn:active {
+            transform: scale(0.95);
+        }
+
+        .btn-danger {
+            background: #ff4d4d;
+            color: #fff;
+        }
+
+        .card-panel {
+            background: rgba(255, 215, 0, 0.05);
+            border: 1px solid #ffd700;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 0 15px rgba(255, 215, 0, 0.1);
+        }
+
+        .card-panel h3 {
+            margin-bottom: 15px;
+            font-size: 18px;
+            color: #ffcc00;
+        }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 12px;
+            margin-bottom: 12px;
+        }
+
+        .form-field {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+
+        .form-field label {
+            font-size: 12px;
+            color: #ccc;
+        }
+
+        input, select {
+            padding: 9px;
+            background: rgba(8, 11, 16, 0.8);
+            border: 1px solid #ffd700;
+            border-radius: 6px;
+            color: #fff;
+            font-size: 14px;
+            outline: none;
+            width: 100%;
+        }
+
+        .table-container {
+            width: 100%;
+            overflow-x: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+            background: rgba(8, 11, 16, 0.9);
+            border-radius: 8px;
+            overflow: hidden;
+            font-size: 13px;
+        }
+
+        th, td {
+            padding: 10px;
+            text-align: center;
+            border-bottom: 1px solid rgba(255, 215, 0, 0.2);
+            white-space: nowrap;
+        }
+
+        th {
+            background: rgba(255, 215, 0, 0.2);
+            color: #ffd700;
+        }
+
+        tr:hover {
+            background: rgba(255, 215, 0, 0.05);
+        }
+
+        .actions-cell button {
+            margin: 2px;
+            padding: 5px 8px;
+            font-size: 11px;
+        }
+
+        #status-msg {
+            margin-top: 10px;
+            font-size: 14px;
+            font-weight: bold;
+            color: #00ffcc;
+        }
+
+        .btn-group {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <h1>金正旺 VIP 後台管理系統</h1>
+        <div>
+            <button class="btn" id="sync-to-sheet">推送到 Google 試算表</button>
+            <button class="btn" id="sync-from-sheet">從 Google 試算表同步</button>
+        </div>
+    </header>
+
+    <!-- 新增 / 修改會員表單 -->
+    <div class="card-panel">
+        <h3 id="form-title">新增會員 / 參數微調</h3>
+        <div class="form-row">
+            <div class="form-field">
+                <label>會員編號 / 姓名 (ID)</label>
+                <input type="text" id="input-userid" placeholder="ex: 0808包你發">
+            </div>
+            <div class="form-field">
+                <label>遊戲總次數 (chances)</label>
+                <input type="number" id="input-chances" value="1">
+            </div>
+            <div class="form-field">
+                <label>已抽次數</label>
+                <input type="number" id="input-drawn" value="0">
+            </div>
+            <div class="form-field">
+                <label>個人中獎率 (%)</label>
+                <input type="number" step="0.1" id="input-rate" value="100">
+            </div>
+            <div class="form-field">
+                <label>全域必中次數 (保底)</label>
+                <input type="number" id="input-guarantee" value="10">
+            </div>
+        </div>
+
+        <h3 style="font-size: 15px; margin-top: 15px;">各金額門檻「會中的次數」設定</h3>
+        <div class="form-row">
+            <div class="form-field">
+                <label>100元 必中次數</label>
+                <input type="number" id="input-t-100" value="0">
+            </div>
+            <div class="form-field">
+                <label>500元 必中次數</label>
+                <input type="number" id="input-t-500" value="0">
+            </div>
+            <div class="form-field">
+                <label>1000元 必中次數</label>
+                <input type="number" id="input-t-1000" value="0">
+            </div>
+            <div class="form-field">
+                <label>2000元 必中次數</label>
+                <input type="number" id="input-t-2000" value="0">
+            </div>
+            <div class="form-field">
+                <label>10000元 必中次數</label>
+                <input type="number" id="input-t-10000" value="0">
+            </div>
+        </div>
+
+        <div class="form-row" style="margin-top: 10px;">
+            <div class="form-field">
+                <label>最近抽獎結果 (result)</label>
+                <input type="text" id="input-result" placeholder="例如：1000元大獎">
+            </div>
+        </div>
+
+        <div class="btn-group">
+            <button class="btn" id="save-btn">儲存 / 更新會員設定</button>
+            <button class="btn btn-danger" id="cancel-edit" style="display:none;">取消編輯</button>
+        </div>
+        <div id="status-msg"></div>
+    </div>
+
+    <!-- 會員列表 -->
+    <div class="card-panel">
+        <h3>現有 VIP 會員列表與機率控制</h3>
+        <input type="text" id="search-input" placeholder="搜尋會員姓名或編號..." style="margin-bottom: 15px; width: 100%;">
+        <div class="table-container">
+            <table>
+                <thead>
+                    <tr>
+                        <th>會員編號/姓名</th>
+                        <th>剩餘次數</th>
+                        <th>已抽次數</th>
+                        <th>中獎率%</th>
+                        <th>必中次數</th>
+                        <th>100中</th>
+                        <th>500中</th>
+                        <th>1000中</th>
+                        <th>2000中</th>
+                        <th>10000中</th>
+                        <th>最新結果</th>
+                        <th>操作</th>
+                    </tr>
+                </thead>
+                <tbody id="member-table-body">
+                    <tr><td colspan="12" style="text-align: center;">載入中...</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Firebase 與核心邏輯 -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/12.18.0/firebase-app.js";
+        import { getFirestore, collection, doc, getDocs, setDoc, deleteDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/12.18.0/firebase-firestore.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyAgXlbP-D-k_Dj13Mmop-LRIm15FTkrGGY",
+            authDomain: "j808vip.firebaseapp.com",
+            projectId: "j808vip",
+            storageBucket: "j808vip.firebasestorage.app",
+            messagingSenderId: "694827667740",
+            appId: "1:694827667740:web:6767bf834427fad56eaad9",
+            measurementId: "G-10J5DBGW8B"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+
+        const tableBody = document.getElementById('member-table-body');
+        const inputUserId = document.getElementById('input-userid');
+        const inputChances = document.getElementById('input-chances');
+        const inputDrawn = document.getElementById('input-drawn');
+        const inputRate = document.getElementById('input-rate');
+        const inputGuarantee = document.getElementById('input-guarantee');
+        
+        const inputT100 = document.getElementById('input-t-100');
+        const inputT500 = document.getElementById('input-t-500');
+        const inputT1000 = document.getElementById('input-t-1000');
+        const inputT2000 = document.getElementById('input-t-2000');
+        const inputT10000 = document.getElementById('input-t-10000');
+        const inputResult = document.getElementById('input-result');
+
+        const saveBtn = document.getElementById('save-btn');
+        const cancelEditBtn = document.getElementById('cancel-edit');
+        const statusMsg = document.getElementById('status-msg');
+        const searchInput = document.getElementById('search-input');
+
+        let allMembers = [];
+
+        // 即時監聽 Firestore 
+        function listenMembers() {
+            onSnapshot(collection(db, "users"), (snapshot) => {
+                allMembers = [];
+                snapshot.forEach((docSnap) => {
+                    allMembers.push({
+                        id: docSnap.id,
+                        ...docSnap.data()
+                    });
+                });
+                renderTable(allMembers);
+            }, (error) => {
+                console.error("讀取失敗：", error);
+                statusMsg.textContent = "讀取資料庫失敗！";
+            });
+        }
+
+        // 渲染表格
+        function renderTable(data) {
+            if (data.length === 0) {
+                tableBody.innerHTML = `<tr><td colspan="12" style="text-align: center;">目前沒有會員資料</td></tr>`;
+                return;
+            }
+
+            tableBody.innerHTML = '';
+            data.forEach(m => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td><b>${m.id}</b></td>
+                    <td>${m.chances ?? 0}</td>
+                    <td>${m.drawnCount ?? 0}</td>
+                    <td>${m.winRate ?? 100}%</td>
+                    <td>${m.guaranteeCount ?? 0}</td>
+                    <td>${m.target100 ?? 0}</td>
+                    <td>${m.target500 ?? 0}</td>
+                    <td>${m.target1000 ?? 0}</td>
+                    <td>${m.target2000 ?? 0}</td>
+                    <td>${m.target10000 ?? 0}</td>
+                    <td>${m.result || '(未開獎)'}</td>
+                    <td class="actions-cell">
+                        <button class="btn" onclick="window.editMember('${m.id}')">修改</button>
+                        <button class="btn btn-danger" onclick="window.deleteMember('${m.id}')">刪除</button>
+                    </td>
+                `;
+                tableBody.appendChild(tr);
+            });
+        }
+
+        // 搜尋
+        searchInput.addEventListener('input', (e) => {
+            const keyword = e.target.value.toLowerCase();
+            const filtered = allMembers.filter(m => m.id.toLowerCase().includes(keyword));
+            renderTable(filtered);
+        });
+
+        // 儲存 / 更新
+        saveBtn.addEventListener('click', async () => {
+            const userId = inputUserId.value.trim();
+            if (!userId) {
+                alert('請輸入會員編號姓名！');
+                return;
+            }
+
+            const dataToSave = {
+                chances: parseInt(inputChances.value) || 0,
+                drawnCount: parseInt(inputDrawn.value) || 0,
+                winRate: parseFloat(inputRate.value) || 100,
+                guaranteeCount: parseInt(inputGuarantee.value) || 0,
+                target100: parseInt(inputT100.value) || 0,
+                target500: parseInt(inputT500.value) || 0,
+                target1000: parseInt(inputT1000.value) || 0,
+                target2000: parseInt(inputT2000.value) || 0,
+                target10000: parseInt(inputT10000.value) || 0,
+                result: inputResult.value.trim()
+            };
+
+            try {
+                await setDoc(doc(db, "users", userId), dataToSave, { merge: true });
+                statusMsg.textContent = `成功儲存會員：${userId}`;
+                clearForm();
+            } catch (err) {
+                console.error(err);
+                statusMsg.textContent = "儲存失敗！";
+            }
+        });
+
+        // 帶入資料修改
+        window.editMember = function(id) {
+            const m = allMembers.find(item => item.id === id);
+            if (!m) return;
+
+            inputUserId.value = m.id;
+            inputUserId.disabled = true;
+            inputChances.value = m.chances ?? 1;
+            inputDrawn.value = m.drawnCount ?? 0;
+            inputRate.value = m.winRate ?? 100;
+            inputGuarantee.value = m.guaranteeCount ?? 0;
+            
+            inputT100.value = m.target100 ?? 0;
+            inputT500.value = m.target500 ?? 0;
+            inputT1000.value = m.target1000 ?? 0;
+            inputT2000.value = m.target2000 ?? 0;
+            inputT10000.value = m.target10000 ?? 0;
+            inputResult.value = m.result || '';
+
+            cancelEditBtn.style.display = 'inline-block';
+            document.getElementById('form-title').textContent = `修改會員參數: ${id}`;
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        cancelEditBtn.addEventListener('click', clearForm);
+
+        function clearForm() {
+            inputUserId.value = '';
+            inputUserId.disabled = false;
+            inputChances.value = '1';
+            inputDrawn.value = '0';
+            inputRate.value = '100';
+            inputGuarantee.value = '10';
+            inputT100.value = '0';
+            inputT500.value = '0';
+            inputT1000.value = '0';
+            inputT2000.value = '0';
+            inputT10000.value = '0';
+            inputResult.value = '';
+            cancelEditBtn.style.display = 'none';
+            document.getElementById('form-title').textContent = '新增會員 / 參數微調';
+        }
+
+        // 刪除
+        window.deleteMember = async function(id) {
+            if (confirm(`確定要刪除會員 [ ${id} ] 嗎？`)) {
+                try {
+                    await deleteDoc(doc(db, "users", id));
+                    statusMsg.textContent = `已刪除會員：${id}`;
+                } catch (err) {
+                    console.error(err);
+                    statusMsg.textContent = "刪除失敗！";
+                }
+            }
+        }
+
+        // 同步按鈕提示
+        document.getElementById('sync-to-sheet').addEventListener('click', () => {
+            alert('準備連接 Google 試算表同步 (可透過 Apps Script 接收此資料結構)');
+        });
+        document.getElementById('sync-from-sheet').addEventListener('click', () => {
+            alert('準備從 Google 試算表讀取最新設定回寫至 Firebase');
+        });
+
+        listenMembers();
+    </script>
+</body>
+</html>
