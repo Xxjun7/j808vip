@@ -31,9 +31,14 @@
         #status-msg { margin-top: 10px; font-size: 14px; font-weight: bold; color: #00ffcc; display: none; }
         .btn-group { display: flex; gap: 10px; margin-top: 15px; }
 
-        /* 自定義彈出 UI 面板樣式 */
-        .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.7); display: flex; justify-content: center; align-items: center; z-index: 9999; opacity: 0; visibility: hidden; transition: opacity 0.3s ease; }
+        /* 自定義彈出 UI 面板樣式（確保 z-index 層級最高） */
+        .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.75); display: flex; justify-content: center; align-items: center; z-index: 9999; opacity: 0; visibility: hidden; transition: opacity 0.3s ease; }
         .modal-overlay.active { opacity: 1; visibility: visible; }
+        
+        /* 讓一般提示框與警告框的層級高於批量輸入面板，避免被覆蓋 */
+        #custom-modal { z-index: 10005; }
+        #batch-modal { z-index: 9999; }
+
         .modal-box { background: #080b10; border: 2px solid #ffd700; border-radius: 12px; padding: 25px; width: 90%; max-width: 400px; box-shadow: 0 0 25px rgba(255, 215, 0, 0.3); text-align: center; }
         .modal-box h3 { color: #ffd700; margin-bottom: 15px; font-size: 20px; }
         .modal-box p { color: #ccc; font-size: 14px; margin-bottom: 20px; line-height: 1.5; }
@@ -43,8 +48,9 @@
 <body>
 
     <header>
-        <h1>金正旺 VIP 後台管理系統</h1>
+        <h1>金正旺銀行 VIP 後台管理系統</h1>
         <div class="header-btns">
+            <button class="btn" id="batch-open-modal-btn">批量會員寫入</button>
             <button class="btn btn-sync" id="sync-sheet-to-fb-btn">讀取Google試算表同步到Firebase</button>
             <button class="btn btn-sync" id="sync-fb-to-sheet-btn">讀取Firebase同步到Google試算表</button>
         </div>
@@ -121,13 +127,29 @@
         </div>
     </div>
 
-    <!-- UI 彈出面板 (Modal) -->
+    <!-- 一般通用提示與確認 UI 彈出面板 (Modal) - 擁有最高層級 -->
     <div class="modal-overlay" id="custom-modal">
         <div class="modal-box">
             <h3 id="modal-title">提示訊息</h3>
             <p id="modal-text">內容文字...</p>
             <div class="modal-btns" id="modal-btns-container">
                 <button class="btn" id="modal-ok-btn">確定</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 批量寫入專用 Modal -->
+    <div class="modal-overlay" id="batch-modal">
+        <div class="modal-box" style="max-width: 500px;">
+            <h3>批量會員寫入 / 更新</h3>
+            <p style="text-align: left; font-size: 13px; margin-bottom: 10px;">
+                請貼上會員清單（格式：編號與姓名，每行一位）：<br>
+                <span style="color: #ffcc00; font-size: 12px;">※ 若編號已存在，將會直接覆蓋/更新其餘預設參數。</span>
+            </p>
+            <textarea id="batch-textarea" rows="8" placeholder="0001XXX&#10;0002XXX&#10;0003XXX" style="width: 100%; padding: 10px; background: rgba(8, 11, 16, 0.8); border: 1px solid #ffd700; border-radius: 6px; color: #fff; font-size: 13px; outline: none; resize: vertical; margin-bottom: 15px;"></textarea>
+            <div class="modal-btns">
+                <button class="btn btn-danger" id="batch-cancel-btn">取消</button>
+                <button class="btn" id="batch-submit-btn">確認批量寫入</button>
             </div>
         </div>
     </div>
@@ -175,6 +197,13 @@
         const modalTitle = document.getElementById('modal-title');
         const modalText = document.getElementById('modal-text');
         const modalBtnsContainer = document.getElementById('modal-btns-container');
+
+        // 批量寫入 Modal 元素
+        const batchModal = document.getElementById('batch-modal');
+        const batchOpenBtn = document.getElementById('batch-open-modal-btn');
+        const batchCancelBtn = document.getElementById('batch-cancel-btn');
+        const batchSubmitBtn = document.getElementById('batch-submit-btn');
+        const batchTextarea = document.getElementById('batch-textarea');
 
         function showModal(title, text, type = 'alert', onConfirm = null) {
             modalTitle.textContent = title;
@@ -364,6 +393,81 @@
             });
         }
 
+        // 批量寫入功能互動事件
+        batchOpenBtn.addEventListener('click', () => {
+            batchTextarea.value = '';
+            batchModal.classList.add('active');
+        });
+
+        batchCancelBtn.addEventListener('click', () => {
+            batchModal.classList.remove('active');
+        });
+
+        batchSubmitBtn.addEventListener('click', () => {
+            const rawText = batchTextarea.value.trim();
+            if (!rawText) {
+                // 先關閉批量視窗，再呼叫提示窗，確保提示窗絕對在最上面
+                batchModal.classList.remove('active');
+                showModal('提示', '請先貼上要寫入的會員名單！');
+                return;
+            }
+
+            const lines = rawText.split('\n');
+            const membersToProcess = [];
+
+            for (let line of lines) {
+                line = line.trim();
+                if (!line) continue;
+                membersToProcess.push(line);
+            }
+
+            if (membersToProcess.length === 0) {
+                batchModal.classList.remove('active');
+                showModal('提示', '沒有解析到任何有效的會員資料！');
+                return;
+            }
+
+            // 先關閉原本的輸入 Modal，再展開確認防呆 Modal
+            batchModal.classList.remove('active');
+
+            showModal(
+                '⚠️ 批量寫入確認',
+                `您即將批次寫入 / 更新共 ${membersToProcess.length} 筆會員資料到 Firebase。若 ID 重複將會被覆蓋，確定要執行嗎？`,
+                'confirm',
+                async () => {
+                    showModal('執行中', `正在批量寫入 ${membersToProcess.length} 筆資料，請稍候...`);
+                    
+                    try {
+                        let successCount = 0;
+                        for (const memberId of membersToProcess) {
+                            const defaultData = {
+                                chances: 1,
+                                drawnCount: 0,
+                                winRate: 100,
+                                guaranteeCount: 0,
+                                p100: 0,
+                                p500: 0,
+                                p1000: 0,
+                                p2000: 0,
+                                p10000: 0
+                            };
+
+                            await setDoc(doc(db, "users", memberId), defaultData, { merge: true });
+                            successCount++;
+                        }
+
+                        showModal('成功', `批量寫入完成！成功寫入/更新 ${successCount} 筆會員資料。`);
+                        if (searchInput.value.trim()) {
+                            executeSearch();
+                        }
+                    } catch (err) {
+                        console.error(err);
+                        showModal('錯誤', '批量寫入過程中發生錯誤！');
+                    }
+                }
+            );
+        });
+
         // 串接 Google 試算表同步至 Firebase (GET)
         syncSheetToFbBtn.addEventListener('click', () => {
             showModal(
@@ -387,7 +491,7 @@
             );
         });
 
-        // 串接 Firebase 同步至 Google 試算表 (POST) -> 加上防呆與強制全量讀取確認
+        // 串接 Firebase 同步至 Google 試算表 (POST)
         syncFbToSheetBtn.addEventListener('click', () => {
             showModal(
                 '⚠️ 讀取全體會員警告', 
@@ -397,7 +501,6 @@
                     showModal('同步中', '正在從 Firebase 讀取所有會員並同步至 Google 試算表，請稍候...');
                     syncFbToSheetBtn.disabled = true;
                     try {
-                        // 強制在同步前抓取全部會員，確保不會傳送空陣列
                         const querySnapshot = await getDocs(collection(db, "users"));
                         const freshAllMembers = [];
                         querySnapshot.forEach((docSnap) => {
