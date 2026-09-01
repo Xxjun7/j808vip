@@ -741,11 +741,11 @@
                 } catch (err) {
                     console.error("扣除保底次數失敗：", err);
                 }
-                const defaultPool = [100, 500, 1000, 2000];
+                const defaultPool = [100, 500, 1000, 2000, 10000];
                 return defaultPool[Math.floor(Math.random() * defaultPool.length)];
             } 
             else if (outcome === 'normal_win') {
-                const defaultPool = [100, 500, 1000, 2000];
+                const defaultPool = [100, 500, 1000, 2000, 10000];
                 return defaultPool[Math.floor(Math.random() * defaultPool.length)];
             } 
             else {
