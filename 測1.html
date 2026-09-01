@@ -207,7 +207,7 @@
             right: 20px;
         }
 
-        /* 玩家狀態列 (左上角) - 調整為半透明黑底 */
+        /* 玩家狀態列 (左上角) */
         #user-info-bar {
             position: absolute;
             top: 15px;
@@ -241,8 +241,8 @@
             transform: scale(0.95);
         }
 
-        /* 登入遮罩 Modal (image_1.png 大背景) */
-        #login-modal {
+        /* 登入遮罩與通用訊息彈窗 Modal */
+        #login-modal, #message-modal {
             position: fixed;
             top: 0;
             left: 0;
@@ -251,14 +251,23 @@
             background-image: url('image_7.png');
             background-size: cover;
             background-position: center;
-            display: flex;
+            display: none;
             justify-content: center;
             align-items: center;
             z-index: 10000;
+            transition: transform 0.3s ease, width 0.3s ease, height 0.3s ease;
         }
 
-        /* 登入容器 (黑底更透明) */
-        .login-box {
+        #login-modal.force-rotated, #message-modal.force-rotated {
+            width: 100dvh !important;
+            height: 100vw !important;
+            top: 50% !important;
+            left: 50% !important;
+            transform: translate(-50%, -50%) rotate(90deg) !important;
+            transform-origin: center center;
+        }
+
+        .login-box, .message-box {
             background: rgba(8, 11, 16, 0.65);
             backdrop-filter: blur(6px);
             border: 2px solid #ffd700;
@@ -271,10 +280,18 @@
             box-shadow: 0 0 30px rgba(255, 215, 0, 0.4);
         }
 
-        .login-box h2 {
+        .login-box h2, .message-box h2 {
             margin-bottom: 20px;
             font-size: 22px;
             text-shadow: 0 0 10px rgba(255, 215, 0, 0.5);
+        }
+
+        .message-box p {
+            font-size: 16px;
+            margin-bottom: 25px;
+            line-height: 1.5;
+            color: #fff6d1;
+            text-shadow: 0 0 5px rgba(255, 215, 0, 0.3);
         }
 
         .login-box input[type="text"] {
@@ -300,7 +317,7 @@
             cursor: pointer;
         }
 
-        .login-box button.submit-btn {
+        .login-box button.submit-btn, .message-box button.submit-btn {
             width: 100%;
             padding: 12px;
             background: linear-gradient(135deg, #ffd700, #ff8c00);
@@ -313,7 +330,7 @@
             box-shadow: 0 0 10px rgba(255, 215, 0, 0.5);
         }
 
-        .login-box button.submit-btn:active {
+        .login-box button.submit-btn:active, .message-box button.submit-btn:active {
             transform: scale(0.98);
         }
 
@@ -324,7 +341,7 @@
             min-height: 18px;
         }
 
-        /* 直向提示 */
+        /* 直向提示優先 */
         #portrait-notice {
             display: none;
             position: fixed;
@@ -333,7 +350,7 @@
             width: 100vw;
             height: 100vh;
             background: rgba(8, 11, 16, 0.95);
-            z-index: 9999;
+            z-index: 10005;
             color: #ffd700;
             flex-direction: column;
             justify-content: center;
@@ -385,6 +402,15 @@
         </div>
     </div>
 
+    <!-- 通用 UI 提示彈窗面板 -->
+    <div id="message-modal">
+        <div class="message-box">
+            <h2 id="msg-title">提示訊息</h2>
+            <p id="msg-content">這裡是提示內容...</p>
+            <button class="submit-btn" id="msg-confirm-btn">確定</button>
+        </div>
+    </div>
+
     <!-- 橫向提示面板 -->
     <div id="portrait-notice">
         <div class="ui-btn rotate-btn" id="manual-rotate-btn">
@@ -411,10 +437,9 @@
             <span class="ui-btn-text" id="audio-text">音樂開</span>
         </div>
 
-        <!-- 抽卡區域 -->
+        <!-- 抽卡區域 (固定 3 張卡片) -->
         <div id="card-area">
-            <!-- 卡片 1 -->
-            <div class="card-container">
+            <div class="card-container" data-index="0">
                 <div class="card-shaker">
                     <div class="card">
                         <div class="card-face card-back"></div>
@@ -424,8 +449,7 @@
                     </div>
                 </div>
             </div>
-            <!-- 卡片 2 -->
-            <div class="card-container">
+            <div class="card-container" data-index="1">
                 <div class="card-shaker">
                     <div class="card">
                         <div class="card-face card-back"></div>
@@ -435,8 +459,7 @@
                     </div>
                 </div>
             </div>
-            <!-- 卡片 3 -->
-            <div class="card-container">
+            <div class="card-container" data-index="2">
                 <div class="card-shaker">
                     <div class="card">
                         <div class="card-face card-back"></div>
@@ -450,11 +473,11 @@
 
     </div>
 
-    <!-- Firebase 邏輯整合 -->
+    <!-- Firebase 邏輯整合與 3 張獨立卡片核心控制 -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/12.18.0/firebase-app.js";
         import { getAnalytics } from "https://www.gstatic.com/firebasejs/12.18.0/firebase-analytics.js";
-        import { getFirestore, doc, onSnapshot } from "https://www.gstatic.com/firebasejs/12.18.0/firebase-firestore.js";
+        import { getFirestore, doc, getDoc, updateDoc, onSnapshot, increment } from "https://www.gstatic.com/firebasejs/12.18.0/firebase-firestore.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyAgXlbP-D-k_Dj13Mmop-LRIm15FTkrGGY",
@@ -470,90 +493,160 @@
         const analytics = getAnalytics(app);
         const db = getFirestore(app);
 
-        // UI 元素
         const loginModal = document.getElementById('login-modal');
         const loginInput = document.getElementById('login-input');
         const rememberMeCheckbox = document.getElementById('remember-me');
         const loginSubmitBtn = document.getElementById('login-submit-btn');
         const loginError = document.getElementById('login-error');
         
+        // 通用 UI 彈窗元素
+        const messageModal = document.getElementById('message-modal');
+        const msgTitle = document.getElementById('msg-title');
+        const msgContent = document.getElementById('msg-content');
+        const msgConfirmBtn = document.getElementById('msg-confirm-btn');
+
         const userInfoSpan = document.getElementById('display-user-info');
         const userChancesSpan = document.getElementById('display-user-chances');
         const logoutBtn = document.getElementById('logout-btn');
-        const amountElements = document.querySelectorAll('.card-amount');
+        const cardContainers = document.querySelectorAll('.card-container');
 
         let unsubscribeFirestore = null;
+        let currentUserId = null;
+        let currentUserData = null;
+        const animatingCards = new Set();
 
-        // 頁面載入時檢查是否有儲存的使用者與勾選狀態
+        // 3 張卡片的獨立狀態
+        const cardStates = [
+            { isFlipped: false, prize: null },
+            { isFlipped: false, prize: null },
+            { isFlipped: false, prize: null }
+        ];
+
+        // 統一控制 UI 彈窗顯示函式
+        function showCustomAlert(title, message) {
+            msgTitle.textContent = title;
+            msgContent.innerHTML = message.replace(/\n/g, '<br>');
+            messageModal.style.display = 'flex';
+            
+            // 同步旋轉狀態套用到彈窗
+            const gameContainer = document.getElementById('game-container');
+            if (gameContainer.classList.contains('force-rotated')) {
+                messageModal.classList.add('force-rotated');
+            } else {
+                messageModal.classList.remove('force-rotated');
+            }
+        }
+
+        msgConfirmBtn.addEventListener('click', () => {
+            messageModal.style.display = 'none';
+        });
+
         window.addEventListener('DOMContentLoaded', () => {
             const savedUser = localStorage.getItem('vip_current_user');
             const savedRemember = localStorage.getItem('vip_remember_me') === 'true';
 
             rememberMeCheckbox.checked = savedRemember;
-
             if (savedRemember && savedUser) {
-                // 有勾選記住我：載入文字並直接自動登入
                 loginInput.value = savedUser;
-                startSession(savedUser);
             } else {
-                // 沒勾選記住我：清空輸入框，留在登入畫面
                 loginInput.value = '';
-                localStorage.removeItem('vip_current_user');
-                loginModal.style.display = 'flex';
             }
+
+            checkAndShowLogin();
         });
 
-        loginSubmitBtn.addEventListener('click', () => {
+        function checkAndShowLogin() {
+            const isLandscape = window.matchMedia('(orientation: landscape)').matches;
+            const noticeEl = document.getElementById('portrait-notice');
+            
+            if (isLandscape || !noticeEl.classList.contains('active')) {
+                loginModal.style.display = 'flex';
+            } else {
+                loginModal.style.display = 'none';
+            }
+        }
+
+        // 登入驗證
+        loginSubmitBtn.addEventListener('click', async () => {
             const val = loginInput.value.trim();
             if (!val) {
                 loginError.textContent = "請輸入編號姓名！";
                 return;
             }
-            loginError.textContent = "";
+            loginError.textContent = "驗證中...";
+            loginSubmitBtn.disabled = true;
 
-            if (rememberMeCheckbox.checked) {
-                localStorage.setItem('vip_current_user', val);
-                localStorage.setItem('vip_remember_me', 'true');
-            } else {
-                localStorage.removeItem('vip_current_user');
-                localStorage.setItem('vip_remember_me', 'false');
+            try {
+                const userDocRef = doc(db, "users", val);
+                const userDocSnap = await getDoc(userDocRef);
+
+                if (!userDocSnap.exists()) {
+                    loginError.textContent = "查無此 VIP 資料，請確認輸入是否正確！";
+                    loginSubmitBtn.disabled = false;
+                    return;
+                }
+
+                loginError.textContent = "";
+                loginSubmitBtn.disabled = false;
+
+                if (rememberMeCheckbox.checked) {
+                    localStorage.setItem('vip_current_user', val);
+                    localStorage.setItem('vip_remember_me', 'true');
+                } else {
+                    localStorage.removeItem('vip_current_user');
+                    localStorage.removeItem('vip_remember_me', 'false');
+                }
+
+                startSession(val);
+
+            } catch (error) {
+                console.error("登入驗證錯誤：", error);
+                loginError.textContent = "連線異常，請稍後再試！";
+                loginSubmitBtn.disabled = false;
             }
-
-            startSession(val);
         });
 
         logoutBtn.addEventListener('click', () => {
-            // 登出時依舊保持記住我的設定，僅結束目前工作階段
             if (unsubscribeFirestore) unsubscribeFirestore();
+            currentUserId = null;
+            currentUserData = null;
             
+            resetAllCards();
+
             loginModal.style.display = 'flex';
             
-            // 如果沒勾選記住我，登出時顺便清空輸入框
             if (!rememberMeCheckbox.checked) {
                 loginInput.value = '';
+                localStorage.removeItem('vip_current_user');
             }
 
             userInfoSpan.textContent = '載入中...';
             userChancesSpan.textContent = '遊戲次數: -';
         });
 
+        function resetAllCards() {
+            cardStates.forEach((state, i) => {
+                state.isFlipped = false;
+                state.prize = null;
+                const cardEl = cardContainers[i].querySelector('.card');
+                cardEl.classList.remove('flipped');
+                cardContainers[i].querySelector('.card-amount').textContent = '--';
+            });
+        }
+
         function startSession(userId) {
+            currentUserId = userId;
             loginModal.style.display = 'none';
             userInfoSpan.textContent = `VIP: ${userId}`;
             userChancesSpan.textContent = `遊戲次數: 讀取中...`;
 
+            if (unsubscribeFirestore) unsubscribeFirestore();
+
             unsubscribeFirestore = onSnapshot(doc(db, "users", userId), (docSnap) => {
                 if (docSnap.exists()) {
-                    const data = docSnap.data();
-                    
-                    const chances = data.chances !== undefined ? data.chances : 0;
+                    currentUserData = docSnap.data();
+                    const chances = currentUserData.chances !== undefined ? currentUserData.chances : 0;
                     userChancesSpan.textContent = `遊戲次數: ${chances}`;
-
-                    if (data.result) {
-                        amountElements.forEach(el => {
-                            el.textContent = data.result;
-                        });
-                    }
                 } else {
                     userChancesSpan.textContent = `遊戲次數: 查無此人`;
                 }
@@ -562,8 +655,157 @@
                 userChancesSpan.textContent = `遊戲次數: 連線異常`;
             });
         }
+
+        // 每次抽卡前強制讀取最新雲端設定與資料判定獎項 (各金額獨立次數池 + 隨機保底 + 勝率控制)
+        async function calculateAndConsumePrize(userId) {
+            const userDocRef = doc(db, "users", userId);
+            
+            const freshSnap = await getDoc(userDocRef);
+            if (!freshSnap.exists()) return 0;
+            const data = freshSnap.data();
+
+            const currentChances = Number(data.chances) || 0; // 剩餘遊戲次數
+            const guaranteeTotal = Number(data.guaranteeCount) || 0; // 設定的總保底次數
+
+            // 1. 優先檢查各金額獨立次數池 (p100 ~ p10000) 是否還有指定次數
+            const prizeCounts = {
+                100: Number(data.p100) || 0,
+                500: Number(data.p500) || 0,
+                1000: Number(data.p1000) || 0,
+                2000: Number(data.p2000) || 0,
+                10000: Number(data.p10000) || 0
+            };
+
+            const availablePrizes = [];
+            for (const [amountStr, count] of Object.entries(prizeCounts)) {
+                if (count > 0) {
+                    availablePrizes.push(Number(amountStr));
+                }
+            }
+
+            if (availablePrizes.length > 0) {
+                const selectedPrize = availablePrizes[Math.floor(Math.random() * availablePrizes.length)];
+                const fieldName = `p${selectedPrize}`;
+                
+                try {
+                    await updateDoc(userDocRef, {
+                        [fieldName]: increment(-1)
+                    });
+                } catch (err) {
+                    console.error("扣除金額次數失敗：", err);
+                }
+                return selectedPrize;
+            }
+
+            // 2. 隨機分佈保底機制 (guaranteeCount)
+            if (guaranteeTotal > 0 && currentChances > 0) {
+                const probability = guaranteeTotal / currentChances;
+                if (Math.random() < probability) {
+                    try {
+                        await updateDoc(userDocRef, {
+                            guaranteeCount: increment(-1)
+                        });
+                    } catch (err) {
+                        console.error("扣除保底次數失敗：", err);
+                    }
+
+                    const defaultPrizePool = [100, 500, 1000, 2000];
+                    return defaultPrizePool[Math.floor(Math.random() * defaultPrizePool.length)];
+                }
+            }
+
+            // 3. 最後依個人中獎率判定（當設定為 0% 時，roll 絕對會大於 0，一定回傳 0）
+            const winRate = data.winRate !== undefined ? Number(data.winRate) : 100;
+            const roll = Math.random() * 100;
+            
+            if (roll > winRate) {
+                return 0;
+            }
+
+            const defaultPrizePool = [100, 500, 1000, 2000];
+            return defaultPrizePool[Math.floor(Math.random() * defaultPrizePool.length)];
+        }
+
+        // 綁定 3 張獨立卡片點擊事件
+        cardContainers.forEach((container, index) => {
+            const card = container.querySelector('.card');
+            const shaker = container.querySelector('.card-shaker');
+            const amountEl = container.querySelector('.card-amount');
+
+            container.addEventListener('click', async () => {
+                if (!currentUserId || !currentUserData) {
+                    showCustomAlert('系統提示', '請先登入會員！');
+                    return;
+                }
+
+                if (animatingCards.has(card)) return;
+
+                const currentState = cardStates[index];
+
+                if (currentState.isFlipped) {
+                    animatingCards.add(card);
+                    if (typeof playSFX === 'function' && window.sounds) {
+                        playSFX(window.sounds.flip);
+                    }
+                    card.classList.remove('flipped');
+                    currentState.isFlipped = false;
+                    currentState.prize = null;
+                    setTimeout(() => {
+                        animatingCards.delete(card);
+                    }, 800);
+                    return;
+                }
+
+                // 檢查剩餘次數不足提示
+                const currentChances = currentUserData.chances !== undefined ? currentUserData.chances : 0;
+                if (currentChances <= 0) {
+                    showCustomAlert('次數不足', '目前剩餘可抽次數不足，\n請聯繫客服加值次數！');
+                    return;
+                }
+
+                animatingCards.add(card);
+
+                const prizeResult = await calculateAndConsumePrize(currentUserId);
+                currentState.prize = prizeResult;
+
+                amountEl.textContent = currentState.prize > 0 ? `$${currentState.prize}` : '銘謝惠顧';
+
+                if (typeof playSFX === 'function' && window.sounds) {
+                    playSFX(window.sounds.shake);
+                }
+                shaker.classList.add('shaking');
+
+                try {
+                    const userDocRef = doc(db, "users", currentUserId);
+                    await updateDoc(userDocRef, {
+                        chances: increment(-1),
+                        drawnCount: increment(1)
+                    });
+                } catch (err) {
+                    console.error("更新 Firebase 次數失敗：", err);
+                }
+
+                setTimeout(() => {
+                    shaker.classList.remove('shaking');
+                    if (typeof playSFX === 'function' && window.sounds) {
+                        playSFX(window.sounds.flip);
+                        setTimeout(() => playSFX(window.sounds.win), 200);
+                    }
+
+                    card.classList.add('flipped');
+                    currentState.isFlipped = true;
+
+                    setTimeout(() => {
+                        animatingCards.delete(card);
+                    }, 800);
+                }, 500);
+            });
+        });
+
+        window.checkAndShowLogin = checkAndShowLogin;
     </script>
 
+    <!-- 遊戲互動與音效控制 -->
     <script>
         const sounds = {
             bgm: new Audio('bgm01.mp3'),
@@ -571,6 +813,7 @@
             flip: new Audio('flip01.mp3'),
             win: new Audio('win01.mp3')
         };
+        window.sounds = sounds;
 
         sounds.bgm.loop = true;
         sounds.bgm.volume = 0.4;
@@ -586,6 +829,7 @@
             audioObj.currentTime = 0;
             audioObj.play().catch(() => {});
         }
+        window.playSFX = playSFX;
 
         window.addEventListener('load', () => {
             if (isMuted) return;
@@ -642,15 +886,29 @@
         const noticeEl = document.getElementById('portrait-notice');
         const gameContainer = document.getElementById('game-container');
         const rotateBtn = document.getElementById('manual-rotate-btn');
+        const loginModal = document.getElementById('login-modal');
+        const messageModal = document.getElementById('message-modal');
 
         if (ENABLE_PORTRAIT_NOTICE) {
-            noticeEl.classList.add('active');
+            const isLandscape = window.matchMedia('(orientation: landscape)').matches;
+            if (!isLandscape) {
+                noticeEl.classList.add('active');
+                loginModal.style.display = 'none';
+            } else {
+                noticeEl.classList.remove('active');
+            }
         }
 
         rotateBtn.addEventListener('click', (e) => {
             e.stopPropagation();
             noticeEl.classList.remove('active');
             gameContainer.classList.add('force-rotated');
+            loginModal.classList.add('force-rotated');
+            messageModal.classList.add('force-rotated');
+            
+            if (window.checkAndShowLogin) {
+                window.checkAndShowLogin();
+            }
             window.dispatchEvent(new Event('resize'));
         });
 
@@ -658,10 +916,16 @@
             const isLandscape = window.matchMedia('(orientation: landscape)').matches;
             if (isLandscape) {
                 gameContainer.classList.remove('force-rotated');
+                loginModal.classList.remove('force-rotated');
+                messageModal.classList.remove('force-rotated');
                 noticeEl.classList.remove('active');
+                if (window.checkAndShowLogin) {
+                    window.checkAndShowLogin();
+                }
             } else {
                 if (!gameContainer.classList.contains('force-rotated') && ENABLE_PORTRAIT_NOTICE) {
                     noticeEl.classList.add('active');
+                    loginModal.style.display = 'none';
                 }
             }
         }
