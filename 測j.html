@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>金正旺銀行 VIP 後台管理系統</title>
+    <link rel="icon" type="image/x-icon" href="./Jicon.ico">
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: 'Arial', sans-serif; background-color: #080b10; color: #ffd700; padding: 20px; }
+        header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; border-bottom: 2px solid #ffd700; padding-bottom: 10px; flex-wrap: wrap; gap: 10px; }
+        h1 { font-size: 24px; text-shadow: 0 0 10px rgba(255, 215, 0, 0.5); }
+        .header-btns { display: flex; gap: 10px; }
+        .btn { background: linear-gradient(135deg, #ffd700, #ff8c00); border: none; color: #080b10; padding: 8px 16px; border-radius: 6px; font-weight: bold; cursor: pointer; transition: transform 0.2s; }
+        .btn:active { transform: scale(0.95); }
+        .btn-danger { background: #ff4d4d; color: #fff; }
+        .btn-sync { background: linear-gradient(135deg, #00ffcc, #00bfff); color: #080b10; }
+        .card-panel { background: rgba(255, 215, 0, 0.05); border: 1px solid #ffd700; border-radius: 12px; padding: 20px; margin-bottom: 20px; box-shadow: 0 0 15px rgba(255, 215, 0, 0.1); }
+        .card-panel h3 { margin-bottom: 15px; font-size: 18px; color: #ffcc00; }
+        .form-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; margin-bottom: 12px; }
+        .form-field { display: flex; flex-direction: column; gap: 5px; }
+        .form-field label { font-size: 12px; color: #ccc; }
+        input, select { padding: 9px; background: rgba(8, 11, 16, 0.8); border: 1px solid #ffd700; border-radius: 6px; color: #fff; font-size: 14px; outline: none; width: 100%; }
+        .search-row { display: flex; gap: 10px; margin-bottom: 15px; }
+        .table-container { width: 100%; overflow-x: auto; }
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; background: rgba(8, 11, 16, 0.9); border-radius: 8px; overflow: hidden; font-size: 13px; }
+        th, td { padding: 10px; text-align: center; border-bottom: 1px solid rgba(255, 215, 0, 0.2); white-space: nowrap; }
+        th { background: rgba(255, 215, 0, 0.2); color: #ffd700; }
+        tr:hover { background: rgba(255, 215, 0, 0.05); }
+        .actions-cell button { margin: 2px; padding: 5px 8px; font-size: 11px; }
+        #status-msg { margin-top: 10px; font-size: 14px; font-weight: bold; color: #00ffcc; }
+        .btn-group { display: flex; gap: 10px; margin-top: 15px; }
+    </style>
+</head>
+<body>
+
+    <header>
+        <h1>金正旺 VIP 後台管理系統</h1>
+        <div class="header-btns">
+            <button class="btn btn-sync" id="sync-sheet-to-fb-btn">讀取Google試算表同步到Firebase</button>
+            <button class="btn btn-sync" id="sync-fb-to-sheet-btn">讀取Firebase同步到Google試算表</button>
+        </div>
+    </header>
+
+    <div class="card-panel">
+        <h3 id="form-title">新增會員 / 參數微調</h3>
+        <div class="form-row">
+            <div class="form-field">
+                <label>會員編號 / 姓名 (ID)</label>
+                <input type="text" id="input-userid" placeholder="ex: 0808包你發">
+            </div>
+            <div class="form-field">
+                <label>遊戲總次數 (chances)</label>
+                <input type="number" id="input-chances" value="1">
+            </div>
+            <div class="form-field">
+                <label>已抽次數 (drawnCount)</label>
+                <input type="number" id="input-drawn" value="0">
+            </div>
+            <div class="form-field">
+                <label>個人中獎率 (%)</label>
+                <input type="number" step="0.1" id="input-rate" value="100">
+            </div>
+            <div class="form-field">
+                <label>全域必中次數保底 (guaranteeCount)</label>
+                <input type="number" id="input-guarantee" value="0">
+            </div>
+        </div>
+
+        <h3 style="font-size: 15px; margin-top: 15px;">各金額門檻「會中的次數」設定 (p100 ~ p10000)</h3>
+        <div class="form-row">
+            <div class="form-field"><label>100元 剩餘次數</label><input type="number" id="input-p-100" value="0"></div>
+            <div class="form-field"><label>500元 剩餘次數</label><input type="number" id="input-p-500" value="0"></div>
+            <div class="form-field"><label>1000元 剩餘次數</label><input type="number" id="input-p-1000" value="0"></div>
+            <div class="form-field"><label>2000元 剩餘次數</label><input type="number" id="input-p-2000" value="0"></div>
+            <div class="form-field"><label>10000元 剩餘次數</label><input type="number" id="input-p-10000" value="0"></div>
+        </div>
+
+        <div class="btn-group">
+            <button class="btn" id="save-btn">儲存 / 更新會員設定</button>
+            <button class="btn btn-danger" id="cancel-edit" style="display:none;">取消編輯</button>
+        </div>
+        <div id="status-msg"></div>
+    </div>
+
+    <div class="card-panel">
+        <h3>現有 VIP 會員列表與機率控制</h3>
+        <div class="search-row">
+            <input type="text" id="search-input" placeholder="搜尋會員姓名或編號..." style="flex: 1;">
+            <button class="btn" id="search-btn">確認搜尋</button>
+        </div>
+        <div class="table-container">
+            <table>
+                <thead>
+                    <tr>
+                        <th>會員編號/姓名</th>
+                        <th>剩餘次數</th>
+                        <th>已抽次數</th>
+                        <th>中獎率%</th>
+                        <th>保底次數</th>
+                        <th>100次數</th>
+                        <th>500次數</th>
+                        <th>1000次數</th>
+                        <th>2000次數</th>
+                        <th>10000次數</th>
+                        <th>操作</th>
+                    </tr>
+                </thead>
+                <tbody id="member-table-body">
+                    <tr><td colspan="11" style="text-align: center;">載入中...</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/12.18.0/firebase-app.js";
+        import { getFirestore, collection, doc, setDoc, deleteDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/12.18.0/firebase-firestore.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyAgXlbP-D-k_Dj13Mmop-LRIm15FTkrGGY",
+            authDomain: "j808vip.firebaseapp.com",
+            projectId: "j808vip",
+            storageBucket: "j808vip.firebasestorage.app",
+            messagingSenderId: "694827667740",
+            appId: "1:694827667740:web:6767bf834427fad56eaad9",
+            measurementId: "G-10J5DBGW8B"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+
+        const tableBody = document.getElementById('member-table-body');
+        const inputUserId = document.getElementById('input-userid');
+        const inputChances = document.getElementById('input-chances');
+        const inputDrawn = document.getElementById('input-drawn');
+        const inputRate = document.getElementById('input-rate');
+        const inputGuarantee = document.getElementById('input-guarantee');
+        const inputP100 = document.getElementById('input-p-100');
+        const inputP500 = document.getElementById('input-p-500');
+        const inputP1000 = document.getElementById('input-p-1000');
+        const inputP2000 = document.getElementById('input-p-2000');
+        const inputP10000 = document.getElementById('input-p-10000');
+
+        const saveBtn = document.getElementById('save-btn');
+        const cancelEditBtn = document.getElementById('cancel-edit');
+        const statusMsg = document.getElementById('status-msg');
+        const searchInput = document.getElementById('search-input');
+        const searchBtn = document.getElementById('search-btn');
+        const syncSheetToFbBtn = document.getElementById('sync-sheet-to-fb-btn');
+        const syncFbToSheetBtn = document.getElementById('sync-fb-to-sheet-btn');
+
+        let allMembers = [];
+
+        function listenMembers() {
+            onSnapshot(collection(db, "users"), (snapshot) => {
+                allMembers = [];
+                snapshot.forEach((docSnap) => {
+                    allMembers.push({ id: docSnap.id, ...docSnap.data() });
+                });
+                executeSearch();
+            });
+        }
+
+        function executeSearch() {
+            const keyword = searchInput.value.trim().toLowerCase();
+            const filtered = keyword ? allMembers.filter(m => m.id.toLowerCase().includes(keyword)) : allMembers;
+            renderTable(filtered);
+        }
+
+        function renderTable(data) {
+            if (data.length === 0) {
+                tableBody.innerHTML = `<tr><td colspan="11" style="text-align: center;">目前沒有符合條件的會員資料</td></tr>`;
+                return;
+            }
+            tableBody.innerHTML = '';
+            data.forEach(m => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td><b>${m.id}</b></td>
+                    <td>${m.chances ?? 0}</td>
+                    <td>${m.drawnCount ?? 0}</td>
+                    <td>${m.winRate ?? 100}%</td>
+                    <td>${m.guaranteeCount ?? 0}</td>
+                    <td>${m.p100 ?? 0}</td>
+                    <td>${m.p500 ?? 0}</td>
+                    <td>${m.p1000 ?? 0}</td>
+                    <td>${m.p2000 ?? 0}</td>
+                    <td>${m.p10000 ?? 0}</td>
+                    <td class="actions-cell">
+                        <button class="btn" onclick="window.editMember('${m.id}')">修改</button>
+                        <button class="btn btn-danger" onclick="window.deleteMember('${m.id}')">刪除</button>
+                    </td>
+                `;
+                tableBody.appendChild(tr);
+            });
+        }
+
+        searchBtn.addEventListener('click', executeSearch);
+        searchInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') executeSearch(); });
+
+        saveBtn.addEventListener('click', async () => {
+            const userId = inputUserId.value.trim();
+            if (!userId) { alert('請輸入會員編號姓名！'); return; }
+
+            const rateVal = parseFloat(inputRate.value);
+
+            const dataToSave = {
+                chances: parseInt(inputChances.value) || 0,
+                drawnCount: parseInt(inputDrawn.value) || 0,
+                winRate: isNaN(rateVal) ? 100 : rateVal,
+                guaranteeCount: parseInt(inputGuarantee.value) || 0,
+                p100: parseInt(inputP100.value) || 0,
+                p500: parseInt(inputP500.value) || 0,
+                p1000: parseInt(inputP1000.value) || 0,
+                p2000: parseInt(inputP2000.value) || 0,
+                p10000: parseInt(inputP10000.value) || 0
+            };
+
+            try {
+                await setDoc(doc(db, "users", userId), dataToSave, { merge: true });
+                statusMsg.textContent = `成功儲存會員：${userId}`;
+                clearForm();
+            } catch (err) {
+                statusMsg.textContent = "儲存失敗！";
+            }
+        });
+
+        window.editMember = function(id) {
+            const m = allMembers.find(item => item.id === id);
+            if (!m) return;
+            inputUserId.value = m.id;
+            inputUserId.disabled = true;
+            inputChances.value = m.chances ?? 1;
+            inputDrawn.value = m.drawnCount ?? 0;
+            inputRate.value = (m.winRate !== undefined && m.winRate !== null) ? m.winRate : 100;
+            inputGuarantee.value = m.guaranteeCount ?? 0;
+            inputP100.value = m.p100 ?? 0;
+            inputP500.value = m.p500 ?? 0;
+            inputP1000.value = m.p1000 ?? 0;
+            inputP2000.value = m.p2000 ?? 0;
+            inputP10000.value = m.p10000 ?? 0;
+            cancelEditBtn.style.display = 'inline-block';
+            document.getElementById('form-title').textContent = `修改會員參數: ${id}`;
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        cancelEditBtn.addEventListener('click', clearForm);
+
+        function clearForm() {
+            inputUserId.value = '';
+            inputUserId.disabled = false;
+            inputChances.value = '1';
+            inputDrawn.value = '0';
+            inputRate.value = '100';
+            inputGuarantee.value = '0';
+            inputP100.value = '0';
+            inputP500.value = '0';
+            inputP1000.value = '0';
+            inputP2000.value = '0';
+            inputP10000.value = '0';
+            cancelEditBtn.style.display = 'none';
+            document.getElementById('form-title').textContent = '新增會員 / 參數微調';
+        }
+
+        window.deleteMember = async function(id) {
+            if (confirm(`確定要刪除會員 [ ${id} ] 嗎？`)) {
+                await deleteDoc(doc(db, "users", id));
+                statusMsg.textContent = `已刪除會員：${id}`;
+            }
+        }
+
+        // 試算表同步按鈕事件 (可依您的 Apps Script 網址進行對接)
+        syncSheetToFbBtn.addEventListener('click', async () => {
+            statusMsg.textContent = "正在從 Google 試算表同步至 Firebase...";
+            // TODO: 如果您有串接 Google Apps Script Web App，可在此處加入 fetch 請求
+            setTimeout(() => {
+                statusMsg.textContent = "Google 試算表同步至 Firebase 完成！";
+            }, 1000);
+        });
+
+        syncFbToSheetBtn.addEventListener('click', async () => {
+            statusMsg.textContent = "正在從 Firebase 同步至 Google 試算表...";
+            // TODO: 如果您有串接 Google Apps Script Web App，可在此處加入 fetch 請求
+            setTimeout(() => {
+                statusMsg.textContent = "Firebase 同步至 Google 試算表完成！";
+            }, 1000);
+        });
+
+        listenMembers();
+    </script>
+</body>
+</html>
