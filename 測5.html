@@ -241,8 +241,8 @@
             transform: scale(0.95);
         }
 
-        /* 登入遮罩 Modal */
-        #login-modal {
+        /* 登入遮罩與通用訊息彈窗 Modal */
+        #login-modal, #message-modal {
             position: fixed;
             top: 0;
             left: 0;
@@ -258,8 +258,7 @@
             transition: transform 0.3s ease, width 0.3s ease, height 0.3s ease;
         }
 
-        /* 當畫面被強制旋轉時，登入框同步轉 90 度適配 */
-        #login-modal.force-rotated {
+        #login-modal.force-rotated, #message-modal.force-rotated {
             width: 100dvh !important;
             height: 100vw !important;
             top: 50% !important;
@@ -268,7 +267,7 @@
             transform-origin: center center;
         }
 
-        .login-box {
+        .login-box, .message-box {
             background: rgba(8, 11, 16, 0.65);
             backdrop-filter: blur(6px);
             border: 2px solid #ffd700;
@@ -281,10 +280,18 @@
             box-shadow: 0 0 30px rgba(255, 215, 0, 0.4);
         }
 
-        .login-box h2 {
+        .login-box h2, .message-box h2 {
             margin-bottom: 20px;
             font-size: 22px;
             text-shadow: 0 0 10px rgba(255, 215, 0, 0.5);
+        }
+
+        .message-box p {
+            font-size: 16px;
+            margin-bottom: 25px;
+            line-height: 1.5;
+            color: #fff6d1;
+            text-shadow: 0 0 5px rgba(255, 215, 0, 0.3);
         }
 
         .login-box input[type="text"] {
@@ -310,7 +317,7 @@
             cursor: pointer;
         }
 
-        .login-box button.submit-btn {
+        .login-box button.submit-btn, .message-box button.submit-btn {
             width: 100%;
             padding: 12px;
             background: linear-gradient(135deg, #ffd700, #ff8c00);
@@ -323,7 +330,7 @@
             box-shadow: 0 0 10px rgba(255, 215, 0, 0.5);
         }
 
-        .login-box button.submit-btn:active {
+        .login-box button.submit-btn:active, .message-box button.submit-btn:active {
             transform: scale(0.98);
         }
 
@@ -392,6 +399,15 @@
             </label>
             <button class="submit-btn" id="login-submit-btn">確定登入</button>
             <div id="login-error"></div>
+        </div>
+    </div>
+
+    <!-- 通用 UI 提示彈窗面板 -->
+    <div id="message-modal">
+        <div class="message-box">
+            <h2 id="msg-title">提示訊息</h2>
+            <p id="msg-content">這裡是提示內容...</p>
+            <button class="submit-btn" id="msg-confirm-btn">確定</button>
         </div>
     </div>
 
@@ -483,6 +499,12 @@
         const loginSubmitBtn = document.getElementById('login-submit-btn');
         const loginError = document.getElementById('login-error');
         
+        // 通用 UI 彈窗元素
+        const messageModal = document.getElementById('message-modal');
+        const msgTitle = document.getElementById('msg-title');
+        const msgContent = document.getElementById('msg-content');
+        const msgConfirmBtn = document.getElementById('msg-confirm-btn');
+
         const userInfoSpan = document.getElementById('display-user-info');
         const userChancesSpan = document.getElementById('display-user-chances');
         const logoutBtn = document.getElementById('logout-btn');
@@ -499,6 +521,25 @@
             { isFlipped: false, prize: null },
             { isFlipped: false, prize: null }
         ];
+
+        // 統一控制 UI 彈窗顯示函式
+        function showCustomAlert(title, message) {
+            msgTitle.textContent = title;
+            msgContent.innerHTML = message.replace(/\n/g, '<br>');
+            messageModal.style.display = 'flex';
+            
+            // 同步旋轉狀態套用到彈窗
+            const gameContainer = document.getElementById('game-container');
+            if (gameContainer.classList.contains('force-rotated')) {
+                messageModal.classList.add('force-rotated');
+            } else {
+                messageModal.classList.remove('force-rotated');
+            }
+        }
+
+        msgConfirmBtn.addEventListener('click', () => {
+            messageModal.style.display = 'none';
+        });
 
         window.addEventListener('DOMContentLoaded', () => {
             const savedUser = localStorage.getItem('vip_current_user');
@@ -553,7 +594,7 @@
                     localStorage.setItem('vip_remember_me', 'true');
                 } else {
                     localStorage.removeItem('vip_current_user');
-                    localStorage.setItem('vip_remember_me', 'false');
+                    localStorage.removeItem('vip_remember_me', 'false');
                 }
 
                 startSession(val);
@@ -619,7 +660,6 @@
         async function calculateAndConsumePrize(userId) {
             const userDocRef = doc(db, "users", userId);
             
-            // 每次點擊都強制先抓取當前最新的雲端資料
             const freshSnap = await getDoc(userDocRef);
             if (!freshSnap.exists()) return 0;
             const data = freshSnap.data();
@@ -627,13 +667,11 @@
             const currentDrawnCount = Number(data.drawnCount) || 0;
             const nextDrawnCount = currentDrawnCount + 1;
 
-            // 1. 檢查優先保底設定 (guaranteeCount)
             const guarantee = Number(data.guaranteeCount) || 0;
             if (guarantee > 0 && guarantee === nextDrawnCount) {
-                return 2000; // 命中保底給予 2000 元大獎
+                return 2000;
             }
 
-            // 2. 檢查各金額門檻「會中的次數」設定 (p100, p500, p1000, p2000, p10000)
             const prizeCounts = {
                 100: Number(data.p100) || 0,
                 500: Number(data.p500) || 0,
@@ -663,12 +701,11 @@
                 return selectedPrize;
             }
 
-            // 3. 一般勝率隨機
             const winRate = data.winRate !== undefined ? Number(data.winRate) : 50;
             const roll = Math.random() * 100;
             
             if (roll > winRate) {
-                return 0; // 銘謝惠顧
+                return 0;
             }
 
             const defaultPrizePool = [100, 500, 1000, 2000];
@@ -683,7 +720,7 @@
 
             container.addEventListener('click', async () => {
                 if (!currentUserId || !currentUserData) {
-                    alert('請先登入會員！');
+                    showCustomAlert('系統提示', '請先登入會員！');
                     return;
                 }
 
@@ -691,7 +728,6 @@
 
                 const currentState = cardStates[index];
 
-                // 如果卡片已經翻開，點擊則將其翻回背面並重置該張卡的狀態
                 if (currentState.isFlipped) {
                     animatingCards.add(card);
                     if (typeof playSFX === 'function' && window.sounds) {
@@ -706,28 +742,25 @@
                     return;
                 }
 
-                // 檢查剩餘次數
+                // 檢查剩餘次數不足提示 (改用自訂 UI 面板)
                 const currentChances = currentUserData.chances !== undefined ? currentUserData.chances : 0;
                 if (currentChances <= 0) {
-                    alert('剩餘可抽次數不足！');
+                    showCustomAlert('次數不足', '目前剩餘可抽次數不足，\n請聯繫客服加值次數！');
                     return;
                 }
 
                 animatingCards.add(card);
 
-                // 每次點擊卡片時，直接向雲端請求最新判定與獎項計算
                 const prizeResult = await calculateAndConsumePrize(currentUserId);
                 currentState.prize = prizeResult;
 
                 amountEl.textContent = currentState.prize > 0 ? `$${currentState.prize}` : '銘謝惠顧';
 
-                // 播放搖晃音效
                 if (typeof playSFX === 'function' && window.sounds) {
                     playSFX(window.sounds.shake);
                 }
                 shaker.classList.add('shaking');
 
-                // 即時扣除 Firebase 的 chances 與累加 drawnCount
                 try {
                     const userDocRef = doc(db, "users", currentUserId);
                     await updateDoc(userDocRef, {
@@ -840,6 +873,7 @@
         const gameContainer = document.getElementById('game-container');
         const rotateBtn = document.getElementById('manual-rotate-btn');
         const loginModal = document.getElementById('login-modal');
+        const messageModal = document.getElementById('message-modal');
 
         if (ENABLE_PORTRAIT_NOTICE) {
             const isLandscape = window.matchMedia('(orientation: landscape)').matches;
@@ -855,7 +889,8 @@
             e.stopPropagation();
             noticeEl.classList.remove('active');
             gameContainer.classList.add('force-rotated');
-            loginModal.classList.add('force-rotated'); // 同步讓登入框旋轉 90 度
+            loginModal.classList.add('force-rotated');
+            messageModal.classList.add('force-rotated'); // 同步旋轉訊息彈窗
             
             if (window.checkAndShowLogin) {
                 window.checkAndShowLogin();
@@ -867,7 +902,8 @@
             const isLandscape = window.matchMedia('(orientation: landscape)').matches;
             if (isLandscape) {
                 gameContainer.classList.remove('force-rotated');
-                loginModal.classList.remove('force-rotated'); // 移除強制旋轉
+                loginModal.classList.remove('force-rotated');
+                messageModal.classList.remove('force-rotated'); // 移除訊息彈窗強制旋轉
                 noticeEl.classList.remove('active');
                 if (window.checkAndShowLogin) {
                     window.checkAndShowLogin();
