@@ -325,7 +325,7 @@
 
         /* 直向提示優先 */
         #portrait-notice {
-            display: flex;
+            display: none;
             position: fixed;
             top: 0;
             left: 0;
@@ -361,9 +361,9 @@
             height: 70px;
         }
 
-        @media screen and (orientation: landscape) {
+        @media screen and (orientation: portrait) {
             #portrait-notice.active {
-                display: none !important;
+                display: flex;
             }
         }
     </style>
@@ -384,8 +384,8 @@
         </div>
     </div>
 
-    <!-- 橫向提示面板 (預設強制全畫面顯示，不分登入前後) -->
-    <div id="portrait-notice" class="active">
+    <!-- 橫向提示面板 -->
+    <div id="portrait-notice">
         <div class="ui-btn rotate-btn" id="manual-rotate-btn">
             <span class="ui-btn-icon">🔄</span>
             <span class="ui-btn-text">手動旋轉</span>
@@ -483,6 +483,7 @@
         let currentUserData = null;
         const animatingCards = new Set();
 
+        // 獨立卡片狀態陣列
         const cardStates = [
             { isFlipped: false, prize: null },
             { isFlipped: false, prize: null },
@@ -559,6 +560,7 @@
             currentUserId = null;
             currentUserData = null;
             
+            // 重置卡片狀態
             cardStates.forEach((state, i) => {
                 state.isFlipped = false;
                 state.prize = null;
@@ -600,29 +602,58 @@
             });
         }
 
-        /**
-         * 完整抽獎核心邏輯：
-         * 1. 優先權高：全域必中次數 (target100/500/1000/2000/10000)，當 `nextDrawnCount` 剛好等於設定值時必中，且保證不掉落銘謝惠顧。
-         * 2. 優先權次高：各金額門檻指定次數 (p100/p500/p1000/p2000/p10000)，代表在隨機總次數中指定額度會強制出現幾次（有出現則扣除）。
-         * 3. 預設隨機與 winRate 命中率判定。
-         */
-        function calculatePrize(data, nextDrawnCount) {
-            const targets = {
-                100: data.target100,
-                500: data.target500,
-                1000: data.target1000,
-                2000: data.target2000,
-                10000: data.target10000
+        // 核心抽獎與結果計算邏輯（支援保底與各金額次數門檻扣除）
+        async function calculateAndConsumePrize(userId, data, nextDrawnCount) {
+            const userDocRef = doc(db, "users", userId);
+            
+            // 1. 優先檢查全域保底次數
+            const globalTargets = {
+                100: Number(data.target100) || 0,
+                500: Number(data.target500) || 0,
+                1000: Number(data.target1000) || 0,
+                2000: Number(data.target2000) || 0,
+                10000: Number(data.target10000) || 0
             };
 
-            // 1. 檢查全域保底 (target 設定)
-            for (const [amountStr, targetCount] of Object.entries(targets)) {
-                if (targetCount !== undefined && targetCount !== null && Number(targetCount) === nextDrawnCount) {
+            for (const [amountStr, targetCount] of Object.entries(globalTargets)) {
+                if (targetCount > 0 && targetCount === nextDrawnCount) {
                     return Number(amountStr);
                 }
             }
 
-            const defaultPrizePool = [100, 500, 1000, 2000];
+            // 2. 檢查各金額門檻「會中的次數」設定 (p100, p500, p1000, p2000, p10000)
+            const prizeCounts = {
+                100: Number(data.p100) || 0,
+                500: Number(data.p500) || 0,
+                1000: Number(data.p1000) || 0,
+                2000: Number(data.p2000) || 0,
+                10000: Number(data.p10000) || 0
+            };
+
+            // 收集所有剩餘次數大於 0 的金額選項
+            const availablePrizes = [];
+            for (const [amountStr, count] of Object.entries(prizeCounts)) {
+                if (count > 0) {
+                    availablePrizes.push(Number(amountStr));
+                }
+            }
+
+            // 如果有設定特定次數金額池，從中隨機選一個，並將該金額的剩餘次數 -1
+            if (availablePrizes.length > 0) {
+                const selectedPrize = availablePrizes[Math.floor(Math.random() * availablePrizes.length)];
+                const fieldName = `p${selectedPrize}`;
+                
+                try {
+                    await updateDoc(userDocRef, {
+                        [fieldName]: increment(-1)
+                    });
+                } catch (err) {
+                    console.error("扣除金額次數失敗：", err);
+                }
+                return selectedPrize;
+            }
+
+            // 3. 若無上述設定，走一般勝率隨機
             const winRate = data.winRate !== undefined ? Number(data.winRate) : 50;
             const roll = Math.random() * 100;
             
@@ -630,6 +661,7 @@
                 return 0; // 未中獎 (銘謝惠顧)
             }
 
+            const defaultPrizePool = [100, 500, 1000, 2000];
             return defaultPrizePool[Math.floor(Math.random() * defaultPrizePool.length)];
         }
 
@@ -649,6 +681,7 @@
 
                 const currentState = cardStates[index];
 
+                // 如果卡片目前是正面（已翻開），點擊則將其「翻回背面」，並清除該張卡的記憶（重置 prize）
                 if (currentState.isFlipped) {
                     animatingCards.add(card);
                     if (typeof playSFX === 'function' && window.sounds) {
@@ -663,6 +696,7 @@
                     return;
                 }
 
+                // 若卡片是背面，準備翻開（需檢查剩餘次數）
                 const currentChances = currentUserData.chances !== undefined ? currentUserData.chances : 0;
                 if (currentChances <= 0) {
                     alert('剩餘可抽次數不足！');
@@ -671,39 +705,29 @@
 
                 animatingCards.add(card);
 
+                // 計算當前會員已抽次數 + 1
                 const currentDrawnCount = currentUserData.drawnCount !== undefined ? currentUserData.drawnCount : 0;
                 const nextDrawnCount = currentDrawnCount + 1;
-                const prizeResult = calculatePrize(currentUserData, nextDrawnCount);
+
+                // 進行獎項計算與扣除次數
+                const prizeResult = await calculateAndConsumePrize(currentUserId, currentUserData, nextDrawnCount);
                 currentState.prize = prizeResult;
 
                 amountEl.textContent = currentState.prize > 0 ? `$${currentState.prize}` : '銘謝惠顧';
 
+                // 播放音效與搖晃動畫
                 if (typeof playSFX === 'function' && window.sounds) {
                     playSFX(window.sounds.shake);
                 }
                 shaker.classList.add('shaking');
 
-                // 檢查是否剛好命中各金額門檻指定次數 (p100, p500, p1000, p2000, p10000) 扣除邏輯
+                // 即時扣除 Firebase 次數與累計已抽次數
                 try {
                     const userDocRef = doc(db, "users", currentUserId);
-                    let updatePayload = {
+                    await updateDoc(userDocRef, {
                         chances: increment(-1),
                         drawnCount: increment(1)
-                    };
-
-                    if (prizeResult === 100 && currentUserData.p100 > 0) {
-                        updatePayload.p100 = increment(-1);
-                    } else if (prizeResult === 500 && currentUserData.p500 > 0) {
-                        updatePayload.p500 = increment(-1);
-                    } else if (prizeResult === 1000 && currentUserData.p1000 > 0) {
-                        updatePayload.p1000 = increment(-1);
-                    } else if (prizeResult === 2000 && currentUserData.p2000 > 0) {
-                        updatePayload.p2000 = increment(-1);
-                    } else if (prizeResult === 10000 && currentUserData.p10000 > 0) {
-                        updatePayload.p10000 = increment(-1);
-                    }
-
-                    await updateDoc(userDocRef, updatePayload);
+                    });
                 } catch (err) {
                     console.error("更新 Firebase 失敗：", err);
                 }
@@ -805,25 +829,19 @@
         window.addEventListener('pagehide', stopAllAudio);
         window.addEventListener('beforeunload', stopAllAudio);
 
+        const ENABLE_PORTRAIT_NOTICE = true;
         const noticeEl = document.getElementById('portrait-notice');
         const gameContainer = document.getElementById('game-container');
         const rotateBtn = document.getElementById('manual-rotate-btn');
         const loginModal = document.getElementById('login-modal');
 
-        // 開局即強制顯示旋轉提示（不分登入前還後，進入網站畫面即啟動旋轉提示）
-        function checkOrientation() {
+        if (ENABLE_PORTRAIT_NOTICE) {
             const isLandscape = window.matchMedia('(orientation: landscape)').matches;
-            if (isLandscape) {
-                gameContainer.classList.remove('force-rotated');
-                noticeEl.classList.remove('active');
-                if (window.checkAndShowLogin) {
-                    window.checkAndShowLogin();
-                }
+            if (!isLandscape) {
+                noticeEl.classList.add('active');
+                loginModal.style.display = 'none';
             } else {
-                if (!gameContainer.classList.contains('force-rotated')) {
-                    noticeEl.classList.add('active');
-                    loginModal.style.display = 'none';
-                }
+                noticeEl.classList.remove('active');
             }
         }
 
@@ -838,9 +856,24 @@
             window.dispatchEvent(new Event('resize'));
         });
 
+        function checkOrientation() {
+            const isLandscape = window.matchMedia('(orientation: landscape)').matches;
+            if (isLandscape) {
+                gameContainer.classList.remove('force-rotated');
+                noticeEl.classList.remove('active');
+                if (window.checkAndShowLogin) {
+                    window.checkAndShowLogin();
+                }
+            } else {
+                if (!gameContainer.classList.contains('force-rotated') && ENABLE_PORTRAIT_NOTICE) {
+                    noticeEl.classList.add('active');
+                    loginModal.style.display = 'none';
+                }
+            }
+        }
+
         window.addEventListener('resize', checkOrientation);
         window.addEventListener('orientationchange', checkOrientation);
-        window.addEventListener('DOMContentLoaded', checkOrientation);
     </script>
 </body>
 </html>
