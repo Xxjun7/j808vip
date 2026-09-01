@@ -656,7 +656,7 @@
             });
         }
 
-        // 每次抽卡前強制讀取最新雲端設定與資料判定獎項 (修正 0% 勝率與保底機制)
+        // 每次抽卡前強制讀取最新雲端設定與資料判定獎項 (支援隨機分佈保底機制)
         async function calculateAndConsumePrize(userId) {
             const userDocRef = doc(db, "users", userId);
             
@@ -664,8 +664,8 @@
             if (!freshSnap.exists()) return 0;
             const data = freshSnap.data();
 
-            const currentDrawnCount = Number(data.drawnCount) || 0;
-            const nextDrawnCount = currentDrawnCount + 1;
+            const currentChances = Number(data.chances) || 0; // 剩餘遊戲次數
+            const guaranteeTotal = Number(data.guaranteeCount) || 0; // 設定的總保底次數
 
             // 1. 優先檢查各金額獨立次數池 (p100 ~ p10000) 是否還有指定次數
             const prizeCounts = {
@@ -697,11 +697,21 @@
                 return selectedPrize;
             }
 
-            // 2. 其次檢查全域必中次數保底 (guaranteeCount)
-            const guarantee = Number(data.guaranteeCount) || 0;
-            if (guarantee > 0 && guarantee === nextDrawnCount) {
-                const defaultPrizePool = [100, 500, 1000, 2000];
-                return defaultPrizePool[Math.floor(Math.random() * defaultPrizePool.length)];
+            // 2. 隨機分佈保底機制 (guaranteeCount)
+            if (guaranteeTotal > 0 && currentChances > 0) {
+                const probability = guaranteeTotal / currentChances;
+                if (Math.random() < probability) {
+                    try {
+                        await updateDoc(userDocRef, {
+                            guaranteeCount: increment(-1)
+                        });
+                    } catch (err) {
+                        console.error("扣除保底次數失敗：", err);
+                    }
+
+                    const defaultPrizePool = [100, 500, 1000, 2000];
+                    return defaultPrizePool[Math.floor(Math.random() * defaultPrizePool.length)];
+                }
             }
 
             // 3. 最後依個人中獎率判定（當設定為 0% 時，roll 絕對會大於 0，一定回傳 0）
