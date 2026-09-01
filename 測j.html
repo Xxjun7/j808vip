@@ -35,9 +35,11 @@
         .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.75); display: flex; justify-content: center; align-items: center; z-index: 9999; opacity: 0; visibility: hidden; transition: opacity 0.3s ease; }
         .modal-overlay.active { opacity: 1; visibility: visible; }
         
-        /* 讓一般提示框與警告框的層級高於批量輸入面板，避免被覆蓋 */
+        /* 層級微調：確保提示框與內層 Modal 依序正確疊加 */
         #custom-modal { z-index: 10005; }
-        #batch-modal { z-index: 9999; }
+        #batch-menu-modal { z-index: 9999; }
+        #batch-modal { z-index: 10000; }
+        #batch-delete-modal { z-index: 10000; }
 
         .modal-box { background: #080b10; border: 2px solid #ffd700; border-radius: 12px; padding: 25px; width: 90%; max-width: 400px; box-shadow: 0 0 25px rgba(255, 215, 0, 0.3); text-align: center; }
         .modal-box h3 { color: #ffd700; margin-bottom: 15px; font-size: 20px; }
@@ -50,7 +52,7 @@
     <header>
         <h1>金正旺銀行 VIP 後台管理系統</h1>
         <div class="header-btns">
-            <button class="btn" id="batch-open-modal-btn">批量會員寫入</button>
+            <button class="btn" id="batch-menu-open-btn">批量設定</button>
             <button class="btn btn-sync" id="sync-sheet-to-fb-btn">讀取Google試算表同步到Firebase</button>
             <button class="btn btn-sync" id="sync-fb-to-sheet-btn">讀取Firebase同步到Google試算表</button>
         </div>
@@ -100,7 +102,7 @@
     <div class="card-panel">
         <h3>現有 VIP 會員列表與機率控制</h3>
         <div class="search-row">
-            <input type="text" id="search-input" placeholder="輸入會員姓名或編號搜尋..." style="flex: 1;">
+            <input type="text" id="search-input" placeholder="輸入編號會員姓名搜尋..." style="flex: 1;">
             <button class="btn" id="search-btn">確認搜尋</button>
         </div>
         <div class="table-container">
@@ -127,6 +129,21 @@
         </div>
     </div>
 
+    <!-- 批量設定選單主 Modal (可選：寫入 / 刪除) -->
+    <div class="modal-overlay" id="batch-menu-modal">
+        <div class="modal-box">
+            <h3>批量設定管理</h3>
+            <p style="font-size: 13px; color: #ccc; margin-bottom: 20px;">請選擇您要執行的批量操作功能：</p>
+            <div style="display: flex; flex-direction: column; gap: 12px; margin-bottom: 20px;">
+                <button class="btn" id="batch-open-modal-btn" style="padding: 12px; font-size: 15px;">📥 批量會員寫入 / 更新</button>
+                <button class="btn btn-danger" id="batch-delete-open-modal-btn" style="padding: 12px; font-size: 15px;">🗑️ 批量會員刪除</button>
+            </div>
+            <div class="modal-btns">
+                <button class="btn btn-danger" id="batch-menu-close-btn" style="background: #444; color: #fff; width: 100%;">關閉選單</button>
+            </div>
+        </div>
+    </div>
+
     <!-- 一般通用提示與確認 UI 彈出面板 (Modal) - 擁有最高層級 -->
     <div class="modal-overlay" id="custom-modal">
         <div class="modal-box">
@@ -148,8 +165,24 @@
             </p>
             <textarea id="batch-textarea" rows="8" placeholder="0001XXX&#10;0002XXX&#10;0003XXX" style="width: 100%; padding: 10px; background: rgba(8, 11, 16, 0.8); border: 1px solid #ffd700; border-radius: 6px; color: #fff; font-size: 13px; outline: none; resize: vertical; margin-bottom: 15px;"></textarea>
             <div class="modal-btns">
-                <button class="btn btn-danger" id="batch-cancel-btn">取消</button>
+                <button class="btn btn-danger" id="batch-cancel-btn">返回上一層</button>
                 <button class="btn" id="batch-submit-btn">確認批量寫入</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 批量刪除專用 Modal -->
+    <div class="modal-overlay" id="batch-delete-modal">
+        <div class="modal-box" style="max-width: 500px; border-color: #ff4d4d;">
+            <h3 style="color: #ff4d4d;">⚠️ 批量會員刪除</h3>
+            <p style="text-align: left; font-size: 13px; margin-bottom: 10px;">
+                請貼上要刪除的會員清單（每行一位會員編號/姓名）：<br>
+                <span style="color: #ff4d4d; font-size: 12px;">※ 注意：刪除後資料將無法復原，請務必確認名單正確！</span>
+            </p>
+            <textarea id="batch-delete-textarea" rows="8" placeholder="0001XXX&#10;0002XXX&#10;0003XXX" style="width: 100%; padding: 10px; background: rgba(8, 11, 16, 0.8); border: 1px solid #ff4d4d; border-radius: 6px; color: #fff; font-size: 13px; outline: none; resize: vertical; margin-bottom: 15px;"></textarea>
+            <div class="modal-btns">
+                <button class="btn" id="batch-delete-cancel-btn" style="background: #444; color: #fff;">返回上一層</button>
+                <button class="btn btn-danger" id="batch-delete-submit-btn">確認批量刪除</button>
             </div>
         </div>
     </div>
@@ -198,6 +231,11 @@
         const modalText = document.getElementById('modal-text');
         const modalBtnsContainer = document.getElementById('modal-btns-container');
 
+        // 批量設定主選單 Modal 元素
+        const batchMenuModal = document.getElementById('batch-menu-modal');
+        const batchMenuOpenBtn = document.getElementById('batch-menu-open-btn');
+        const batchMenuCloseBtn = document.getElementById('batch-menu-close-btn');
+
         // 批量寫入 Modal 元素
         const batchModal = document.getElementById('batch-modal');
         const batchOpenBtn = document.getElementById('batch-open-modal-btn');
@@ -205,33 +243,43 @@
         const batchSubmitBtn = document.getElementById('batch-submit-btn');
         const batchTextarea = document.getElementById('batch-textarea');
 
-        function showModal(title, text, type = 'alert', onConfirm = null) {
+        // 批量刪除 Modal 元素
+        const batchDeleteModal = document.getElementById('batch-delete-modal');
+        const batchDeleteOpenBtn = document.getElementById('batch-delete-open-modal-btn');
+        const batchDeleteCancelBtn = document.getElementById('batch-delete-cancel-btn');
+        const batchDeleteSubmitBtn = document.getElementById('batch-delete-submit-btn');
+        const batchDeleteTextarea = document.getElementById('batch-delete-textarea');
+
+        // 顯示一般通知/提示，可控制是否顯示按鈕（預設顯示確定按鈕）
+        function showModal(title, text, type = 'alert', onConfirm = null, showButtons = true) {
             modalTitle.textContent = title;
             modalText.textContent = text;
             modalBtnsContainer.innerHTML = '';
 
-            if (type === 'confirm') {
-                const cancelBtn = document.createElement('button');
-                cancelBtn.className = 'btn btn-danger';
-                cancelBtn.textContent = '取消';
-                cancelBtn.onclick = () => closeModal();
+            if (showButtons) {
+                if (type === 'confirm') {
+                    const cancelBtn = document.createElement('button');
+                    cancelBtn.className = 'btn btn-danger';
+                    cancelBtn.textContent = '取消';
+                    cancelBtn.onclick = () => closeModal();
 
-                const confirmBtn = document.createElement('button');
-                confirmBtn.className = 'btn';
-                confirmBtn.textContent = '確定執行';
-                confirmBtn.onclick = () => {
-                    closeModal();
-                    if (onConfirm) onConfirm();
-                };
+                    const confirmBtn = document.createElement('button');
+                    confirmBtn.className = 'btn';
+                    confirmBtn.textContent = '確定執行';
+                    confirmBtn.onclick = () => {
+                        closeModal();
+                        if (onConfirm) onConfirm();
+                    };
 
-                modalBtnsContainer.appendChild(cancelBtn);
-                modalBtnsContainer.appendChild(confirmBtn);
-            } else {
-                const okBtn = document.createElement('button');
-                okBtn.className = 'btn';
-                okBtn.textContent = '確定';
-                okBtn.onclick = () => closeModal();
-                modalBtnsContainer.appendChild(okBtn);
+                    modalBtnsContainer.appendChild(cancelBtn);
+                    modalBtnsContainer.appendChild(confirmBtn);
+                } else {
+                    const okBtn = document.createElement('button');
+                    okBtn.className = 'btn';
+                    okBtn.textContent = '確定';
+                    okBtn.onclick = () => closeModal();
+                    modalBtnsContainer.appendChild(okBtn);
+                }
             }
 
             modalOverlay.classList.add('active');
@@ -393,20 +441,30 @@
             });
         }
 
-        // 批量寫入功能互動事件
+        // 批量設定主選單互動事件
+        batchMenuOpenBtn.addEventListener('click', () => {
+            batchMenuModal.classList.add('active');
+        });
+
+        batchMenuCloseBtn.addEventListener('click', () => {
+            batchMenuModal.classList.remove('active');
+        });
+
+        // 點擊「批量寫入」按鈕
         batchOpenBtn.addEventListener('click', () => {
+            batchMenuModal.classList.remove('active'); // 關閉主選單
             batchTextarea.value = '';
-            batchModal.classList.add('active');
+            batchModal.classList.add('active');        // 開啟寫入面板
         });
 
         batchCancelBtn.addEventListener('click', () => {
             batchModal.classList.remove('active');
+            batchMenuModal.classList.add('active');    // 返回主選單
         });
 
         batchSubmitBtn.addEventListener('click', () => {
             const rawText = batchTextarea.value.trim();
             if (!rawText) {
-                // 先關閉批量視窗，再呼叫提示窗，確保提示窗絕對在最上面
                 batchModal.classList.remove('active');
                 showModal('提示', '請先貼上要寫入的會員名單！');
                 return;
@@ -427,7 +485,6 @@
                 return;
             }
 
-            // 先關閉原本的輸入 Modal，再展開確認防呆 Modal
             batchModal.classList.remove('active');
 
             showModal(
@@ -435,7 +492,8 @@
                 `您即將批次寫入 / 更新共 ${membersToProcess.length} 筆會員資料到 Firebase。若 ID 重複將會被覆蓋，確定要執行嗎？`,
                 'confirm',
                 async () => {
-                    showModal('執行中', `正在批量寫入 ${membersToProcess.length} 筆資料，請稍候...`);
+                    // 1. 顯示處理中畫面（無按鈕，防止中途亂按）
+                    showModal('⏳ 批量處理中', `正在背景寫入 / 更新 ${membersToProcess.length} 筆會員資料，請稍候...`, 'alert', null, false);
                     
                     try {
                         let successCount = 0;
@@ -456,13 +514,79 @@
                             successCount++;
                         }
 
-                        showModal('成功', `批量寫入完成！成功寫入/更新 ${successCount} 筆會員資料。`);
+                        // 2. 處理完成後，才顯示帶有「確定」按鈕的成功提示
+                        showModal('✅ 批量寫入完成', `已成功寫入 / 更新 ${successCount} 筆會員資料。`);
                         if (searchInput.value.trim()) {
                             executeSearch();
                         }
                     } catch (err) {
                         console.error(err);
-                        showModal('錯誤', '批量寫入過程中發生錯誤！');
+                        showModal('❌ 錯誤', '批量寫入過程中發生錯誤！');
+                    }
+                }
+            );
+        });
+
+        // 點擊「批量刪除」按鈕
+        batchDeleteOpenBtn.addEventListener('click', () => {
+            batchMenuModal.classList.remove('active'); // 關閉主選單
+            batchDeleteTextarea.value = '';
+            batchDeleteModal.classList.add('active');  // 開啟刪除面板
+        });
+
+        batchDeleteCancelBtn.addEventListener('click', () => {
+            batchDeleteModal.classList.remove('active');
+            batchMenuModal.classList.add('active');    // 返回主選單
+        });
+
+        batchDeleteSubmitBtn.addEventListener('click', () => {
+            const rawText = batchDeleteTextarea.value.trim();
+            if (!rawText) {
+                batchDeleteModal.classList.remove('active');
+                showModal('提示', '請先貼上要刪除的會員名單！');
+                return;
+            }
+
+            const lines = rawText.split('\n');
+            const membersToDelete = [];
+
+            for (let line of lines) {
+                line = line.trim();
+                if (!line) continue;
+                membersToDelete.push(line);
+            }
+
+            if (membersToDelete.length === 0) {
+                batchDeleteModal.classList.remove('active');
+                showModal('提示', '沒有解析到任何有效的會員刪除清單！');
+                return;
+            }
+
+            batchDeleteModal.classList.remove('active');
+
+            showModal(
+                '🚨 嚴重警告：批量刪除確認',
+                `您即將永久刪除 Firebase 中的 ${membersToDelete.length} 筆會員資料！此操作無法復原，確定要全部刪除嗎？`,
+                'confirm',
+                async () => {
+                    // 1. 顯示處理中畫面（無按鈕，防止中途亂按）
+                    showModal('⏳ 批量處理中', `正在背景刪除 ${membersToDelete.length} 筆會員資料，請稍候...`, 'alert', null, false);
+                    
+                    try {
+                        let deleteCount = 0;
+                        for (const memberId of membersToDelete) {
+                            await deleteDoc(doc(db, "users", memberId));
+                            deleteCount++;
+                        }
+
+                        // 2. 處理完成後，才顯示帶有「確定」按鈕的成功提示
+                        showModal('✅ 批量刪除完成', `已成功刪除 ${deleteCount} 筆會員資料。`);
+                        if (searchInput.value.trim()) {
+                            executeSearch();
+                        }
+                    } catch (err) {
+                        console.error(err);
+                        showModal('❌ 錯誤', '批量刪除過程中發生錯誤！');
                     }
                 }
             );
@@ -475,15 +599,15 @@
                 '從 Google 試算表同步回 Firebase 會寫入大量資料。確定要執行嗎？', 
                 'confirm', 
                 async () => {
-                    showModal('同步中', '正在從 Google 試算表同步至 Firebase，請稍候...');
+                    showModal('⏳ 同步處理中', '正在從 Google 試算表同步至 Firebase，請稍候...', 'alert', null, false);
                     syncSheetToFbBtn.disabled = true;
                     try {
                         const response = await fetch(`${GAS_URL}?action=syncToFirebase`);
                         const result = await response.json();
-                        showModal('成功', 'Google 試算表同步至 Firebase 成功！');
+                        showModal('✅ 成功', 'Google 試算表同步至 Firebase 成功！');
                     } catch (err) {
                         console.error(err);
-                        showModal('錯誤', '同步失敗，請確認 GAS 部署與網路連線！');
+                        showModal('❌ 錯誤', '同步失敗，請確認 GAS 部署與網路連線！');
                     } finally {
                         syncSheetToFbBtn.disabled = false;
                     }
@@ -498,7 +622,7 @@
                 '此操作必須將 Firebase 中「所有會員資料」全數讀取並打包同步到 Google 試算表，會消耗大量讀取額度。確定要執行嗎？', 
                 'confirm', 
                 async () => {
-                    showModal('同步中', '正在從 Firebase 讀取所有會員並同步至 Google 試算表，請稍候...');
+                    showModal('⏳ 同步處理中', '正在從 Firebase 讀取所有會員並同步至 Google 試算表，請稍候...', 'alert', null, false);
                     syncFbToSheetBtn.disabled = true;
                     try {
                         const querySnapshot = await getDocs(collection(db, "users"));
@@ -513,10 +637,10 @@
                             headers: { 'Content-Type': 'text/plain;charset=utf-8' }
                         });
                         const result = await response.json();
-                        showModal('成功', `Firebase 同步至 Google 試算表成功！共同步 ${freshAllMembers.length} 筆會員。`);
+                        showModal('✅ 成功', `Firebase 同步至 Google 試算表成功！共同步 ${freshAllMembers.length} 筆會員。`);
                     } catch (err) {
                         console.error(err);
-                        showModal('錯誤', '同步失敗，請確認 GAS 部署與網路連線！');
+                        showModal('❌ 錯誤', '同步失敗，請確認 GAS 部署與網路連線！');
                     } finally {
                         syncFbToSheetBtn.disabled = false;
                     }
