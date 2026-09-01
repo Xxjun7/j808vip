@@ -656,7 +656,7 @@
             });
         }
 
-        // 每次抽卡前強制讀取最新雲端設定與資料判定獎項 (各金額獨立次數池 + 隨機保底 + 勝率控制)
+        // 將「各金額門檻指定次數」與「保底機制」、「勝率機制」全部打散混入同一個大隨機池中
         async function calculateAndConsumePrize(userId) {
             const userDocRef = doc(db, "users", userId);
             
@@ -665,9 +665,13 @@
             const data = freshSnap.data();
 
             const currentChances = Number(data.chances) || 0; // 剩餘遊戲次數
-            const guaranteeTotal = Number(data.guaranteeCount) || 0; // 設定的總保底次數
+            const guaranteeTotal = Number(data.guaranteeCount) || 0; // 保底總次數
+            const winRate = data.winRate !== undefined ? Number(data.winRate) : 100; // 個人中獎率
 
-            // 1. 優先檢查各金額獨立次數池 (p100 ~ p10000) 是否還有指定次數
+            // 1. 建立一個包含所有可能選項的抽獎候選池 (Pool)
+            let masterPool = [];
+
+            // A. 把所有「還有剩餘次數的各金額門檻」放進池中（剩幾次就放幾個名額進去，實現隨機打散）
             const prizeCounts = {
                 100: Number(data.p100) || 0,
                 500: Number(data.p500) || 0,
@@ -676,54 +680,63 @@
                 10000: Number(data.p10000) || 0
             };
 
-            const availablePrizes = [];
             for (const [amountStr, count] of Object.entries(prizeCounts)) {
-                if (count > 0) {
-                    availablePrizes.push(Number(amountStr));
+                const amt = Number(amountStr);
+                for (let i = 0; i < count; i++) {
+                    masterPool.push({ type: 'specific', prize: amt });
                 }
             }
 
-            if (availablePrizes.length > 0) {
-                const selectedPrize = availablePrizes[Math.floor(Math.random() * availablePrizes.length)];
-                const fieldName = `p${selectedPrize}`;
-                
+            // B. 保底機制如果還有次數，依照比例放入保底選項
+            if (guaranteeTotal > 0 && currentChances > 0) {
+                const guaranteeProb = guaranteeTotal / currentChances;
+                if (Math.random() < guaranteeProb) {
+                    masterPool.push({ type: 'guarantee' });
+                }
+            }
+
+            // C. 一般個人中獎率判定（中獎或銘謝惠顧）
+            const roll = Math.random() * 100;
+            if (roll <= winRate) {
+                masterPool.push({ type: 'normal_win' });
+            } else {
+                masterPool.push({ type: 'lose' });
+            }
+
+            // 2. 從總候選池中隨機抽出一項結果
+            const selectedOption = masterPool[Math.floor(Math.random() * masterPool.length)];
+
+            // 3. 依照抽中的結果處理對應金額與 Firebase 次數扣除
+            if (selectedOption.type === 'specific') {
+                const prizeAmount = selectedOption.prize;
+                const fieldName = `p${prizeAmount}`;
                 try {
                     await updateDoc(userDocRef, {
                         [fieldName]: increment(-1)
                     });
                 } catch (err) {
-                    console.error("扣除金額次數失敗：", err);
+                    console.error("扣除指定金額次數失敗：", err);
                 }
-                return selectedPrize;
-            }
-
-            // 2. 隨機分佈保底機制 (guaranteeCount)
-            if (guaranteeTotal > 0 && currentChances > 0) {
-                const probability = guaranteeTotal / currentChances;
-                if (Math.random() < probability) {
-                    try {
-                        await updateDoc(userDocRef, {
-                            guaranteeCount: increment(-1)
-                        });
-                    } catch (err) {
-                        console.error("扣除保底次數失敗：", err);
-                    }
-
-                    const defaultPrizePool = [100, 500, 1000, 2000];
-                    return defaultPrizePool[Math.floor(Math.random() * defaultPrizePool.length)];
+                return prizeAmount;
+            } 
+            else if (selectedOption.type === 'guarantee') {
+                try {
+                    await updateDoc(userDocRef, {
+                        guaranteeCount: increment(-1)
+                    });
+                } catch (err) {
+                    console.error("扣除保底次數失敗：", err);
                 }
+                const defaultPool = [100, 500, 1000, 2000];
+                return defaultPool[Math.floor(Math.random() * defaultPool.length)];
+            } 
+            else if (selectedOption.type === 'normal_win') {
+                const defaultPool = [100, 500, 1000, 2000];
+                return defaultPool[Math.floor(Math.random() * defaultPool.length)];
+            } 
+            else {
+                return 0; // 銘謝惠顧
             }
-
-            // 3. 最後依個人中獎率判定（當設定為 0% 時，roll 絕對會大於 0，一定回傳 0）
-            const winRate = data.winRate !== undefined ? Number(data.winRate) : 100;
-            const roll = Math.random() * 100;
-            
-            if (roll > winRate) {
-                return 0;
-            }
-
-            const defaultPrizePool = [100, 500, 1000, 2000];
-            return defaultPrizePool[Math.floor(Math.random() * defaultPrizePool.length)];
         }
 
         // 綁定 3 張獨立卡片點擊事件
