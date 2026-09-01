@@ -410,7 +410,7 @@
             <span class="ui-btn-text" id="audio-text">音樂開</span>
         </div>
 
-        <!-- 抽卡區域 -->
+        <!-- 抽卡區域 (固定 3 張卡片) -->
         <div id="card-area">
             <div class="card-container" data-index="0">
                 <div class="card-shaker">
@@ -446,7 +446,7 @@
 
     </div>
 
-    <!-- Firebase 邏輯整合與獨立抽卡核心 -->
+    <!-- Firebase 邏輯整合與 3 張獨立卡片核心控制 -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/12.18.0/firebase-app.js";
         import { getAnalytics } from "https://www.gstatic.com/firebasejs/12.18.0/firebase-analytics.js";
@@ -466,7 +466,6 @@
         const analytics = getAnalytics(app);
         const db = getFirestore(app);
 
-        // UI 元素
         const loginModal = document.getElementById('login-modal');
         const loginInput = document.getElementById('login-input');
         const rememberMeCheckbox = document.getElementById('remember-me');
@@ -483,7 +482,7 @@
         let currentUserData = null;
         const animatingCards = new Set();
 
-        // 獨立卡片狀態陣列
+        // 3 張卡片的獨立狀態
         const cardStates = [
             { isFlipped: false, prize: null },
             { isFlipped: false, prize: null },
@@ -560,14 +559,7 @@
             currentUserId = null;
             currentUserData = null;
             
-            // 重置卡片狀態
-            cardStates.forEach((state, i) => {
-                state.isFlipped = false;
-                state.prize = null;
-                const cardEl = cardContainers[i].querySelector('.card');
-                cardEl.classList.remove('flipped');
-                cardContainers[i].querySelector('.card-amount').textContent = '--';
-            });
+            resetAllCards();
 
             loginModal.style.display = 'flex';
             
@@ -579,6 +571,16 @@
             userInfoSpan.textContent = '載入中...';
             userChancesSpan.textContent = '遊戲次數: -';
         });
+
+        function resetAllCards() {
+            cardStates.forEach((state, i) => {
+                state.isFlipped = false;
+                state.prize = null;
+                const cardEl = cardContainers[i].querySelector('.card');
+                cardEl.classList.remove('flipped');
+                cardContainers[i].querySelector('.card-amount').textContent = '--';
+            });
+        }
 
         function startSession(userId) {
             currentUserId = userId;
@@ -602,11 +604,11 @@
             });
         }
 
-        // 核心抽獎與結果計算邏輯（支援保底與各金額次數門檻扣除）
+        // 精準計算獎項與扣除後台設定
         async function calculateAndConsumePrize(userId, data, nextDrawnCount) {
             const userDocRef = doc(db, "users", userId);
             
-            // 1. 優先檢查全域保底次數
+            // 1. 檢查全域保底次數 (支援舊版 target 欄位)
             const globalTargets = {
                 100: Number(data.target100) || 0,
                 500: Number(data.target500) || 0,
@@ -630,7 +632,6 @@
                 10000: Number(data.p10000) || 0
             };
 
-            // 收集所有剩餘次數大於 0 的金額選項
             const availablePrizes = [];
             for (const [amountStr, count] of Object.entries(prizeCounts)) {
                 if (count > 0) {
@@ -638,7 +639,6 @@
                 }
             }
 
-            // 如果有設定特定次數金額池，從中隨機選一個，並將該金額的剩餘次數 -1
             if (availablePrizes.length > 0) {
                 const selectedPrize = availablePrizes[Math.floor(Math.random() * availablePrizes.length)];
                 const fieldName = `p${selectedPrize}`;
@@ -653,19 +653,19 @@
                 return selectedPrize;
             }
 
-            // 3. 若無上述設定，走一般勝率隨機
+            // 3. 一般勝率隨機
             const winRate = data.winRate !== undefined ? Number(data.winRate) : 50;
             const roll = Math.random() * 100;
             
             if (roll > winRate) {
-                return 0; // 未中獎 (銘謝惠顧)
+                return 0; // 銘謝惠顧
             }
 
             const defaultPrizePool = [100, 500, 1000, 2000];
             return defaultPrizePool[Math.floor(Math.random() * defaultPrizePool.length)];
         }
 
-        // 綁定各卡片獨立點擊事件
+        // 綁定 3 張獨立卡片點擊事件
         cardContainers.forEach((container, index) => {
             const card = container.querySelector('.card');
             const shaker = container.querySelector('.card-shaker');
@@ -681,7 +681,7 @@
 
                 const currentState = cardStates[index];
 
-                // 如果卡片目前是正面（已翻開），點擊則將其「翻回背面」，並清除該張卡的記憶（重置 prize）
+                // 如果卡片已經翻開，點擊則將其翻回背面並重置該張卡的狀態
                 if (currentState.isFlipped) {
                     animatingCards.add(card);
                     if (typeof playSFX === 'function' && window.sounds) {
@@ -696,7 +696,7 @@
                     return;
                 }
 
-                // 若卡片是背面，準備翻開（需檢查剩餘次數）
+                // 檢查剩餘次數
                 const currentChances = currentUserData.chances !== undefined ? currentUserData.chances : 0;
                 if (currentChances <= 0) {
                     alert('剩餘可抽次數不足！');
@@ -705,23 +705,23 @@
 
                 animatingCards.add(card);
 
-                // 計算當前會員已抽次數 + 1
+                // 計算當前已抽次數 + 1
                 const currentDrawnCount = currentUserData.drawnCount !== undefined ? currentUserData.drawnCount : 0;
                 const nextDrawnCount = currentDrawnCount + 1;
 
-                // 進行獎項計算與扣除次數
+                // 透過後台設定計算這張卡的獎項
                 const prizeResult = await calculateAndConsumePrize(currentUserId, currentUserData, nextDrawnCount);
                 currentState.prize = prizeResult;
 
                 amountEl.textContent = currentState.prize > 0 ? `$${currentState.prize}` : '銘謝惠顧';
 
-                // 播放音效與搖晃動畫
+                // 播放搖晃音效
                 if (typeof playSFX === 'function' && window.sounds) {
                     playSFX(window.sounds.shake);
                 }
                 shaker.classList.add('shaking');
 
-                // 即時扣除 Firebase 次數與累計已抽次數
+                // 即時扣除 Firebase 的 chances 與累加 drawnCount
                 try {
                     const userDocRef = doc(db, "users", currentUserId);
                     await updateDoc(userDocRef, {
@@ -729,7 +729,7 @@
                         drawnCount: increment(1)
                     });
                 } catch (err) {
-                    console.error("更新 Firebase 失敗：", err);
+                    console.error("更新 Firebase 次數失敗：", err);
                 }
 
                 setTimeout(() => {
