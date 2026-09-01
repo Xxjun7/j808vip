@@ -528,7 +528,6 @@
             msgContent.innerHTML = message.replace(/\n/g, '<br>');
             messageModal.style.display = 'flex';
             
-            // 同步旋轉狀態套用到彈窗
             const gameContainer = document.getElementById('game-container');
             if (gameContainer.classList.contains('force-rotated')) {
                 messageModal.classList.add('force-rotated');
@@ -656,7 +655,7 @@
             });
         }
 
-        // 將「各金額門檻指定次數」與「保底機制」、「勝率機制」全部打散混入同一個大隨機池中
+        // 均勻隨機打散（防堆積在前幾抽）：依據剩餘總次數與指定次數比例，計算當前抽中的機率權重
         async function calculateAndConsumePrize(userId) {
             const userDocRef = doc(db, "users", userId);
             
@@ -668,10 +667,7 @@
             const guaranteeTotal = Number(data.guaranteeCount) || 0; // 保底總次數
             const winRate = data.winRate !== undefined ? Number(data.winRate) : 100; // 個人中獎率
 
-            // 1. 建立一個包含所有可能選項的抽獎候選池 (Pool)
-            let masterPool = [];
-
-            // A. 把所有「還有剩餘次數的各金額門檻」放進池中（剩幾次就放幾個名額進去，實現隨機打散）
+            // 收集所有還有剩餘次數的指定金額
             const prizeCounts = {
                 100: Number(data.p100) || 0,
                 500: Number(data.p500) || 0,
@@ -680,36 +676,34 @@
                 10000: Number(data.p10000) || 0
             };
 
+            let totalSpecificLeft = 0;
+            const availableSpecificPrizes = [];
             for (const [amountStr, count] of Object.entries(prizeCounts)) {
-                const amt = Number(amountStr);
-                for (let i = 0; i < count; i++) {
-                    masterPool.push({ type: 'specific', prize: amt });
+                if (count > 0) {
+                    totalSpecificLeft += count;
+                    for (let i = 0; i < count; i++) {
+                        availableSpecificPrizes.push(Number(amountStr));
+                    }
                 }
             }
 
-            // B. 保底機制如果還有次數，依照比例放入保底選項
-            if (guaranteeTotal > 0 && currentChances > 0) {
-                const guaranteeProb = guaranteeTotal / currentChances;
-                if (Math.random() < guaranteeProb) {
-                    masterPool.push({ type: 'guarantee' });
+            // 【核心改良】：為了讓指定次數「均勻隨機散佈」在所有剩餘次數中，不擠在前面：
+            // 我們動態計算當前抽中「指定金額」的機率 = (剩餘指定次數 / 剩餘總次數)。
+            // 這樣隨著抽卡次數減少，指定次數會自然且均勻地被稀釋在整段歷程中！
+            let chosenPrize = null;
+
+            if (totalSpecificLeft > 0 && currentChances > 0) {
+                const specificProbability = totalSpecificLeft / currentChances;
+                if (Math.random() < specificProbability) {
+                    // 從現有的指定金額清單中隨機抽一個出來
+                    const randomIndex = Math.floor(Math.random() * availableSpecificPrizes.length);
+                    chosenPrize = availableSpecificPrizes[randomIndex];
                 }
             }
 
-            // C. 一般個人中獎率判定（中獎或銘謝惠顧）
-            const roll = Math.random() * 100;
-            if (roll <= winRate) {
-                masterPool.push({ type: 'normal_win' });
-            } else {
-                masterPool.push({ type: 'lose' });
-            }
-
-            // 2. 從總候選池中隨機抽出一項結果
-            const selectedOption = masterPool[Math.floor(Math.random() * masterPool.length)];
-
-            // 3. 依照抽中的結果處理對應金額與 Firebase 次數扣除
-            if (selectedOption.type === 'specific') {
-                const prizeAmount = selectedOption.prize;
-                const fieldName = `p${prizeAmount}`;
+            if (chosenPrize !== null) {
+                // 抽中了指定金額，扣除對應 Firebase 欄位
+                const fieldName = `p${chosenPrize}`;
                 try {
                     await updateDoc(userDocRef, {
                         [fieldName]: increment(-1)
@@ -717,9 +711,29 @@
                 } catch (err) {
                     console.error("扣除指定金額次數失敗：", err);
                 }
-                return prizeAmount;
-            } 
-            else if (selectedOption.type === 'guarantee') {
+                return chosenPrize;
+            }
+
+            // 若沒有抽中指定金額，則跑原本的保底與勝率判定
+            let lotteryPool = [];
+
+            if (guaranteeTotal > 0 && currentChances > 0) {
+                const guaranteeProb = guaranteeTotal / currentChances;
+                if (Math.random() < guaranteeProb) {
+                    lotteryPool.push('guarantee');
+                }
+            }
+
+            const roll = Math.random() * 100;
+            if (roll <= winRate) {
+                lotteryPool.push('normal_win');
+            } else {
+                lotteryPool.push('lose');
+            }
+
+            const outcome = lotteryPool[Math.floor(Math.random() * lotteryPool.length)];
+
+            if (outcome === 'guarantee') {
                 try {
                     await updateDoc(userDocRef, {
                         guaranteeCount: increment(-1)
@@ -730,7 +744,7 @@
                 const defaultPool = [100, 500, 1000, 2000];
                 return defaultPool[Math.floor(Math.random() * defaultPool.length)];
             } 
-            else if (selectedOption.type === 'normal_win') {
+            else if (outcome === 'normal_win') {
                 const defaultPool = [100, 500, 1000, 2000];
                 return defaultPool[Math.floor(Math.random() * defaultPool.length)];
             } 
@@ -769,7 +783,6 @@
                     return;
                 }
 
-                // 檢查剩餘次數不足提示
                 const currentChances = currentUserData.chances !== undefined ? currentUserData.chances : 0;
                 if (currentChances <= 0) {
                     showCustomAlert('次數不足', '目前剩餘可抽次數不足，\n請聯繫客服加值次數！');
