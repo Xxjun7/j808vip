@@ -48,6 +48,11 @@
             transform: scale(0.95);
         }
 
+        .btn-success {
+            background: linear-gradient(135deg, #00ffcc, #00b386);
+            color: #080b10;
+        }
+
         .btn-danger {
             background: #ff4d4d;
             color: #fff;
@@ -97,6 +102,21 @@
             width: 100%;
         }
 
+        /* 讓表格內的輸入框更緊湊好改 */
+        .table-input {
+            width: 65px;
+            padding: 5px;
+            text-align: center;
+            font-size: 12px;
+        }
+
+        .table-input-result {
+            width: 110px;
+            padding: 5px;
+            text-align: center;
+            font-size: 12px;
+        }
+
         .table-container {
             width: 100%;
             overflow-x: auto;
@@ -113,7 +133,7 @@
         }
 
         th, td {
-            padding: 10px;
+            padding: 8px 6px;
             text-align: center;
             border-bottom: 1px solid rgba(255, 215, 0, 0.2);
             white-space: nowrap;
@@ -158,9 +178,9 @@
         </div>
     </header>
 
-    <!-- 新增 / 修改會員表單 -->
+    <!-- 新增會員表單 (主要用來新增全新會員) -->
     <div class="card-panel">
-        <h3 id="form-title">新增會員 / 參數微調</h3>
+        <h3 id="form-title">新增會員</h3>
         <div class="form-row">
             <div class="form-field">
                 <label>會員編號 / 姓名 (ID)</label>
@@ -171,7 +191,7 @@
                 <input type="number" id="input-chances" value="1">
             </div>
             <div class="form-field">
-                <label>已抽次數</label>
+                <label>已抽次數 (drawnCount)</label>
                 <input type="number" id="input-drawn" value="0">
             </div>
             <div class="form-field">
@@ -179,32 +199,32 @@
                 <input type="number" step="0.1" id="input-rate" value="100">
             </div>
             <div class="form-field">
-                <label>全域必中次數 (保底)</label>
-                <input type="number" id="input-guarantee" value="10">
+                <label>保底次數 (guarantee)</label>
+                <input type="number" id="input-guarantee" value="0">
             </div>
         </div>
 
-        <h3 style="font-size: 15px; margin-top: 15px;">各金額門檻「會中的次數」設定</h3>
+        <h3 style="font-size: 15px; margin-top: 15px;">各金額門檻「會中的次數」設定 (p100 ~ p10000)</h3>
         <div class="form-row">
             <div class="form-field">
-                <label>100元 必中次數</label>
-                <input type="number" id="input-t-100" value="0">
+                <label>100元 總共會中次數</label>
+                <input type="number" id="input-p-100" value="0">
             </div>
             <div class="form-field">
-                <label>500元 必中次數</label>
-                <input type="number" id="input-t-500" value="0">
+                <label>500元 總共會中次數</label>
+                <input type="number" id="input-p-500" value="0">
             </div>
             <div class="form-field">
-                <label>1000元 必中次數</label>
-                <input type="number" id="input-t-1000" value="0">
+                <label>1000元 總共會中次數</label>
+                <input type="number" id="input-p-1000" value="0">
             </div>
             <div class="form-field">
-                <label>2000元 必中次數</label>
-                <input type="number" id="input-t-2000" value="0">
+                <label>2000元 總共會中次數</label>
+                <input type="number" id="input-p-2000" value="0">
             </div>
             <div class="form-field">
-                <label>10000元 必中次數</label>
-                <input type="number" id="input-t-10000" value="0">
+                <label>10000元 總共會中次數</label>
+                <input type="number" id="input-p-10000" value="0">
             </div>
         </div>
 
@@ -216,15 +236,14 @@
         </div>
 
         <div class="btn-group">
-            <button class="btn" id="save-btn">儲存 / 更新會員設定</button>
-            <button class="btn btn-danger" id="cancel-edit" style="display:none;">取消編輯</button>
+            <button class="btn" id="save-btn">新增會員</button>
         </div>
         <div id="status-msg"></div>
     </div>
 
     <!-- 會員列表 -->
     <div class="card-panel">
-        <h3>現有 VIP 會員列表與機率控制</h3>
+        <h3>現有 VIP 會員列表與即時控制 (可直接在表格修改並點「確認」)</h3>
         <input type="text" id="search-input" placeholder="搜尋會員姓名或編號..." style="margin-bottom: 15px; width: 100%;">
         <div class="table-container">
             <table>
@@ -234,7 +253,7 @@
                         <th>剩餘次數</th>
                         <th>已抽次數</th>
                         <th>中獎率%</th>
-                        <th>必中次數</th>
+                        <th>保底次數</th>
                         <th>100中</th>
                         <th>500中</th>
                         <th>1000中</th>
@@ -251,10 +270,10 @@
         </div>
     </div>
 
-    <!-- Firebase 與核心邏輯 -->
+    <!-- Firebase 與後台管理邏輯 -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/12.18.0/firebase-app.js";
-        import { getFirestore, collection, doc, getDocs, setDoc, deleteDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/12.18.0/firebase-firestore.js";
+        import { getFirestore, collection, doc, setDoc, deleteDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/12.18.0/firebase-firestore.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyAgXlbP-D-k_Dj13Mmop-LRIm15FTkrGGY",
@@ -276,15 +295,14 @@
         const inputRate = document.getElementById('input-rate');
         const inputGuarantee = document.getElementById('input-guarantee');
         
-        const inputT100 = document.getElementById('input-t-100');
-        const inputT500 = document.getElementById('input-t-500');
-        const inputT1000 = document.getElementById('input-t-1000');
-        const inputT2000 = document.getElementById('input-t-2000');
-        const inputT10000 = document.getElementById('input-t-10000');
+        const inputP100 = document.getElementById('input-p-100');
+        const inputP500 = document.getElementById('input-p-500');
+        const inputP1000 = document.getElementById('input-p-1000');
+        const inputP2000 = document.getElementById('input-p-2000');
+        const inputP10000 = document.getElementById('input-p-10000');
         const inputResult = document.getElementById('input-result');
 
         const saveBtn = document.getElementById('save-btn');
-        const cancelEditBtn = document.getElementById('cancel-edit');
         const statusMsg = document.getElementById('status-msg');
         const searchInput = document.getElementById('search-input');
 
@@ -307,7 +325,7 @@
             });
         }
 
-        // 渲染表格
+        // 渲染表格 (將欄位轉為可以直接輸入修改的 input 欄位)
         function renderTable(data) {
             if (data.length === 0) {
                 tableBody.innerHTML = `<tr><td colspan="12" style="text-align: center;">目前沒有會員資料</td></tr>`;
@@ -319,18 +337,18 @@
                 const tr = document.createElement('tr');
                 tr.innerHTML = `
                     <td><b>${m.id}</b></td>
-                    <td>${m.chances ?? 0}</td>
-                    <td>${m.drawnCount ?? 0}</td>
-                    <td>${m.winRate ?? 100}%</td>
-                    <td>${m.guaranteeCount ?? 0}</td>
-                    <td>${m.target100 ?? 0}</td>
-                    <td>${m.target500 ?? 0}</td>
-                    <td>${m.target1000 ?? 0}</td>
-                    <td>${m.target2000 ?? 0}</td>
-                    <td>${m.target10000 ?? 0}</td>
-                    <td>${m.result || '(未開獎)'}</td>
+                    <td><input type="number" class="table-input" id="t-chances-${m.id}" value="${m.chances ?? 0}"></td>
+                    <td><input type="number" class="table-input" id="t-drawn-${m.id}" value="${m.drawnCount ?? 0}"></td>
+                    <td><input type="number" step="0.1" class="table-input" id="t-rate-${m.id}" value="${m.winRate ?? 100}"></td>
+                    <td><input type="number" class="table-input" id="t-guarantee-${m.id}" value="${m.guaranteeCount ?? 0}"></td>
+                    <td><input type="number" class="table-input" id="t-p100-${m.id}" value="${m.p100 ?? 0}"></td>
+                    <td><input type="number" class="table-input" id="t-p500-${m.id}" value="${m.p500 ?? 0}"></td>
+                    <td><input type="number" class="table-input" id="t-p1000-${m.id}" value="${m.p1000 ?? 0}"></td>
+                    <td><input type="number" class="table-input" id="t-p2000-${m.id}" value="${m.p2000 ?? 0}"></td>
+                    <td><input type="number" class="table-input" id="t-p10000-${m.id}" value="${m.p10000 ?? 0}"></td>
+                    <td><input type="text" class="table-input-result" id="t-result-${m.id}" value="${m.result || ''}" placeholder="未開獎"></td>
                     <td class="actions-cell">
-                        <button class="btn" onclick="window.editMember('${m.id}')">修改</button>
+                        <button class="btn btn-success" onclick="window.quickUpdate('${m.id}')">確認</button>
                         <button class="btn btn-danger" onclick="window.deleteMember('${m.id}')">刪除</button>
                     </td>
                 `;
@@ -345,7 +363,7 @@
             renderTable(filtered);
         });
 
-        // 儲存 / 更新
+        // 新增會員
         saveBtn.addEventListener('click', async () => {
             const userId = inputUserId.value.trim();
             if (!userId) {
@@ -358,65 +376,46 @@
                 drawnCount: parseInt(inputDrawn.value) || 0,
                 winRate: parseFloat(inputRate.value) || 100,
                 guaranteeCount: parseInt(inputGuarantee.value) || 0,
-                target100: parseInt(inputT100.value) || 0,
-                target500: parseInt(inputT500.value) || 0,
-                target1000: parseInt(inputT1000.value) || 0,
-                target2000: parseInt(inputT2000.value) || 0,
-                target10000: parseInt(inputT10000.value) || 0,
+                p100: parseInt(inputP100.value) || 0,
+                p500: parseInt(inputP500.value) || 0,
+                p1000: parseInt(inputP1000.value) || 0,
+                p2000: parseInt(inputP2000.value) || 0,
+                p10000: parseInt(inputP10000.value) || 0,
                 result: inputResult.value.trim()
             };
 
             try {
                 await setDoc(doc(db, "users", userId), dataToSave, { merge: true });
-                statusMsg.textContent = `成功儲存會員：${userId}`;
-                clearForm();
+                statusMsg.textContent = `成功新增/儲存會員：${userId}`;
+                inputUserId.value = '';
             } catch (err) {
                 console.error(err);
                 statusMsg.textContent = "儲存失敗！";
             }
         });
 
-        // 帶入資料修改
-        window.editMember = function(id) {
-            const m = allMembers.find(item => item.id === id);
-            if (!m) return;
+        // 表格行內即時「確認」更新
+        window.quickUpdate = async function(id) {
+            const dataToSave = {
+                chances: parseInt(document.getElementById(`t-chances-${id}`).value) || 0,
+                drawnCount: parseInt(document.getElementById(`t-drawn-${id}`).value) || 0,
+                winRate: parseFloat(document.getElementById(`t-rate-${id}`).value) || 100,
+                guaranteeCount: parseInt(document.getElementById(`t-guarantee-${id}`).value) || 0,
+                p100: parseInt(document.getElementById(`t-p100-${id}`).value) || 0,
+                p500: parseInt(document.getElementById(`t-p500-${id}`).value) || 0,
+                p1000: parseInt(document.getElementById(`t-p1000-${id}`).value) || 0,
+                p2000: parseInt(document.getElementById(`t-p2000-${id}`).value) || 0,
+                p10000: parseInt(document.getElementById(`t-p10000-${id}`).value) || 0,
+                result: document.getElementById(`t-result-${id}`).value.trim()
+            };
 
-            inputUserId.value = m.id;
-            inputUserId.disabled = true;
-            inputChances.value = m.chances ?? 1;
-            inputDrawn.value = m.drawnCount ?? 0;
-            inputRate.value = m.winRate ?? 100;
-            inputGuarantee.value = m.guaranteeCount ?? 0;
-            
-            inputT100.value = m.target100 ?? 0;
-            inputT500.value = m.target500 ?? 0;
-            inputT1000.value = m.target1000 ?? 0;
-            inputT2000.value = m.target2000 ?? 0;
-            inputT10000.value = m.target10000 ?? 0;
-            inputResult.value = m.result || '';
-
-            cancelEditBtn.style.display = 'inline-block';
-            document.getElementById('form-title').textContent = `修改會員參數: ${id}`;
-            window.scrollTo({ top: 0, behavior: 'smooth' });
-        }
-
-        cancelEditBtn.addEventListener('click', clearForm);
-
-        function clearForm() {
-            inputUserId.value = '';
-            inputUserId.disabled = false;
-            inputChances.value = '1';
-            inputDrawn.value = '0';
-            inputRate.value = '100';
-            inputGuarantee.value = '10';
-            inputT100.value = '0';
-            inputT500.value = '0';
-            inputT1000.value = '0';
-            inputT2000.value = '0';
-            inputT10000.value = '0';
-            inputResult.value = '';
-            cancelEditBtn.style.display = 'none';
-            document.getElementById('form-title').textContent = '新增會員 / 參數微調';
+            try {
+                await setDoc(doc(db, "users", id), dataToSave, { merge: true });
+                statusMsg.textContent = `已成功更新會員 [ ${id} ] 的設定！`;
+            } catch (err) {
+                console.error(err);
+                statusMsg.textContent = `更新會員 ${id} 失敗！`;
+            }
         }
 
         // 刪除
