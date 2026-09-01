@@ -10,7 +10,7 @@
         body { font-family: 'Arial', sans-serif; background-color: #080b10; color: #ffd700; padding: 20px; }
         header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; border-bottom: 2px solid #ffd700; padding-bottom: 10px; flex-wrap: wrap; gap: 10px; }
         h1 { font-size: 24px; text-shadow: 0 0 10px rgba(255, 215, 0, 0.5); }
-        .header-btns { display: flex; gap: 10px; }
+        .header-btns { display: flex; gap: 10px; flex-wrap: wrap; }
         .btn { background: linear-gradient(135deg, #ffd700, #ff8c00); border: none; color: #080b10; padding: 8px 16px; border-radius: 6px; font-weight: bold; cursor: pointer; transition: transform 0.2s; }
         .btn:active { transform: scale(0.95); }
         .btn-danger { background: #ff4d4d; color: #fff; }
@@ -126,6 +126,8 @@
             appId: "1:694827667740:web:6767bf834427fad56eaad9",
             measurementId: "G-10J5DBGW8B"
         };
+
+        const GAS_URL = "https://script.google.com/macros/s/AKfycbwmzNyEGnaTu3FeiqT5Itcsa2-EE7-1ZGOJVP7FLwn_grEdQehHIx3wHRGdUZaj6OOI/exec";
 
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
@@ -270,21 +272,40 @@
             }
         }
 
-        // 試算表同步按鈕事件 (可依您的 Apps Script 網址進行對接)
+        // 串接 Google 試算表同步至 Firebase (GET)
         syncSheetToFbBtn.addEventListener('click', async () => {
-            statusMsg.textContent = "正在從 Google 試算表同步至 Firebase...";
-            // TODO: 如果您有串接 Google Apps Script Web App，可在此處加入 fetch 請求
-            setTimeout(() => {
-                statusMsg.textContent = "Google 試算表同步至 Firebase 完成！";
-            }, 1000);
+            statusMsg.textContent = "正在從 Google 試算表同步至 Firebase，請稍候...";
+            syncSheetToFbBtn.disabled = true;
+            try {
+                const response = await fetch(`${GAS_URL}?action=syncToFirebase`);
+                const result = await response.json();
+                statusMsg.textContent = "Google 試算表同步至 Firebase 成功！";
+            } catch (err) {
+                console.error(err);
+                statusMsg.textContent = "同步失敗，請確認 GAS 部署與網路連線！";
+            } finally {
+                syncSheetToFbBtn.disabled = false;
+            }
         });
 
+        // 串接 Firebase 同步至 Google 試算表 (POST)
         syncFbToSheetBtn.addEventListener('click', async () => {
-            statusMsg.textContent = "正在從 Firebase 同步至 Google 試算表...";
-            // TODO: 如果您有串接 Google Apps Script Web App，可在此處加入 fetch 請求
-            setTimeout(() => {
-                statusMsg.textContent = "Firebase 同步至 Google 試算表完成！";
-            }, 1000);
+            statusMsg.textContent = "正在從 Firebase 同步至 Google 試算表，請稍候...";
+            syncFbToSheetBtn.disabled = true;
+            try {
+                const response = await fetch(GAS_URL, {
+                    method: 'POST',
+                    body: JSON.stringify({ action: 'syncToSheet', members: allMembers }),
+                    headers: { 'Content-Type': 'text/plain;charset=utf-8' }
+                });
+                const result = await response.json();
+                statusMsg.textContent = "Firebase 同步至 Google 試算表成功！";
+            } catch (err) {
+                console.error(err);
+                statusMsg.textContent = "同步失敗，請確認 GAS 部署與網路連線！";
+            } finally {
+                syncFbToSheetBtn.disabled = false;
+            }
         });
 
         listenMembers();
