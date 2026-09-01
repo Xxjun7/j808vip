@@ -97,6 +97,12 @@
             width: 100%;
         }
 
+        .search-row {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+
         .table-container {
             width: 100%;
             overflow-x: auto;
@@ -225,7 +231,10 @@
     <!-- 會員列表 -->
     <div class="card-panel">
         <h3>現有 VIP 會員列表與機率控制</h3>
-        <input type="text" id="search-input" placeholder="搜尋會員姓名或編號..." style="margin-bottom: 15px; width: 100%;">
+        <div class="search-row">
+            <input type="text" id="search-input" placeholder="搜尋會員姓名或編號..." style="flex: 1;">
+            <button class="btn" id="search-btn">確認搜尋</button>
+        </div>
         <div class="table-container">
             <table>
                 <thead>
@@ -287,6 +296,7 @@
         const cancelEditBtn = document.getElementById('cancel-edit');
         const statusMsg = document.getElementById('status-msg');
         const searchInput = document.getElementById('search-input');
+        const searchBtn = document.getElementById('search-btn');
 
         let allMembers = [];
 
@@ -300,17 +310,24 @@
                         ...docSnap.data()
                     });
                 });
-                renderTable(allMembers);
+                executeSearch(); // 資料更新時依照當前搜尋條件刷新表格
             }, (error) => {
                 console.error("讀取失敗：", error);
                 statusMsg.textContent = "讀取資料庫失敗！";
             });
         }
 
+        // 執行搜尋與渲染
+        function executeSearch() {
+            const keyword = searchInput.value.trim().toLowerCase();
+            const filtered = keyword ? allMembers.filter(m => m.id.toLowerCase().includes(keyword)) : allMembers;
+            renderTable(filtered);
+        }
+
         // 渲染表格
         function renderTable(data) {
             if (data.length === 0) {
-                tableBody.innerHTML = `<tr><td colspan="12" style="text-align: center;">目前沒有會員資料</td></tr>`;
+                tableBody.innerHTML = `<tr><td colspan="12" style="text-align: center;">目前沒有符合條件的會員資料</td></tr>`;
                 return;
             }
 
@@ -338,11 +355,14 @@
             });
         }
 
-        // 搜尋
-        searchInput.addEventListener('input', (e) => {
-            const keyword = e.target.value.toLowerCase();
-            const filtered = allMembers.filter(m => m.id.toLowerCase().includes(keyword));
-            renderTable(filtered);
+        // 點擊「確認搜尋」按鈕
+        searchBtn.addEventListener('click', executeSearch);
+
+        // 在搜尋框按下 Enter 也可以直接確認搜尋
+        searchInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                executeSearch();
+            }
         });
 
         // 儲存 / 更新
