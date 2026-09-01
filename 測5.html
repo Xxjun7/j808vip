@@ -255,6 +255,17 @@
             justify-content: center;
             align-items: center;
             z-index: 10000;
+            transition: transform 0.3s ease, width 0.3s ease, height 0.3s ease;
+        }
+
+        /* 當畫面被強制旋轉時，登入框同步轉 90 度適配 */
+        #login-modal.force-rotated {
+            width: 100dvh !important;
+            height: 100vw !important;
+            top: 50% !important;
+            left: 50% !important;
+            transform: translate(-50%, -50%) rotate(90deg) !important;
+            transform-origin: center center;
         }
 
         .login-box {
@@ -844,6 +855,7 @@
             e.stopPropagation();
             noticeEl.classList.remove('active');
             gameContainer.classList.add('force-rotated');
+            loginModal.classList.add('force-rotated'); // 同步讓登入框旋轉 90 度
             
             if (window.checkAndShowLogin) {
                 window.checkAndShowLogin();
@@ -855,6 +867,7 @@
             const isLandscape = window.matchMedia('(orientation: landscape)').matches;
             if (isLandscape) {
                 gameContainer.classList.remove('force-rotated');
+                loginModal.classList.remove('force-rotated'); // 移除強制旋轉
                 noticeEl.classList.remove('active');
                 if (window.checkAndShowLogin) {
                     window.checkAndShowLogin();
