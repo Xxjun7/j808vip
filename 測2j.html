@@ -6,165 +6,36 @@
     <title>金正旺銀行 VIP 後台管理系統</title>
     <link rel="icon" type="image/x-icon" href="./Jicon.ico">
     <style>
-        * {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-        }
-
-        body {
-            font-family: 'Arial', sans-serif;
-            background-color: #080b10;
-            color: #ffd700;
-            padding: 20px;
-        }
-
-        header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 20px;
-            border-bottom: 2px solid #ffd700;
-            padding-bottom: 10px;
-        }
-
-        h1 {
-            font-size: 24px;
-            text-shadow: 0 0 10px rgba(255, 215, 0, 0.5);
-        }
-
-        .btn {
-            background: linear-gradient(135deg, #ffd700, #ff8c00);
-            border: none;
-            color: #080b10;
-            padding: 8px 16px;
-            border-radius: 6px;
-            font-weight: bold;
-            cursor: pointer;
-            transition: transform 0.2s;
-        }
-
-        .btn:active {
-            transform: scale(0.95);
-        }
-
-        .btn-danger {
-            background: #ff4d4d;
-            color: #fff;
-        }
-
-        .card-panel {
-            background: rgba(255, 215, 0, 0.05);
-            border: 1px solid #ffd700;
-            border-radius: 12px;
-            padding: 20px;
-            margin-bottom: 20px;
-            box-shadow: 0 0 15px rgba(255, 215, 0, 0.1);
-        }
-
-        .card-panel h3 {
-            margin-bottom: 15px;
-            font-size: 18px;
-            color: #ffcc00;
-        }
-
-        .form-row {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-            gap: 12px;
-            margin-bottom: 12px;
-        }
-
-        .form-field {
-            display: flex;
-            flex-direction: column;
-            gap: 5px;
-        }
-
-        .form-field label {
-            font-size: 12px;
-            color: #ccc;
-        }
-
-        input, select {
-            padding: 9px;
-            background: rgba(8, 11, 16, 0.8);
-            border: 1px solid #ffd700;
-            border-radius: 6px;
-            color: #fff;
-            font-size: 14px;
-            outline: none;
-            width: 100%;
-        }
-
-        .search-row {
-            display: flex;
-            gap: 10px;
-            margin-bottom: 15px;
-        }
-
-        .table-container {
-            width: 100%;
-            overflow-x: auto;
-        }
-
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-top: 10px;
-            background: rgba(8, 11, 16, 0.9);
-            border-radius: 8px;
-            overflow: hidden;
-            font-size: 13px;
-        }
-
-        th, td {
-            padding: 10px;
-            text-align: center;
-            border-bottom: 1px solid rgba(255, 215, 0, 0.2);
-            white-space: nowrap;
-        }
-
-        th {
-            background: rgba(255, 215, 0, 0.2);
-            color: #ffd700;
-        }
-
-        tr:hover {
-            background: rgba(255, 215, 0, 0.05);
-        }
-
-        .actions-cell button {
-            margin: 2px;
-            padding: 5px 8px;
-            font-size: 11px;
-        }
-
-        #status-msg {
-            margin-top: 10px;
-            font-size: 14px;
-            font-weight: bold;
-            color: #00ffcc;
-        }
-
-        .btn-group {
-            display: flex;
-            gap: 10px;
-            margin-top: 15px;
-        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: 'Arial', sans-serif; background-color: #080b10; color: #ffd700; padding: 20px; }
+        header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; border-bottom: 2px solid #ffd700; padding-bottom: 10px; }
+        h1 { font-size: 24px; text-shadow: 0 0 10px rgba(255, 215, 0, 0.5); }
+        .btn { background: linear-gradient(135deg, #ffd700, #ff8c00); border: none; color: #080b10; padding: 8px 16px; border-radius: 6px; font-weight: bold; cursor: pointer; transition: transform 0.2s; }
+        .btn:active { transform: scale(0.95); }
+        .btn-danger { background: #ff4d4d; color: #fff; }
+        .card-panel { background: rgba(255, 215, 0, 0.05); border: 1px solid #ffd700; border-radius: 12px; padding: 20px; margin-bottom: 20px; box-shadow: 0 0 15px rgba(255, 215, 0, 0.1); }
+        .card-panel h3 { margin-bottom: 15px; font-size: 18px; color: #ffcc00; }
+        .form-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; margin-bottom: 12px; }
+        .form-field { display: flex; flex-direction: column; gap: 5px; }
+        .form-field label { font-size: 12px; color: #ccc; }
+        input, select { padding: 9px; background: rgba(8, 11, 16, 0.8); border: 1px solid #ffd700; border-radius: 6px; color: #fff; font-size: 14px; outline: none; width: 100%; }
+        .search-row { display: flex; gap: 10px; margin-bottom: 15px; }
+        .table-container { width: 100%; overflow-x: auto; }
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; background: rgba(8, 11, 16, 0.9); border-radius: 8px; overflow: hidden; font-size: 13px; }
+        th, td { padding: 10px; text-align: center; border-bottom: 1px solid rgba(255, 215, 0, 0.2); white-space: nowrap; }
+        th { background: rgba(255, 215, 0, 0.2); color: #ffd700; }
+        tr:hover { background: rgba(255, 215, 0, 0.05); }
+        .actions-cell button { margin: 2px; padding: 5px 8px; font-size: 11px; }
+        #status-msg { margin-top: 10px; font-size: 14px; font-weight: bold; color: #00ffcc; }
+        .btn-group { display: flex; gap: 10px; margin-top: 15px; }
     </style>
 </head>
 <body>
 
     <header>
         <h1>金正旺 VIP 後台管理系統</h1>
-        <div>
-            <button class="btn" id="sync-to-sheet">推送到 Google 試算表</button>
-            <button class="btn" id="sync-from-sheet">從 Google 試算表同步</button>
-        </div>
     </header>
 
-    <!-- 新增 / 修改會員表單 -->
     <div class="card-panel">
         <h3 id="form-title">新增會員 / 參數微調</h3>
         <div class="form-row">
@@ -185,33 +56,18 @@
                 <input type="number" step="0.1" id="input-rate" value="100">
             </div>
             <div class="form-field">
-                <label>全域必中次數保底 (guarantee)</label>
+                <label>全域必中次數保底 (guaranteeCount)</label>
                 <input type="number" id="input-guarantee" value="0">
             </div>
         </div>
 
         <h3 style="font-size: 15px; margin-top: 15px;">各金額門檻「會中的次數」設定 (p100 ~ p10000)</h3>
         <div class="form-row">
-            <div class="form-field">
-                <label>100元 總共會中次數</label>
-                <input type="number" id="input-p-100" value="0">
-            </div>
-            <div class="form-field">
-                <label>500元 總共會中次數</label>
-                <input type="number" id="input-p-500" value="0">
-            </div>
-            <div class="form-field">
-                <label>1000元 總共會中次數</label>
-                <input type="number" id="input-p-1000" value="0">
-            </div>
-            <div class="form-field">
-                <label>2000元 總共會中次數</label>
-                <input type="number" id="input-p-2000" value="0">
-            </div>
-            <div class="form-field">
-                <label>10000元 總共會中次數</label>
-                <input type="number" id="input-p-10000" value="0">
-            </div>
+            <div class="form-field"><label>100元 剩餘次數</label><input type="number" id="input-p-100" value="0"></div>
+            <div class="form-field"><label>500元 剩餘次數</label><input type="number" id="input-p-500" value="0"></div>
+            <div class="form-field"><label>1000元 剩餘次數</label><input type="number" id="input-p-1000" value="0"></div>
+            <div class="form-field"><label>2000元 剩餘次數</label><input type="number" id="input-p-2000" value="0"></div>
+            <div class="form-field"><label>10000元 剩餘次數</label><input type="number" id="input-p-10000" value="0"></div>
         </div>
 
         <div class="form-row" style="margin-top: 10px;">
@@ -228,7 +84,6 @@
         <div id="status-msg"></div>
     </div>
 
-    <!-- 會員列表 -->
     <div class="card-panel">
         <h3>現有 VIP 會員列表與機率控制</h3>
         <div class="search-row">
@@ -244,11 +99,11 @@
                         <th>已抽次數</th>
                         <th>中獎率%</th>
                         <th>保底次數</th>
-                        <th>100中次數</th>
-                        <th>500中次數</th>
-                        <th>1000中次數</th>
-                        <th>2000中次數</th>
-                        <th>10000中次數</th>
+                        <th>100次數</th>
+                        <th>500次數</th>
+                        <th>1000次數</th>
+                        <th>2000次數</th>
+                        <th>10000次數</th>
                         <th>最新結果</th>
                         <th>操作</th>
                     </tr>
@@ -260,10 +115,9 @@
         </div>
     </div>
 
-    <!-- Firebase 與後台管理邏輯 -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/12.18.0/firebase-app.js";
-        import { getFirestore, collection, doc, getDocs, setDoc, deleteDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/12.18.0/firebase-firestore.js";
+        import { getFirestore, collection, doc, setDoc, deleteDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/12.18.0/firebase-firestore.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyAgXlbP-D-k_Dj13Mmop-LRIm15FTkrGGY",
@@ -284,7 +138,6 @@
         const inputDrawn = document.getElementById('input-drawn');
         const inputRate = document.getElementById('input-rate');
         const inputGuarantee = document.getElementById('input-guarantee');
-        
         const inputP100 = document.getElementById('input-p-100');
         const inputP500 = document.getElementById('input-p-500');
         const inputP1000 = document.getElementById('input-p-1000');
@@ -300,37 +153,27 @@
 
         let allMembers = [];
 
-        // 即時監聽 Firestore 
         function listenMembers() {
             onSnapshot(collection(db, "users"), (snapshot) => {
                 allMembers = [];
                 snapshot.forEach((docSnap) => {
-                    allMembers.push({
-                        id: docSnap.id,
-                        ...docSnap.data()
-                    });
+                    allMembers.push({ id: docSnap.id, ...docSnap.data() });
                 });
-                executeSearch(); // 資料更新時依照當前搜尋條件刷新表格
-            }, (error) => {
-                console.error("讀取失敗：", error);
-                statusMsg.textContent = "讀取資料庫失敗！";
+                executeSearch();
             });
         }
 
-        // 執行搜尋與渲染
         function executeSearch() {
             const keyword = searchInput.value.trim().toLowerCase();
             const filtered = keyword ? allMembers.filter(m => m.id.toLowerCase().includes(keyword)) : allMembers;
             renderTable(filtered);
         }
 
-        // 渲染表格
         function renderTable(data) {
             if (data.length === 0) {
                 tableBody.innerHTML = `<tr><td colspan="12" style="text-align: center;">目前沒有符合條件的會員資料</td></tr>`;
                 return;
             }
-
             tableBody.innerHTML = '';
             data.forEach(m => {
                 const tr = document.createElement('tr');
@@ -355,23 +198,12 @@
             });
         }
 
-        // 點擊「確認搜尋」按鈕
         searchBtn.addEventListener('click', executeSearch);
+        searchInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') executeSearch(); });
 
-        // 在搜尋框按下 Enter 也可以直接確認搜尋
-        searchInput.addEventListener('keydown', (e) => {
-            if (e.key === 'Enter') {
-                executeSearch();
-            }
-        });
-
-        // 儲存 / 更新
         saveBtn.addEventListener('click', async () => {
             const userId = inputUserId.value.trim();
-            if (!userId) {
-                alert('請輸入會員編號姓名！');
-                return;
-            }
+            if (!userId) { alert('請輸入會員編號姓名！'); return; }
 
             const dataToSave = {
                 chances: parseInt(inputChances.value) || 0,
@@ -391,30 +223,25 @@
                 statusMsg.textContent = `成功儲存會員：${userId}`;
                 clearForm();
             } catch (err) {
-                console.error(err);
                 statusMsg.textContent = "儲存失敗！";
             }
         });
 
-        // 帶入資料修改
         window.editMember = function(id) {
             const m = allMembers.find(item => item.id === id);
             if (!m) return;
-
             inputUserId.value = m.id;
             inputUserId.disabled = true;
             inputChances.value = m.chances ?? 1;
             inputDrawn.value = m.drawnCount ?? 0;
             inputRate.value = m.winRate ?? 100;
             inputGuarantee.value = m.guaranteeCount ?? 0;
-            
             inputP100.value = m.p100 ?? 0;
             inputP500.value = m.p500 ?? 0;
             inputP1000.value = m.p1000 ?? 0;
             inputP2000.value = m.p2000 ?? 0;
             inputP10000.value = m.p10000 ?? 0;
             inputResult.value = m.result || '';
-
             cancelEditBtn.style.display = 'inline-block';
             document.getElementById('form-title').textContent = `修改會員參數: ${id}`;
             window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -439,26 +266,12 @@
             document.getElementById('form-title').textContent = '新增會員 / 參數微調';
         }
 
-        // 刪除
         window.deleteMember = async function(id) {
             if (confirm(`確定要刪除會員 [ ${id} ] 嗎？`)) {
-                try {
-                    await deleteDoc(doc(db, "users", id));
-                    statusMsg.textContent = `已刪除會員：${id}`;
-                } catch (err) {
-                    console.error(err);
-                    statusMsg.textContent = "刪除失敗！";
-                }
+                await deleteDoc(doc(db, "users", id));
+                statusMsg.textContent = `已刪除會員：${id}`;
             }
         }
-
-        // 同步按鈕提示
-        document.getElementById('sync-to-sheet').addEventListener('click', () => {
-            alert('準備連接 Google 試算表同步 (可透過 Apps Script 接收此資料結構)');
-        });
-        document.getElementById('sync-from-sheet').addEventListener('click', () => {
-            alert('準備從 Google 試算表讀取最新設定回寫至 Firebase');
-        });
 
         listenMembers();
     </script>
