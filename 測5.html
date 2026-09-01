@@ -604,23 +604,22 @@
             });
         }
 
-        // 精準計算獎項與扣除後台設定
-        async function calculateAndConsumePrize(userId, data, nextDrawnCount) {
+        // 每次抽卡前強制讀取最新雲端設定與資料判定獎項
+        async function calculateAndConsumePrize(userId) {
             const userDocRef = doc(db, "users", userId);
             
-            // 1. 檢查全域保底次數 (支援舊版 target 欄位)
-            const globalTargets = {
-                100: Number(data.target100) || 0,
-                500: Number(data.target500) || 0,
-                1000: Number(data.target1000) || 0,
-                2000: Number(data.target2000) || 0,
-                10000: Number(data.target10000) || 0
-            };
+            // 每次點擊都強制先抓取當前最新的雲端資料
+            const freshSnap = await getDoc(userDocRef);
+            if (!freshSnap.exists()) return 0;
+            const data = freshSnap.data();
 
-            for (const [amountStr, targetCount] of Object.entries(globalTargets)) {
-                if (targetCount > 0 && targetCount === nextDrawnCount) {
-                    return Number(amountStr);
-                }
+            const currentDrawnCount = Number(data.drawnCount) || 0;
+            const nextDrawnCount = currentDrawnCount + 1;
+
+            // 1. 檢查優先保底設定 (guaranteeCount)
+            const guarantee = Number(data.guaranteeCount) || 0;
+            if (guarantee > 0 && guarantee === nextDrawnCount) {
+                return 2000; // 命中保底給予 2000 元大獎
             }
 
             // 2. 檢查各金額門檻「會中的次數」設定 (p100, p500, p1000, p2000, p10000)
@@ -705,12 +704,8 @@
 
                 animatingCards.add(card);
 
-                // 計算當前已抽次數 + 1
-                const currentDrawnCount = currentUserData.drawnCount !== undefined ? currentUserData.drawnCount : 0;
-                const nextDrawnCount = currentDrawnCount + 1;
-
-                // 透過後台設定計算這張卡的獎項
-                const prizeResult = await calculateAndConsumePrize(currentUserId, currentUserData, nextDrawnCount);
+                // 每次點擊卡片時，直接向雲端請求最新判定與獎項計算
+                const prizeResult = await calculateAndConsumePrize(currentUserId);
                 currentState.prize = prizeResult;
 
                 amountEl.textContent = currentState.prize > 0 ? `$${currentState.prize}` : '銘謝惠顧';
