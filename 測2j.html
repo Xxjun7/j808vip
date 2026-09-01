@@ -70,13 +70,6 @@
             <div class="form-field"><label>10000元 剩餘次數</label><input type="number" id="input-p-10000" value="0"></div>
         </div>
 
-        <div class="form-row" style="margin-top: 10px;">
-            <div class="form-field">
-                <label>最近抽獎結果 (result)</label>
-                <input type="text" id="input-result" placeholder="例如：1000元大獎">
-            </div>
-        </div>
-
         <div class="btn-group">
             <button class="btn" id="save-btn">儲存 / 更新會員設定</button>
             <button class="btn btn-danger" id="cancel-edit" style="display:none;">取消編輯</button>
@@ -104,12 +97,11 @@
                         <th>1000次數</th>
                         <th>2000次數</th>
                         <th>10000次數</th>
-                        <th>最新結果</th>
                         <th>操作</th>
                     </tr>
                 </thead>
                 <tbody id="member-table-body">
-                    <tr><td colspan="12" style="text-align: center;">載入中...</td></tr>
+                    <tr><td colspan="11" style="text-align: center;">載入中...</td></tr>
                 </tbody>
             </table>
         </div>
@@ -143,7 +135,6 @@
         const inputP1000 = document.getElementById('input-p-1000');
         const inputP2000 = document.getElementById('input-p-2000');
         const inputP10000 = document.getElementById('input-p-10000');
-        const inputResult = document.getElementById('input-result');
 
         const saveBtn = document.getElementById('save-btn');
         const cancelEditBtn = document.getElementById('cancel-edit');
@@ -171,7 +162,7 @@
 
         function renderTable(data) {
             if (data.length === 0) {
-                tableBody.innerHTML = `<tr><td colspan="12" style="text-align: center;">目前沒有符合條件的會員資料</td></tr>`;
+                tableBody.innerHTML = `<tr><td colspan="11" style="text-align: center;">目前沒有符合條件的會員資料</td></tr>`;
                 return;
             }
             tableBody.innerHTML = '';
@@ -188,7 +179,6 @@
                     <td>${m.p1000 ?? 0}</td>
                     <td>${m.p2000 ?? 0}</td>
                     <td>${m.p10000 ?? 0}</td>
-                    <td>${m.result || '(未開獎)'}</td>
                     <td class="actions-cell">
                         <button class="btn" onclick="window.editMember('${m.id}')">修改</button>
                         <button class="btn btn-danger" onclick="window.deleteMember('${m.id}')">刪除</button>
@@ -205,17 +195,18 @@
             const userId = inputUserId.value.trim();
             if (!userId) { alert('請輸入會員編號姓名！'); return; }
 
+            const rateVal = parseFloat(inputRate.value);
+
             const dataToSave = {
                 chances: parseInt(inputChances.value) || 0,
                 drawnCount: parseInt(inputDrawn.value) || 0,
-                winRate: parseFloat(inputRate.value) || 100,
+                winRate: isNaN(rateVal) ? 100 : rateVal,
                 guaranteeCount: parseInt(inputGuarantee.value) || 0,
                 p100: parseInt(inputP100.value) || 0,
                 p500: parseInt(inputP500.value) || 0,
                 p1000: parseInt(inputP1000.value) || 0,
                 p2000: parseInt(inputP2000.value) || 0,
-                p10000: parseInt(inputP10000.value) || 0,
-                result: inputResult.value.trim()
+                p10000: parseInt(inputP10000.value) || 0
             };
 
             try {
@@ -234,14 +225,13 @@
             inputUserId.disabled = true;
             inputChances.value = m.chances ?? 1;
             inputDrawn.value = m.drawnCount ?? 0;
-            inputRate.value = m.winRate ?? 100;
+            inputRate.value = (m.winRate !== undefined && m.winRate !== null) ? m.winRate : 100;
             inputGuarantee.value = m.guaranteeCount ?? 0;
             inputP100.value = m.p100 ?? 0;
             inputP500.value = m.p500 ?? 0;
             inputP1000.value = m.p1000 ?? 0;
             inputP2000.value = m.p2000 ?? 0;
             inputP10000.value = m.p10000 ?? 0;
-            inputResult.value = m.result || '';
             cancelEditBtn.style.display = 'inline-block';
             document.getElementById('form-title').textContent = `修改會員參數: ${id}`;
             window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -261,7 +251,6 @@
             inputP1000.value = '0';
             inputP2000.value = '0';
             inputP10000.value = '0';
-            inputResult.value = '';
             cancelEditBtn.style.display = 'none';
             document.getElementById('form-title').textContent = '新增會員 / 參數微調';
         }
