@@ -59,7 +59,7 @@
             </div>
             <div class="form-field">
                 <label>遊戲總次數 (chances)</label>
-                <input type="number" id="input-chances" value="1">
+                <input type="number" id="input-chances" value="0">
             </div>
             <div class="form-field">
                 <label>已抽次數 (drawnCount)</label>
@@ -77,11 +77,11 @@
 
         <h3 style="font-size: 15px; margin-top: 15px;">各金額門檻「會中的次數」設定 (p100 ~ p10000)</h3>
         <div class="form-row">
-            <div class="form-field"><label>100元 剩餘次數</label><input type="number" id="input-p-100" value="0"></div>
-            <div class="form-field"><label>500元 剩餘次數</label><input type="number" id="input-p-500" value="0"></div>
-            <div class="form-field"><label>1000元 剩餘次數</label><input type="number" id="input-p-1000" value="0"></div>
-            <div class="form-field"><label>2000元 剩餘次數</label><input type="number" id="input-p-2000" value="0"></div>
-            <div class="form-field"><label>10000元 剩餘次數</label><input type="number" id="input-p-10000" value="0"></div>
+            <div class="form-field"><label>$100 剩餘次數</label><input type="number" id="input-p-100" value="0"></div>
+            <div class="form-field"><label>$500 剩餘次數</label><input type="number" id="input-p-500" value="0"></div>
+            <div class="form-field"><label>$1000 剩餘次數</label><input type="number" id="input-p-1000" value="0"></div>
+            <div class="form-field"><label>$2000 剩餘次數</label><input type="number" id="input-p-2000" value="0"></div>
+            <div class="form-field"><label>$10000 剩餘次數</label><input type="number" id="input-p-10000" value="0"></div>
         </div>
 
         <div class="btn-group">
@@ -106,11 +106,11 @@
                         <th>已抽次數</th>
                         <th>中獎率%</th>
                         <th>保底次數</th>
-                        <th>100次數</th>
-                        <th>500次數</th>
-                        <th>1000次數</th>
-                        <th>2000次數</th>
-                        <th>10000次數</th>
+                        <th>$100次數</th>
+                        <th>$500次數</th>
+                        <th>$1000次數</th>
+                        <th>$2000次數</th>
+                        <th>$10000次數</th>
                         <th>操作</th>
                     </tr>
                 </thead>
@@ -218,7 +218,6 @@
             const keyword = searchInput.value.trim();
             
             if (!keyword) {
-                // 如果沒輸入關鍵字，跳出 UI 面板警告避免誤按導致全量讀取
                 showModal(
                     '⚠️ 讀取用量警告', 
                     '您目前未輸入任何會員編號或姓名。若直接點擊確認，將會把 Firebase 中「所有會員資料」全數讀取出來，可能會消耗大量讀取額度。確定要載入全部嗎？', 
@@ -366,39 +365,60 @@
         }
 
         // 串接 Google 試算表同步至 Firebase (GET)
-        syncSheetToFbBtn.addEventListener('click', async () => {
-            showModal('同步中', '正在從 Google 試算表同步至 Firebase，請稍候...');
-            syncSheetToFbBtn.disabled = true;
-            try {
-                const response = await fetch(`${GAS_URL}?action=syncToFirebase`);
-                const result = await response.json();
-                showModal('成功', 'Google 試算表同步至 Firebase 成功！');
-            } catch (err) {
-                console.error(err);
-                showModal('錯誤', '同步失敗，請確認 GAS 部署與網路連線！');
-            } finally {
-                syncSheetToFbBtn.disabled = false;
-            }
+        syncSheetToFbBtn.addEventListener('click', () => {
+            showModal(
+                '⚠️ 同步用量警告', 
+                '從 Google 試算表同步回 Firebase 會寫入大量資料。確定要執行嗎？', 
+                'confirm', 
+                async () => {
+                    showModal('同步中', '正在從 Google 試算表同步至 Firebase，請稍候...');
+                    syncSheetToFbBtn.disabled = true;
+                    try {
+                        const response = await fetch(`${GAS_URL}?action=syncToFirebase`);
+                        const result = await response.json();
+                        showModal('成功', 'Google 試算表同步至 Firebase 成功！');
+                    } catch (err) {
+                        console.error(err);
+                        showModal('錯誤', '同步失敗，請確認 GAS 部署與網路連線！');
+                    } finally {
+                        syncSheetToFbBtn.disabled = false;
+                    }
+                }
+            );
         });
 
-        // 串接 Firebase 同步至 Google 試算表 (POST)
-        syncFbToSheetBtn.addEventListener('click', async () => {
-            showModal('同步中', '正在從 Firebase 同步至 Google 試算表，請稍候...');
-            syncFbToSheetBtn.disabled = true;
-            try {
-                const response = await fetch(GAS_URL, {
-                    method: 'POST',
-                    body: JSON.stringify({ action: 'syncToSheet', members: allMembers }),
-                    headers: { 'Content-Type': 'text/plain;charset=utf-8' }
-                });
-                const result = await response.json();
-                showModal('成功', 'Firebase 同步至 Google 試算表成功！');
-            } catch (err) {
-                console.error(err);
-                showModal('錯誤', '同步失敗，請確認 GAS 部署與網路連線！');
-            } finally {
-                syncFbToSheetBtn.disabled = false;
-            }
+        // 串接 Firebase 同步至 Google 試算表 (POST) -> 加上防呆與強制全量讀取確認
+        syncFbToSheetBtn.addEventListener('click', () => {
+            showModal(
+                '⚠️ 讀取全體會員警告', 
+                '此操作必須將 Firebase 中「所有會員資料」全數讀取並打包同步到 Google 試算表，會消耗大量讀取額度。確定要執行嗎？', 
+                'confirm', 
+                async () => {
+                    showModal('同步中', '正在從 Firebase 讀取所有會員並同步至 Google 試算表，請稍候...');
+                    syncFbToSheetBtn.disabled = true;
+                    try {
+                        // 強制在同步前抓取全部會員，確保不會傳送空陣列
+                        const querySnapshot = await getDocs(collection(db, "users"));
+                        const freshAllMembers = [];
+                        querySnapshot.forEach((docSnap) => {
+                            freshAllMembers.push({ id: docSnap.id, ...docSnap.data() });
+                        });
+
+                        const response = await fetch(GAS_URL, {
+                            method: 'POST',
+                            body: JSON.stringify({ action: 'syncToSheet', members: freshAllMembers }),
+                            headers: { 'Content-Type': 'text/plain;charset=utf-8' }
+                        });
+                        const result = await response.json();
+                        showModal('成功', `Firebase 同步至 Google 試算表成功！共同步 ${freshAllMembers.length} 筆會員。`);
+                    } catch (err) {
+                        console.error(err);
+                        showModal('錯誤', '同步失敗，請確認 GAS 部署與網路連線！');
+                    } finally {
+                        syncFbToSheetBtn.disabled = false;
+                    }
+                }
+            );
         });
     </script>
 </body>
