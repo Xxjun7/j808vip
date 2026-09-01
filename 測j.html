@@ -7,7 +7,7 @@
     <link rel="icon" type="image/x-icon" href="./Jicon.ico">
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; }
-        body { font-family: 'Arial', sans-serif; background-color: #080b10; color: #ffd700; padding: 20px; }
+        body { font-family: 'Arial', sans-serif; background-color: #080b10; color: #ffd700; padding: 20px; position: relative; min-height: 100vh; }
         header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; border-bottom: 2px solid #ffd700; padding-bottom: 10px; flex-wrap: wrap; gap: 10px; }
         h1 { font-size: 24px; text-shadow: 0 0 10px rgba(255, 215, 0, 0.5); }
         .header-btns { display: flex; gap: 10px; flex-wrap: wrap; }
@@ -28,8 +28,16 @@
         th { background: rgba(255, 215, 0, 0.2); color: #ffd700; }
         tr:hover { background: rgba(255, 215, 0, 0.05); }
         .actions-cell button { margin: 2px; padding: 5px 8px; font-size: 11px; }
-        #status-msg { margin-top: 10px; font-size: 14px; font-weight: bold; color: #00ffcc; }
+        #status-msg { margin-top: 10px; font-size: 14px; font-weight: bold; color: #00ffcc; display: none; }
         .btn-group { display: flex; gap: 10px; margin-top: 15px; }
+
+        /* 自定義彈出 UI 面板樣式 */
+        .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.7); display: flex; justify-content: center; align-items: center; z-index: 9999; opacity: 0; visibility: hidden; transition: opacity 0.3s ease; }
+        .modal-overlay.active { opacity: 1; visibility: visible; }
+        .modal-box { background: #080b10; border: 2px solid #ffd700; border-radius: 12px; padding: 25px; width: 90%; max-width: 400px; box-shadow: 0 0 25px rgba(255, 215, 0, 0.3); text-align: center; }
+        .modal-box h3 { color: #ffd700; margin-bottom: 15px; font-size: 20px; }
+        .modal-box p { color: #ccc; font-size: 14px; margin-bottom: 20px; line-height: 1.5; }
+        .modal-btns { display: flex; justify-content: center; gap: 10px; }
     </style>
 </head>
 <body>
@@ -86,7 +94,7 @@
     <div class="card-panel">
         <h3>現有 VIP 會員列表與機率控制</h3>
         <div class="search-row">
-            <input type="text" id="search-input" placeholder="搜尋會員姓名或編號..." style="flex: 1;">
+            <input type="text" id="search-input" placeholder="輸入會員姓名或編號搜尋..." style="flex: 1;">
             <button class="btn" id="search-btn">確認搜尋</button>
         </div>
         <div class="table-container">
@@ -107,15 +115,26 @@
                     </tr>
                 </thead>
                 <tbody id="member-table-body">
-                    <tr><td colspan="11" style="text-align: center;">載入中...</td></tr>
+                    <tr><td colspan="11" style="text-align: center; color: #888;">請輸入會員名稱或點擊搜尋以載入資料</td></tr>
                 </tbody>
             </table>
         </div>
     </div>
 
+    <!-- UI 彈出面板 (Modal) -->
+    <div class="modal-overlay" id="custom-modal">
+        <div class="modal-box">
+            <h3 id="modal-title">提示訊息</h3>
+            <p id="modal-text">內容文字...</p>
+            <div class="modal-btns" id="modal-btns-container">
+                <button class="btn" id="modal-ok-btn">確定</button>
+            </div>
+        </div>
+    </div>
+
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/12.18.0/firebase-app.js";
-        import { getFirestore, collection, doc, setDoc, deleteDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/12.18.0/firebase-firestore.js";
+        import { getFirestore, collection, doc, getDoc, getDocs, setDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/12.18.0/firebase-firestore.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyAgXlbP-D-k_Dj13Mmop-LRIm15FTkrGGY",
@@ -146,33 +165,102 @@
 
         const saveBtn = document.getElementById('save-btn');
         const cancelEditBtn = document.getElementById('cancel-edit');
-        const statusMsg = document.getElementById('status-msg');
         const searchInput = document.getElementById('search-input');
         const searchBtn = document.getElementById('search-btn');
         const syncSheetToFbBtn = document.getElementById('sync-sheet-to-fb-btn');
         const syncFbToSheetBtn = document.getElementById('sync-fb-to-sheet-btn');
 
-        let allMembers = [];
+        // UI Modal 元素
+        const modalOverlay = document.getElementById('custom-modal');
+        const modalTitle = document.getElementById('modal-title');
+        const modalText = document.getElementById('modal-text');
+        const modalBtnsContainer = document.getElementById('modal-btns-container');
 
-        function listenMembers() {
-            onSnapshot(collection(db, "users"), (snapshot) => {
-                allMembers = [];
-                snapshot.forEach((docSnap) => {
-                    allMembers.push({ id: docSnap.id, ...docSnap.data() });
-                });
-                executeSearch();
-            });
+        function showModal(title, text, type = 'alert', onConfirm = null) {
+            modalTitle.textContent = title;
+            modalText.textContent = text;
+            modalBtnsContainer.innerHTML = '';
+
+            if (type === 'confirm') {
+                const cancelBtn = document.createElement('button');
+                cancelBtn.className = 'btn btn-danger';
+                cancelBtn.textContent = '取消';
+                cancelBtn.onclick = () => closeModal();
+
+                const confirmBtn = document.createElement('button');
+                confirmBtn.className = 'btn';
+                confirmBtn.textContent = '確定執行';
+                confirmBtn.onclick = () => {
+                    closeModal();
+                    if (onConfirm) onConfirm();
+                };
+
+                modalBtnsContainer.appendChild(cancelBtn);
+                modalBtnsContainer.appendChild(confirmBtn);
+            } else {
+                const okBtn = document.createElement('button');
+                okBtn.className = 'btn';
+                okBtn.textContent = '確定';
+                okBtn.onclick = () => closeModal();
+                modalBtnsContainer.appendChild(okBtn);
+            }
+
+            modalOverlay.classList.add('active');
         }
 
-        function executeSearch() {
-            const keyword = searchInput.value.trim().toLowerCase();
-            const filtered = keyword ? allMembers.filter(m => m.id.toLowerCase().includes(keyword)) : allMembers;
-            renderTable(filtered);
+        function closeModal() {
+            modalOverlay.classList.remove('active');
+        }
+
+        let allMembers = [];
+
+        async function executeSearch() {
+            const keyword = searchInput.value.trim();
+            
+            if (!keyword) {
+                // 如果沒輸入關鍵字，跳出 UI 面板警告避免誤按導致全量讀取
+                showModal(
+                    '⚠️ 讀取用量警告', 
+                    '您目前未輸入任何會員編號或姓名。若直接點擊確認，將會把 Firebase 中「所有會員資料」全數讀取出來，可能會消耗大量讀取額度。確定要載入全部嗎？', 
+                    'confirm', 
+                    () => fetchMembersData(keyword)
+                );
+                return;
+            }
+
+            fetchMembersData(keyword);
+        }
+
+        async function fetchMembersData(keyword) {
+            tableBody.innerHTML = `<tr><td colspan="11" style="text-align: center;">搜尋中...</td></tr>`;
+
+            try {
+                allMembers = [];
+                if (keyword) {
+                    const docRef = doc(db, "users", keyword);
+                    const docSnap = await getDoc(docRef);
+                    if (docSnap.exists()) {
+                        allMembers.push({ id: docSnap.id, ...docSnap.data() });
+                    }
+                } else {
+                    const querySnapshot = await getDocs(collection(db, "users"));
+                    querySnapshot.forEach((docSnap) => {
+                        allMembers.push({ id: docSnap.id, ...docSnap.data() });
+                    });
+                }
+
+                renderTable(allMembers);
+                showModal('通知', `搜尋完成，找到 ${allMembers.length} 筆資料`);
+            } catch (err) {
+                console.error(err);
+                showModal('錯誤', '搜尋失敗！');
+                tableBody.innerHTML = `<tr><td colspan="11" style="text-align: center; color: #ff4d4d;">讀取失敗</td></tr>`;
+            }
         }
 
         function renderTable(data) {
             if (data.length === 0) {
-                tableBody.innerHTML = `<tr><td colspan="11" style="text-align: center;">目前沒有符合條件的會員資料</td></tr>`;
+                tableBody.innerHTML = `<tr><td colspan="11" style="text-align: center;">找不到符合的會員資料</td></tr>`;
                 return;
             }
             tableBody.innerHTML = '';
@@ -203,7 +291,10 @@
 
         saveBtn.addEventListener('click', async () => {
             const userId = inputUserId.value.trim();
-            if (!userId) { alert('請輸入會員編號姓名！'); return; }
+            if (!userId) { 
+                showModal('提示', '請輸入會員編號姓名！'); 
+                return; 
+            }
 
             const rateVal = parseFloat(inputRate.value);
 
@@ -221,10 +312,11 @@
 
             try {
                 await setDoc(doc(db, "users", userId), dataToSave, { merge: true });
-                statusMsg.textContent = `成功儲存會員：${userId}`;
+                showModal('成功', `成功儲存會員：${userId}`);
                 clearForm();
+                if (searchInput.value.trim()) executeSearch();
             } catch (err) {
-                statusMsg.textContent = "儲存失敗！";
+                showModal('錯誤', '儲存失敗！');
             }
         });
 
@@ -265,24 +357,25 @@
             document.getElementById('form-title').textContent = '新增會員 / 參數微調';
         }
 
-        window.deleteMember = async function(id) {
-            if (confirm(`確定要刪除會員 [ ${id} ] 嗎？`)) {
+        window.deleteMember = function(id) {
+            showModal('確認刪除', `確定要刪除會員 [ ${id} ] 嗎？`, 'confirm', async () => {
                 await deleteDoc(doc(db, "users", id));
-                statusMsg.textContent = `已刪除會員：${id}`;
-            }
+                showModal('成功', `已刪除會員：${id}`);
+                if (searchInput.value.trim()) executeSearch();
+            });
         }
 
         // 串接 Google 試算表同步至 Firebase (GET)
         syncSheetToFbBtn.addEventListener('click', async () => {
-            statusMsg.textContent = "正在從 Google 試算表同步至 Firebase，請稍候...";
+            showModal('同步中', '正在從 Google 試算表同步至 Firebase，請稍候...');
             syncSheetToFbBtn.disabled = true;
             try {
                 const response = await fetch(`${GAS_URL}?action=syncToFirebase`);
                 const result = await response.json();
-                statusMsg.textContent = "Google 試算表同步至 Firebase 成功！";
+                showModal('成功', 'Google 試算表同步至 Firebase 成功！');
             } catch (err) {
                 console.error(err);
-                statusMsg.textContent = "同步失敗，請確認 GAS 部署與網路連線！";
+                showModal('錯誤', '同步失敗，請確認 GAS 部署與網路連線！');
             } finally {
                 syncSheetToFbBtn.disabled = false;
             }
@@ -290,7 +383,7 @@
 
         // 串接 Firebase 同步至 Google 試算表 (POST)
         syncFbToSheetBtn.addEventListener('click', async () => {
-            statusMsg.textContent = "正在從 Firebase 同步至 Google 試算表，請稍候...";
+            showModal('同步中', '正在從 Firebase 同步至 Google 試算表，請稍候...');
             syncFbToSheetBtn.disabled = true;
             try {
                 const response = await fetch(GAS_URL, {
@@ -299,16 +392,14 @@
                     headers: { 'Content-Type': 'text/plain;charset=utf-8' }
                 });
                 const result = await response.json();
-                statusMsg.textContent = "Firebase 同步至 Google 試算表成功！";
+                showModal('成功', 'Firebase 同步至 Google 試算表成功！');
             } catch (err) {
                 console.error(err);
-                statusMsg.textContent = "同步失敗，請確認 GAS 部署與網路連線！";
+                showModal('錯誤', '同步失敗，請確認 GAS 部署與網路連線！');
             } finally {
                 syncFbToSheetBtn.disabled = false;
             }
         });
-
-        listenMembers();
     </script>
 </body>
 </html>
