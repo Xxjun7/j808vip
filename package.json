@@ -1,0 +1,12 @@
+{
+  "name": "j808vip",
+  "version": "1.0.0",
+  "description": "VIP Lottery System",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && "
+  },
+  "dependencies": {
+    "firebase-admin": "^14.3.0"
+  }
+}
