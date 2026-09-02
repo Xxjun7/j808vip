@@ -241,24 +241,8 @@
             transform: scale(0.95);
         }
 
-        /* 登入遮罩與通用訊息彈窗 Modal (預設 display: flex 避免一開始閃過遊戲背景) */
-        #login-modal {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100vw;
-            height: 100vh;
-            background-image: url('image_7.png');
-            background-size: cover;
-            background-position: center;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            z-index: 10000;
-            transition: transform 0.3s ease, width 0.3s ease, height 0.3s ease;
-        }
-
-        #message-modal {
+        /* 登入遮罩與通用訊息彈窗 Modal */
+        #login-modal, #message-modal {
             position: fixed;
             top: 0;
             left: 0;
@@ -405,6 +389,7 @@
 
 <body>
 
+    <!-- 會員登入面板 -->
     <div id="login-modal">
         <div class="login-box">
             <h2>金正旺 VIP 登入</h2>
@@ -417,6 +402,7 @@
         </div>
     </div>
 
+    <!-- 通用 UI 提示彈窗面板 -->
     <div id="message-modal">
         <div class="message-box">
             <h2 id="msg-title">提示訊息</h2>
@@ -425,6 +411,7 @@
         </div>
     </div>
 
+    <!-- 橫向提示面板 -->
     <div id="portrait-notice">
         <div class="ui-btn rotate-btn" id="manual-rotate-btn">
             <span class="ui-btn-icon">🔄</span>
@@ -434,19 +421,23 @@
         <p>請將手機旋轉至「橫向」<br>獲得最佳 VIP 抽卡體驗</p>
     </div>
 
+    <!-- 遊戲主區域 -->
     <div id="game-container">
 
+        <!-- 左上角玩家資訊列 -->
         <div id="user-info-bar">
             <span id="display-user-info">載入中...</span>
             <span id="display-user-chances">遊戲次數: -</span>
             <button id="logout-btn">登出</button>
         </div>
 
+        <!-- 音效切換按鈕 -->
         <div class="ui-btn" id="audio-btn">
             <span class="ui-btn-icon" id="audio-icon">🔊</span>
             <span class="ui-btn-text" id="audio-text">音樂開</span>
         </div>
 
+        <!-- 抽卡區域 (固定 3 張卡片) -->
         <div id="card-area">
             <div class="card-container" data-index="0">
                 <div class="card-shaker">
@@ -482,6 +473,7 @@
 
     </div>
 
+    <!-- Firebase 邏輯整合與 3 張獨立卡片核心控制 -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/12.18.0/firebase-app.js";
         import { getAnalytics } from "https://www.gstatic.com/firebasejs/12.18.0/firebase-analytics.js";
@@ -695,10 +687,277 @@
                 }
             }
 
+            // 【核心改良】：為了讓指定次數「均勻隨機散佈」在所有剩餘次數中，不擠在前面：
+            // 我們動態計算當前抽中「指定金額」的機率 = (剩餘指定次數 / 剩餘總次數)。
+            // 這樣隨著抽卡次數減少，指定次數會自然且均勻地被稀釋在整段歷程中！
             let chosenPrize = null;
 
             if (totalSpecificLeft > 0 && currentChances > 0) {
                 const specificProbability = totalSpecificLeft / currentChances;
                 if (Math.random() < specificProbability) {
+                    // 從現有的指定金額清單中隨機抽一個出來
                     const randomIndex = Math.floor(Math.random() * availableSpecificPrizes.length);
-                    chosen
+                    chosenPrize = availableSpecificPrizes[randomIndex];
+                }
+            }
+
+            if (chosenPrize !== null) {
+                // 抽中了指定金額，扣除對應 Firebase 欄位
+                const fieldName = `p${chosenPrize}`;
+                try {
+                    await updateDoc(userDocRef, {
+                        [fieldName]: increment(-1)
+                    });
+                } catch (err) {
+                    console.error("扣除指定金額次數失敗：", err);
+                }
+                return chosenPrize;
+            }
+
+            // 若沒有抽中指定金額，則跑原本的保底與勝率判定
+            let lotteryPool = [];
+
+            if (guaranteeTotal > 0 && currentChances > 0) {
+                const guaranteeProb = guaranteeTotal / currentChances;
+                if (Math.random() < guaranteeProb) {
+                    lotteryPool.push('guarantee');
+                }
+            }
+
+            const roll = Math.random() * 100;
+            if (roll <= winRate) {
+                lotteryPool.push('normal_win');
+            } else {
+                lotteryPool.push('lose');
+            }
+
+            const outcome = lotteryPool[Math.floor(Math.random() * lotteryPool.length)];
+
+            if (outcome === 'guarantee') {
+                try {
+                    await updateDoc(userDocRef, {
+                        guaranteeCount: increment(-1)
+                    });
+                } catch (err) {
+                    console.error("扣除保底次數失敗：", err);
+                }
+                const defaultPool = [100, 500, 1000, 2000, 10000];
+                return defaultPool[Math.floor(Math.random() * defaultPool.length)];
+            } 
+            else if (outcome === 'normal_win') {
+                const defaultPool = [100, 500, 1000, 2000, 10000];
+                return defaultPool[Math.floor(Math.random() * defaultPool.length)];
+            } 
+            else {
+                return 0; // 銘謝惠顧
+            }
+        }
+
+        // 綁定 3 張獨立卡片點擊事件
+        cardContainers.forEach((container, index) => {
+            const card = container.querySelector('.card');
+            const shaker = container.querySelector('.card-shaker');
+            const amountEl = container.querySelector('.card-amount');
+
+            container.addEventListener('click', async () => {
+                if (!currentUserId || !currentUserData) {
+                    showCustomAlert('系統提示', '請先登入會員！');
+                    return;
+                }
+
+                if (animatingCards.has(card)) return;
+
+                const currentState = cardStates[index];
+
+                if (currentState.isFlipped) {
+                    animatingCards.add(card);
+                    if (typeof playSFX === 'function' && window.sounds) {
+                        playSFX(window.sounds.flip);
+                    }
+                    card.classList.remove('flipped');
+                    currentState.isFlipped = false;
+                    currentState.prize = null;
+                    setTimeout(() => {
+                        animatingCards.delete(card);
+                    }, 800);
+                    return;
+                }
+
+                const currentChances = currentUserData.chances !== undefined ? currentUserData.chances : 0;
+                if (currentChances <= 0) {
+                    showCustomAlert('次數不足', '目前剩餘可抽次數不足，\n請聯繫客服加值次數！');
+                    return;
+                }
+
+                animatingCards.add(card);
+
+                const prizeResult = await calculateAndConsumePrize(currentUserId);
+                currentState.prize = prizeResult;
+
+                amountEl.textContent = currentState.prize > 0 ? `$${currentState.prize}` : '銘謝惠顧';
+
+                if (typeof playSFX === 'function' && window.sounds) {
+                    playSFX(window.sounds.shake);
+                }
+                shaker.classList.add('shaking');
+
+                try {
+                    const userDocRef = doc(db, "users", currentUserId);
+                    await updateDoc(userDocRef, {
+                        chances: increment(-1),
+                        drawnCount: increment(1)
+                    });
+                } catch (err) {
+                    console.error("更新 Firebase 次數失敗：", err);
+                }
+
+                setTimeout(() => {
+                    shaker.classList.remove('shaking');
+                    if (typeof playSFX === 'function' && window.sounds) {
+                        playSFX(window.sounds.flip);
+                        setTimeout(() => playSFX(window.sounds.win), 200);
+                    }
+
+                    card.classList.add('flipped');
+                    currentState.isFlipped = true;
+
+                    setTimeout(() => {
+                        animatingCards.delete(card);
+                    }, 800);
+                }, 500);
+            });
+        });
+
+        window.checkAndShowLogin = checkAndShowLogin;
+    </script>
+
+    <!-- 遊戲互動與音效控制 -->
+    <script>
+        const sounds = {
+            bgm: new Audio('bgm01.mp3'),
+            shake: new Audio('shake01.mp3'),
+            flip: new Audio('flip01.mp3'),
+            win: new Audio('win01.mp3')
+        };
+        window.sounds = sounds;
+
+        sounds.bgm.loop = true;
+        sounds.bgm.volume = 0.4;
+        sounds.shake.volume = 0.6;
+        sounds.flip.volume = 0.7;
+        sounds.win.volume = 0.8;
+
+        let isMuted = false;
+        let bgmStarted = false;
+
+        function playSFX(audioObj) {
+            if (isMuted) return;
+            audioObj.currentTime = 0;
+            audioObj.play().catch(() => {});
+        }
+        window.playSFX = playSFX;
+
+        window.addEventListener('load', () => {
+            if (isMuted) return;
+            sounds.bgm.play().then(() => {
+                bgmStarted = true;
+            }).catch(() => {});
+        });
+
+        function startBGM(event) {
+            if (event && event.target && event.target.closest('#audio-btn')) return;
+            if (bgmStarted || isMuted) return;
+            sounds.bgm.play().then(() => {
+                bgmStarted = true;
+            }).catch(() => {});
+        }
+
+        document.addEventListener('click', startBGM, { passive: true });
+        document.addEventListener('touchstart', startBGM, { passive: true });
+
+        const audioBtn = document.getElementById('audio-btn');
+        const audioIcon = document.getElementById('audio-icon');
+        const audioText = document.getElementById('audio-text');
+
+        audioBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            isMuted = !isMuted;
+            if (isMuted) {
+                sounds.bgm.pause();
+                audioIcon.textContent = '🔇';
+                audioText.textContent = '靜音';
+            } else {
+                sounds.bgm.play().then(() => { bgmStarted = true; }).catch(() => {});
+                audioIcon.textContent = '🔊';
+                audioText.textContent = '音樂開';
+            }
+        });
+
+        function stopAllAudio() {
+            Object.values(sounds).forEach(audio => audio.pause());
+        }
+
+        document.addEventListener('visibilitychange', () => {
+            if (document.hidden) {
+                sounds.bgm.pause();
+            } else {
+                if (!isMuted) sounds.bgm.play().catch(() => {});
+            }
+        });
+
+        window.addEventListener('pagehide', stopAllAudio);
+        window.addEventListener('beforeunload', stopAllAudio);
+
+        const ENABLE_PORTRAIT_NOTICE = true;
+        const noticeEl = document.getElementById('portrait-notice');
+        const gameContainer = document.getElementById('game-container');
+        const rotateBtn = document.getElementById('manual-rotate-btn');
+        const loginModal = document.getElementById('login-modal');
+        const messageModal = document.getElementById('message-modal');
+
+        if (ENABLE_PORTRAIT_NOTICE) {
+            const isLandscape = window.matchMedia('(orientation: landscape)').matches;
+            if (!isLandscape) {
+                noticeEl.classList.add('active');
+                loginModal.style.display = 'none';
+            } else {
+                noticeEl.classList.remove('active');
+            }
+        }
+
+        rotateBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            noticeEl.classList.remove('active');
+            gameContainer.classList.add('force-rotated');
+            loginModal.classList.add('force-rotated');
+            messageModal.classList.add('force-rotated');
+            
+            if (window.checkAndShowLogin) {
+                window.checkAndShowLogin();
+            }
+            window.dispatchEvent(new Event('resize'));
+        });
+
+        function checkOrientation() {
+            const isLandscape = window.matchMedia('(orientation: landscape)').matches;
+            if (isLandscape) {
+                gameContainer.classList.remove('force-rotated');
+                loginModal.classList.remove('force-rotated');
+                messageModal.classList.remove('force-rotated');
+                noticeEl.classList.remove('active');
+                if (window.checkAndShowLogin) {
+                    window.checkAndShowLogin();
+                }
+            } else {
+                if (!gameContainer.classList.contains('force-rotated') && ENABLE_PORTRAIT_NOTICE) {
+                    noticeEl.classList.add('active');
+                    loginModal.style.display = 'none';
+                }
+            }
+        }
+
+        window.addEventListener('resize', checkOrientation);
+        window.addEventListener('orientationchange', checkOrientation);
+    </script>
+</body>
+</html>
