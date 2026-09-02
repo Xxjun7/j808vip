@@ -825,10 +825,8 @@
                     shaker.classList.remove('shaking');
                     if (typeof playSFX === 'function' && window.sounds) {
                         playSFX(window.sounds.flip);
-                        // 將 win01.mp3 延遲 350ms 播放，完美錯開與 flip01 音效的瞬間並發衝突
-                        setTimeout(() => {
-                            playSFX(window.sounds.win);
-                        }, 350);
+                        // 不管有沒有中獎，翻牌完成揭曉的那一刻都播放 win01.mp3
+                        setTimeout(() => playSFX(window.sounds.win), 200);
                     }
 
                     card.classList.add('flipped');
@@ -860,23 +858,36 @@
         sounds.flip.volume = 0.7;
         sounds.win.volume = 0.8;
 
+        // 將原始音量記錄在物件上，供預熱後恢復使用
+        Object.values(sounds).forEach(audio => {
+            audio.originalVolume = audio.volume;
+        });
+
+        // 音效預熱：初次載入時靜音播放一次，讓瀏覽器提前解碼快取
+        function warmUpAudio() {
+            Object.values(sounds).forEach(audio => {
+                if (audio === sounds.bgm) return;
+                audio.volume = 0;
+                audio.play().then(() => {
+                    audio.pause();
+                    audio.currentTime = 0;
+                    audio.volume = audio.originalVolume; // 恢復音量
+                }).catch(() => {});
+            });
+        }
+        window.addEventListener('load', warmUpAudio, { once: true });
+
         let isMuted = false;
         let bgmStarted = false;
 
         function playSFX(audioObj) {
             if (isMuted) return;
+            // 所有互動音效（shake, flip, win）皆使用獨立複製播放，確保多張卡片同時操作或快速連點時絕不互相干擾或截斷
             const cloneAudio = audioObj.cloneNode();
-            cloneAudio.volume = audioObj.volume;
+            cloneAudio.volume = audioObj.originalVolume !== undefined ? audioObj.originalVolume : audioObj.volume;
             cloneAudio.play().catch(() => {});
         }
         window.playSFX = playSFX;
-
-        window.addEventListener('load', () => {
-            if (isMuted) return;
-            sounds.bgm.play().then(() => {
-                bgmStarted = true;
-            }).catch(() => {});
-        });
 
         function startBGM(event) {
             if (event && event.target && event.target.closest('#audio-btn')) return;
