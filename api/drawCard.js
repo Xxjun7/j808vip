@@ -1,16 +1,26 @@
 const { initializeApp, cert, getApps } = require('firebase-admin/app');
 const { getFirestore, Timestamp, FieldValue } = require('firebase-admin/firestore');
 
-// 初始化 Firebase Admin（避免重複初始化）
+// 初始化 Firebase Admin（支援整包 JSON 或個別變數，避免初始化崩潰）
 if (!getApps().length) {
-  initializeApp({
-    credential: cert({
-      projectId: process.env.FIREBASE_PROJECT_ID,
-      clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
-      // 確保私密金鑰中的換行符號被正確還原
-      privateKey: process.env.FIREBASE_PRIVATE_KEY ? process.env.FIREBASE_PRIVATE_KEY.replace(/\\n/g, '\n') : undefined
-    })
-  });
+  try {
+    let serviceAccount;
+    if (process.env.FIREBASE_SERVICE_ACCOUNT) {
+      serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT);
+    } else {
+      serviceAccount = {
+        projectId: process.env.FIREBASE_PROJECT_ID,
+        clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
+        privateKey: process.env.FIREBASE_PRIVATE_KEY ? process.env.FIREBASE_PRIVATE_KEY.replace(/\\n/g, '\n') : undefined
+      };
+    }
+
+    initializeApp({
+      credential: cert(serviceAccount)
+    });
+  } catch (error) {
+    console.error('Firebase 初始化失敗:', error);
+  }
 }
 
 const db = getFirestore();
