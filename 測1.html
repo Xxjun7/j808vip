@@ -251,7 +251,7 @@
             background-image: url('image_7.png');
             background-size: cover;
             background-position: center;
-            display: flex; /* 改為預設直接顯示，解決背景閃爍 */
+            display: flex; /* 預設直接顯示，解決背景閃爍 */
             justify-content: center;
             align-items: center;
             z-index: 10000;
@@ -703,22 +703,17 @@
                 }
             }
 
-            // 【核心改良】：為了讓指定次數「均勻隨機散佈」在所有剩餘次數中，不擠在前面：
-            // 我們動態計算當前抽中「指定金額」的機率 = (剩餘指定次數 / 剩餘總次數)。
-            // 這樣隨著抽卡次數減少，指定次數會自然且均勻地被稀釋在整段歷程中！
             let chosenPrize = null;
 
             if (totalSpecificLeft > 0 && currentChances > 0) {
                 const specificProbability = totalSpecificLeft / currentChances;
                 if (Math.random() < specificProbability) {
-                    // 從現有的指定金額清單中隨機抽一個出來
                     const randomIndex = Math.floor(Math.random() * availableSpecificPrizes.length);
                     chosenPrize = availableSpecificPrizes[randomIndex];
                 }
             }
 
             if (chosenPrize !== null) {
-                // 抽中了指定金額，扣除對應 Firebase 欄位
                 const fieldName = `p${chosenPrize}`;
                 try {
                     await updateDoc(userDocRef, {
@@ -730,7 +725,6 @@
                 return chosenPrize;
             }
 
-            // 若沒有抽中指定金額，則跑原本的保底與勝率判定
             let lotteryPool = [];
 
             if (guaranteeTotal > 0 && currentChances > 0) {
