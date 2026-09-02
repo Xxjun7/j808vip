@@ -863,8 +863,10 @@
 
         function playSFX(audioObj) {
             if (isMuted) return;
-            audioObj.currentTime = 0;
-            audioObj.play().catch(() => {});
+            // 所有互動音效（shake, flip, win）皆使用獨立複製播放，確保多張卡片同時操作或快速連點時絕不互相干擾或截斷
+            const cloneAudio = audioObj.cloneNode();
+            cloneAudio.volume = audioObj.volume;
+            cloneAudio.play().catch(() => {});
         }
         window.playSFX = playSFX;
 
