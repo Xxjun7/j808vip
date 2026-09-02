@@ -473,7 +473,7 @@
         <span class="ui-btn-text">手動旋轉</span>
       </div>
       <div class="phone-icon">📱</div>
-      <p>請將手機旋轉至「橫向」<br>獲得最佳 VIP 抽卡體驗</p>
+      <p>請將手機旋轉至「橫向」<br>獲得發展最佳 VIP 抽卡體驗</p>
     </div>
 
     <!-- 遊戲主區域 -->
@@ -528,7 +528,7 @@
 
     </div>
 
-    <!-- Firebase 邏輯整合與 3 張獨立卡片核心控制 -->
+    <!-- Firebase 邏輯整合與動畫解耦控制 -->
     <script type="module">
       import { initializeApp } from "https://www.gstatic.com/firebasejs/12.18.0/firebase-app.js";
       import { getAnalytics } from "https://www.gstatic.com/firebasejs/12.18.0/firebase-analytics.js";
@@ -554,7 +554,6 @@
       const loginSubmitBtn = document.getElementById('login-submit-btn');
       const loginError = document.getElementById('login-error');
       
-      // 通用 UI 彈窗元素
       const messageModal = document.getElementById('message-modal');
       const msgTitle = document.getElementById('msg-title');
       const msgContent = document.getElementById('msg-content');
@@ -569,14 +568,12 @@
       let currentUserData = null;
       const animatingCards = new Set();
       
-      // 3 張卡片的獨立狀態
       const cardStates = [
         { isFlipped: false, prize: null },
         { isFlipped: false, prize: null },
         { isFlipped: false, prize: null }
       ];
 
-      // 統一控制 UI 彈窗顯示函式
       function showCustomAlert(title, message) {
         msgTitle.textContent = title;
         msgContent.innerHTML = message.replace(/\n/g, '<br>');
@@ -619,7 +616,6 @@
         }
       }
 
-      // 登入驗證
       loginSubmitBtn.addEventListener('click', async () => {
         const val = loginInput.value.trim();
         if (!val) {
@@ -643,7 +639,7 @@
             localStorage.setItem('vip_remember_me', 'true');
           } else {
             localStorage.removeItem('vip_current_user');
-            localStorage.removeItem('vip_remember_me', 'false');
+            localStorage.setItem('vip_remember_me', 'false');
           }
           startSession(val);
         } catch (error) {
@@ -697,7 +693,7 @@
         });
       }
 
-      // 綁定 3 張獨立卡片點擊事件 (改為透過 Vercel API 抽獎)
+      // 卡片點擊事件：實現「立即動畫、背景請求」的流暢體驗
       cardContainers.forEach((container, index) => {
         const card = container.querySelector('.card');
         const shaker = container.querySelector('.card-shaker');
@@ -733,7 +729,7 @@
 
           animatingCards.add(card);
 
-          // 播放搖晃音效
+          // 1. 【極速體驗】點擊瞬間立刻播放音效與搖晃動畫，完全不用等 API 回傳
           if (typeof playSFX === 'function' && window.sounds) {
             playSFX(window.sounds.shake);
             setTimeout(() => {
@@ -742,18 +738,20 @@
           }
           shaker.classList.add('shaking');
 
+          // 2. 在背景發送 API 請求資料
+          const apiPromise = fetch('/api/drawCard', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ userId: currentUserId }),
+          }).then(res => res.json());
+
           try {
-            // 呼叫 Vercel Serverless API 執行安全抽獎
-            const response = await fetch('/api/drawCard', {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-              },
-              body: JSON.stringify({ userId: currentUserId }),
-            });
+            // 3. 同步進行搖晃動畫 (500ms)
+            await new Promise(resolve => setTimeout(resolve, 500));
+            shaker.classList.remove('shaking');
 
-            const data = await response.json();
-
+            // 等待 API 結果回來
+            const data = await apiPromise;
             if (!data.success) {
               throw new Error(data.error || '抽獎失敗');
             }
@@ -761,26 +759,24 @@
             currentState.prize = data.prize;
             amountEl.textContent = currentState.prize > 0 ? `$${currentState.prize}` : '銘謝惠顧';
 
-          } catch (err) {
-            console.error("抽獎請求失敗：", err);
-            showCustomAlert('系統提示', err.message || '連線異常，請稍後再試！');
-            shaker.classList.remove('shaking');
-            animatingCards.delete(card);
-            return;
-          }
-
-          // 結算動畫
-          setTimeout(() => {
-            shaker.classList.remove('shaking');
+            // 4. 翻牌顯示結果
             if (typeof playSFX === 'function' && window.sounds) {
               playSFX(window.sounds.flip);
             }
             card.classList.add('flipped');
             currentState.isFlipped = true;
+
             setTimeout(() => {
               animatingCards.delete(card);
             }, 800);
-          }, 500);
+
+          } catch (err) {
+            console.error("抽獎請求失敗：", err);
+            shaker.classList.remove('shaking');
+            card.classList.remove('flipped');
+            animatingCards.delete(card);
+            showCustomAlert('系統提示', err.message || '連線異常，請稍後再試！');
+          }
         });
       });
 
