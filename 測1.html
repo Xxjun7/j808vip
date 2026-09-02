@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="zh-TW">
 <head>
@@ -852,30 +853,18 @@
         };
         window.sounds = sounds;
 
-        sounds.bgm.loop = true;
-        sounds.bgm.volume = 0.4;
-        sounds.shake.volume = 0.6;
-        sounds.flip.volume = 0.7;
-        sounds.win.volume = 0.8;
+        // 記錄各自的預設音量
+        sounds.bgm.originalVolume = 0.4;
+        sounds.shake.originalVolume = 0.6;
+        sounds.flip.originalVolume = 0.7;
+        sounds.win.originalVolume = 0.8;
 
-        // 將原始音量記錄在物件上，供預熱後恢復使用
-        Object.values(sounds).forEach(audio => {
-            audio.originalVolume = audio.volume;
+        // 套用預設音量
+        Object.keys(sounds).forEach(key => {
+            sounds[key].volume = sounds[key].originalVolume;
         });
 
-        // 音效預熱：初次載入時靜音播放一次，讓瀏覽器提前解碼快取
-        function warmUpAudio() {
-            Object.values(sounds).forEach(audio => {
-                if (audio === sounds.bgm) return;
-                audio.volume = 0;
-                audio.play().then(() => {
-                    audio.pause();
-                    audio.currentTime = 0;
-                    audio.volume = audio.originalVolume; // 恢復音量
-                }).catch(() => {});
-            });
-        }
-        window.addEventListener('load', warmUpAudio, { once: true });
+        sounds.bgm.loop = true;
 
         let isMuted = false;
         let bgmStarted = false;
@@ -888,6 +877,27 @@
             cloneAudio.play().catch(() => {});
         }
         window.playSFX = playSFX;
+
+        // 音效預熱：初次載入時靜音播放一次，讓瀏覽器提前解碼快取
+        function warmUpAudio() {
+            Object.values(sounds).forEach(audio => {
+                if (audio === sounds.bgm) return;
+                audio.volume = 0;
+                audio.play().then(() => {
+                    audio.pause();
+                    audio.currentTime = 0;
+                    audio.volume = audio.originalVolume; // 恢復原本音量
+                }).catch(() => {});
+            });
+        }
+        window.addEventListener('load', warmUpAudio, { once: true });
+
+        window.addEventListener('load', () => {
+            if (isMuted) return;
+            sounds.bgm.play().then(() => {
+                bgmStarted = true;
+            }).catch(() => {});
+        });
 
         function startBGM(event) {
             if (event && event.target && event.target.closest('#audio-btn')) return;
