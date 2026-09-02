@@ -808,7 +808,10 @@
 
                 if (typeof playSFX === 'function' && window.sounds) {
                     playSFX(window.sounds.shake);
-                    playSFX(window.sounds.win); // 與 shake 同步播放 win01.mp3，避免延遲撞車
+                    // 讓 win01.mp3 延遲 0.3 秒（300毫秒）才播放
+                    setTimeout(() => {
+                        playSFX(window.sounds.win);
+                    }, 300);
                 }
                 shaker.classList.add('shaking');
 
