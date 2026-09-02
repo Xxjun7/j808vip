@@ -1,5 +1,5 @@
-import { initializeApp, cert, getApps } from 'firebase-admin/app';
-import { getFirestore, Timestamp, FieldValue } from 'firebase-admin/firestore';
+const { initializeApp, cert, getApps } = require('firebase-admin/app');
+const { getFirestore, Timestamp, FieldValue } = require('firebase-admin/firestore');
 
 // 初始化 Firebase Admin（避免重複初始化）
 if (!getApps().length) {
@@ -15,10 +15,10 @@ if (!getApps().length) {
 
 const db = getFirestore();
 
-export default async function handler(req, res) {
+module.exports = async function handler(req, res) {
   // 限制只能用 POST 請求
   if (req.method !== 'POST') {
-    return res.status(405).json({ error: 'Method Not Allowed' });
+    return res.status(405).json({ success: false, error: 'Method Not Allowed' });
   }
 
   const { userId } = req.body;
@@ -33,7 +33,7 @@ export default async function handler(req, res) {
       const userDocRef = db.collection("users").doc(userId);
       const userDocSnap = await transaction.get(userDocRef);
 
-      if (!userDocSnap.exists()) {
+      if (!userDocSnap.exists) {
         throw new Error('查無此 VIP 資料');
       }
 
@@ -136,4 +136,4 @@ export default async function handler(req, res) {
     console.error('抽獎發生錯誤:', error);
     return res.status(500).json({ success: false, error: error.message });
   }
-}
+};
