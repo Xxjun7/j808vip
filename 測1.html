@@ -242,7 +242,23 @@
         }
 
         /* 登入遮罩與通用訊息彈窗 Modal */
-        #login-modal, #message-modal {
+        #login-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background-image: url('image_7.png');
+            background-size: cover;
+            background-position: center;
+            display: flex; /* 改為預設直接顯示，解決背景閃爍 */
+            justify-content: center;
+            align-items: center;
+            z-index: 10000;
+            transition: transform 0.3s ease, width 0.3s ease, height 0.3s ease;
+        }
+
+        #message-modal {
             position: fixed;
             top: 0;
             left: 0;
