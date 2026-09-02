@@ -825,8 +825,10 @@
                     shaker.classList.remove('shaking');
                     if (typeof playSFX === 'function' && window.sounds) {
                         playSFX(window.sounds.flip);
-                        // 不管有沒有中獎，翻牌完成揭曉的那一刻都播放 win01.mp3
-                        setTimeout(() => playSFX(window.sounds.win), 200);
+                        // 將 win01.mp3 延遲 350ms 播放，完美錯開與 flip01 音效的瞬間並發衝突
+                        setTimeout(() => {
+                            playSFX(window.sounds.win);
+                        }, 350);
                     }
 
                     card.classList.add('flipped');
@@ -863,7 +865,6 @@
 
         function playSFX(audioObj) {
             if (isMuted) return;
-            // 所有互動音效（shake, flip, win）皆使用獨立複製播放，確保多張卡片同時操作或快速連點時絕不互相干擾或截斷
             const cloneAudio = audioObj.cloneNode();
             cloneAudio.volume = audioObj.volume;
             cloneAudio.play().catch(() => {});
