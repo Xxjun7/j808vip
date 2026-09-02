@@ -14,7 +14,6 @@
         .btn { background: linear-gradient(135deg, #ffd700, #ff8c00); border: none; color: #080b10; padding: 8px 16px; border-radius: 6px; font-weight: bold; cursor: pointer; transition: transform 0.2s; }
         .btn:active { transform: scale(0.95); }
         .btn-danger { background: #ff4d4d; color: #fff; }
-        .btn-sync { background: linear-gradient(135deg, #00ffcc, #00bfff); color: #080b10; }
         .card-panel { background: rgba(255, 215, 0, 0.05); border: 1px solid #ffd700; border-radius: 12px; padding: 20px; margin-bottom: 20px; box-shadow: 0 0 15px rgba(255, 215, 0, 0.1); }
         .card-panel h3 { margin-bottom: 15px; font-size: 18px; color: #ffcc00; }
         .form-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; margin-bottom: 12px; }
@@ -53,8 +52,6 @@
         <h1>金正旺銀行 VIP 後台管理系統</h1>
         <div class="header-btns">
             <button class="btn" id="batch-menu-open-btn">批量設定</button>
-            <button class="btn btn-sync" id="sync-sheet-to-fb-btn">讀取Google試算表同步到Firebase</button>
-            <button class="btn btn-sync" id="sync-fb-to-sheet-btn">讀取Firebase同步到Google試算表</button>
         </div>
     </header>
 
@@ -123,7 +120,7 @@
                     </tr>
                 </thead>
                 <tbody id="member-table-body">
-                    <tr><td colspan="11" style="text-align: center; color: #888;">請輸入會員名稱或點擊搜尋以載入資料</td></tr>
+                    <tr><td colspan="11" style="text-align: center; color: #888;">請輸入會員名稱後點擊搜尋</td></tr>
                 </tbody>
             </table>
         </div>
@@ -189,7 +186,7 @@
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/12.18.0/firebase-app.js";
-        import { getFirestore, collection, doc, getDoc, getDocs, setDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/12.18.0/firebase-firestore.js";
+        import { getFirestore, collection, doc, getDoc, setDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/12.18.0/firebase-firestore.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyAgXlbP-D-k_Dj13Mmop-LRIm15FTkrGGY",
@@ -200,8 +197,6 @@
             appId: "1:694827667740:web:6767bf834427fad56eaad9",
             measurementId: "G-10J5DBGW8B"
         };
-
-        const GAS_URL = "https://script.google.com/macros/s/AKfycbwmzNyEGnaTu3FeiqT5Itcsa2-EE7-1ZGOJVP7FLwn_grEdQehHIx3wHRGdUZaj6OOI/exec";
 
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
@@ -222,8 +217,6 @@
         const cancelEditBtn = document.getElementById('cancel-edit');
         const searchInput = document.getElementById('search-input');
         const searchBtn = document.getElementById('search-btn');
-        const syncSheetToFbBtn = document.getElementById('sync-sheet-to-fb-btn');
-        const syncFbToSheetBtn = document.getElementById('sync-fb-to-sheet-btn');
 
         // UI Modal 元素
         const modalOverlay = document.getElementById('custom-modal');
@@ -250,7 +243,7 @@
         const batchDeleteSubmitBtn = document.getElementById('batch-delete-submit-btn');
         const batchDeleteTextarea = document.getElementById('batch-delete-textarea');
 
-        // 顯示一般通知/提示，可控制是否顯示按鈕（預設顯示確定按鈕）
+        // 顯示一般通知/提示
         function showModal(title, text, type = 'alert', onConfirm = null, showButtons = true) {
             modalTitle.textContent = title;
             modalText.textContent = text;
@@ -296,10 +289,8 @@
             
             if (!keyword) {
                 showModal(
-                    '⚠️ 讀取用量警告', 
-                    '您目前未輸入任何會員編號或姓名。若直接點擊確認，將會把 Firebase 中「所有會員資料」全數讀取出來，可能會消耗大量讀取額度。確定要載入全部嗎？', 
-                    'confirm', 
-                    () => fetchMembersData(keyword)
+                    '⚠️ 提示', 
+                    '請輸入要搜尋的會員編號或姓名！'
                 );
                 return;
             }
@@ -312,17 +303,10 @@
 
             try {
                 allMembers = [];
-                if (keyword) {
-                    const docRef = doc(db, "users", keyword);
-                    const docSnap = await getDoc(docRef);
-                    if (docSnap.exists()) {
-                        allMembers.push({ id: docSnap.id, ...docSnap.data() });
-                    }
-                } else {
-                    const querySnapshot = await getDocs(collection(db, "users"));
-                    querySnapshot.forEach((docSnap) => {
-                        allMembers.push({ id: docSnap.id, ...docSnap.data() });
-                    });
+                const docRef = doc(db, "users", keyword);
+                const docSnap = await getDoc(docRef);
+                if (docSnap.exists()) {
+                    allMembers.push({ id: docSnap.id, ...docSnap.data() });
                 }
 
                 renderTable(allMembers);
@@ -436,6 +420,7 @@
             showModal('確認刪除', `確定要刪除會員 [ ${id} ] 嗎？`, 'confirm', async () => {
                 await deleteDoc(doc(db, "users", id));
                 showModal('成功', `已刪除會員：${id}`);
+                tableBody.innerHTML = `<tr><td colspan="11" style="text-align: center; color: #888;">請輸入會員名稱後點擊搜尋</td></tr>`;
             });
         }
 
@@ -450,14 +435,14 @@
 
         // 點擊「批量寫入」按鈕
         batchOpenBtn.addEventListener('click', () => {
-            batchMenuModal.classList.remove('active'); // 關閉主選單
+            batchMenuModal.classList.remove('active');
             batchTextarea.value = '';
-            batchModal.classList.add('active');        // 開啟寫入面板
+            batchModal.classList.add('active');
         });
 
         batchCancelBtn.addEventListener('click', () => {
             batchModal.classList.remove('active');
-            batchMenuModal.classList.add('active');    // 返回主選單
+            batchMenuModal.classList.add('active');
         });
 
         batchSubmitBtn.addEventListener('click', () => {
@@ -490,7 +475,6 @@
                 `您即將批次寫入 / 更新共 ${membersToProcess.length} 筆會員資料到 Firebase。若 ID 重複將會被覆蓋，確定要執行嗎？`,
                 'confirm',
                 async () => {
-                    // 1. 顯示處理中畫面（無按鈕，防止中途亂按）
                     showModal('⏳ 批量處理中', `正在背景寫入 / 更新 ${membersToProcess.length} 筆會員資料，請稍候...`, 'alert', null, false);
                     
                     try {
@@ -512,7 +496,6 @@
                             successCount++;
                         }
 
-                        // 2. 處理完成後，才顯示帶有「確定」按鈕的成功提示
                         showModal('✅ 批量寫入完成', `已成功寫入 / 更新 ${successCount} 筆會員資料。`);
                         if (searchInput.value.trim()) {
                             executeSearch();
@@ -527,14 +510,14 @@
 
         // 點擊「批量刪除」按鈕
         batchDeleteOpenBtn.addEventListener('click', () => {
-            batchMenuModal.classList.remove('active'); // 關閉主選單
+            batchMenuModal.classList.remove('active');
             batchDeleteTextarea.value = '';
-            batchDeleteModal.classList.add('active');  // 開啟刪除面板
+            batchDeleteModal.classList.add('active');
         });
 
         batchDeleteCancelBtn.addEventListener('click', () => {
             batchDeleteModal.classList.remove('active');
-            batchMenuModal.classList.add('active');    // 返回主選單
+            batchMenuModal.classList.add('active');
         });
 
         batchDeleteSubmitBtn.addEventListener('click', () => {
@@ -567,7 +550,6 @@
                 `您即將永久刪除 Firebase 中的 ${membersToDelete.length} 筆會員資料！此操作無法復原，確定要全部刪除嗎？`,
                 'confirm',
                 async () => {
-                    // 1. 顯示處理中畫面（無按鈕，防止中途亂按）
                     showModal('⏳ 批量處理中', `正在背景刪除 ${membersToDelete.length} 筆會員資料，請稍候...`, 'alert', null, false);
                     
                     try {
@@ -577,7 +559,6 @@
                             deleteCount++;
                         }
 
-                        // 2. 處理完成後，才顯示帶有「確定」按鈕的成功提示
                         showModal('✅ 批量刪除完成', `已成功刪除 ${deleteCount} 筆會員資料。`);
                         if (searchInput.value.trim()) {
                             executeSearch();
@@ -585,62 +566,6 @@
                     } catch (err) {
                         console.error(err);
                         showModal('❌ 錯誤', '批量刪除過程中發生錯誤！');
-                    }
-                }
-            );
-        });
-
-        // 串接 Google 試算表同步至 Firebase (GET)
-        syncSheetToFbBtn.addEventListener('click', () => {
-            showModal(
-                '⚠️ 同步用量警告', 
-                '從 Google 試算表同步回 Firebase 會寫入大量資料。確定要執行嗎？', 
-                'confirm', 
-                async () => {
-                    showModal('⏳ 同步處理中', '正在從 Google 試算表同步至 Firebase，請稍候...', 'alert', null, false);
-                    syncSheetToFbBtn.disabled = true;
-                    try {
-                        const response = await fetch(`${GAS_URL}?action=syncToFirebase`);
-                        const result = await response.json();
-                        showModal('✅ 成功', 'Google 試算表同步至 Firebase 成功！');
-                    } catch (err) {
-                        console.error(err);
-                        showModal('❌ 錯誤', '同步失敗，請確認 GAS 部署與網路連線！');
-                    } finally {
-                        syncSheetToFbBtn.disabled = false;
-                    }
-                }
-            );
-        });
-
-        // 串接 Firebase 同步至 Google 試算表 (POST)
-        syncFbToSheetBtn.addEventListener('click', () => {
-            showModal(
-                '⚠️ 讀取全體會員警告', 
-                '此操作必須將 Firebase 中「所有會員資料」全數讀取並打包同步到 Google 試算表，會消耗大量讀取額度。確定要執行嗎？', 
-                'confirm', 
-                async () => {
-                    showModal('⏳ 同步處理中', '正在從 Firebase 讀取所有會員並同步至 Google 試算表，請稍候...', 'alert', null, false);
-                    syncFbToSheetBtn.disabled = true;
-                    try {
-                        const querySnapshot = await getDocs(collection(db, "users"));
-                        const freshAllMembers = [];
-                        querySnapshot.forEach((docSnap) => {
-                            freshAllMembers.push({ id: docSnap.id, ...docSnap.data() });
-                        });
-
-                        const response = await fetch(GAS_URL, {
-                            method: 'POST',
-                            body: JSON.stringify({ action: 'syncToSheet', members: freshAllMembers }),
-                            headers: { 'Content-Type': 'text/plain;charset=utf-8' }
-                        });
-                        const result = await response.json();
-                        showModal('✅ 成功', `Firebase 同步至 Google 試算表成功！共同步 ${freshAllMembers.length} 筆會員。`);
-                    } catch (err) {
-                        console.error(err);
-                        showModal('❌ 錯誤', '同步失敗，請確認 GAS 部署與網路連線！');
-                    } finally {
-                        syncFbToSheetBtn.disabled = false;
                     }
                 }
             );
