@@ -390,7 +390,6 @@
                 await setDoc(doc(db, "users", userId), dataToSave, { merge: true });
                 showModal('成功', `成功儲存會員：${userId}`);
                 clearForm();
-                if (searchInput.value.trim()) executeSearch();
             } catch (err) {
                 showModal('錯誤', '儲存失敗！');
             }
