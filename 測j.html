@@ -436,7 +436,6 @@
             showModal('確認刪除', `確定要刪除會員 [ ${id} ] 嗎？`, 'confirm', async () => {
                 await deleteDoc(doc(db, "users", id));
                 showModal('成功', `已刪除會員：${id}`);
-                if (searchInput.value.trim()) executeSearch();
             });
         }
 
