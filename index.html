@@ -267,7 +267,7 @@
         display: flex;
         justify-content: center;
         align-items: center;
-        z-index: 1000;
+        z-index: 10000;
         transition: transform 0.3s ease, width 0.3s ease, height 0.3s ease;
       }
 
@@ -397,7 +397,7 @@
         width: 100vw;
         height: 100vh;
         background: rgba(8, 11, 16, 0.95);
-        z-index: 2000;
+        z-index: 10005;
         color: #ffd700;
         flex-direction: column;
         justify-content: center;
@@ -631,7 +631,8 @@
         loginSubmitBtn.disabled = true;
 
         try {
-          // 點擊登入時已經透過全域觸控/點擊預熱過了，此處直接讀取資料庫
+          await new Promise(resolve => setTimeout(resolve, 3888));
+
           const userDocRef = doc(db, "users", val);
           const userDocSnap = await getDoc(userDocRef);
           if (!userDocSnap.exists()) {
@@ -809,8 +810,7 @@
       // 確保整個頁面生命週期中只發送一次 warmup 請求
       let hasWarmedUp = document.hidden; // 如果一開始頁面是隱藏的就先不發，等顯示再發
 
-      function triggerWarmupOnce(event) {
-        if (event && event.target && event.target.closest('.audio-btn-global')) return;
+      function triggerWarmupOnce() {
         if (hasWarmedUp) return;
         hasWarmedUp = true;
 
@@ -827,13 +827,6 @@
       // 監聽全域點擊與觸控事件
       document.addEventListener('click', triggerWarmupOnce, { passive: true });
       document.addEventListener('touchstart', triggerWarmupOnce, { passive: true });
-
-      // 如果頁面從隱藏變為可見，且還沒發送過 warmup，則發送一次
-      document.addEventListener('visibilitychange', () => {
-        if (!document.hidden && !hasWarmedUp) {
-          triggerWarmupOnce();
-        }
-      });
 
       // 禁用右鍵選單與手勢縮放
       document.addEventListener('contextmenu', (e) => { e.preventDefault(); });
