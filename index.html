@@ -232,6 +232,7 @@
       #audio-btn {
         top: 10px;
         right: 20px;
+        z-index: 20000; /* 確保在登入彈窗或任何遮罩的最上層也能直接點擊 */
       }
 
       /* 玩家狀態列 (左上角) */
@@ -467,6 +468,12 @@
 
   <body>
 
+    <!-- 全域音效切換按鈕 (拉到最外層，進頁面即顯示且不受登入面板遮擋) -->
+    <div class="ui-btn" id="audio-btn">
+      <span class="ui-btn-icon" id="audio-icon">🔊</span>
+      <span class="ui-btn-text" id="audio-text">音樂開</span>
+    </div>
+
     <!-- 會員登入面板 -->
     <div id="login-modal">
       <div class="login-box">
@@ -507,12 +514,6 @@
         <span id="display-user-info">載入中...</span>
         <span id="display-user-chances">遊戲次數: -</span>
         <button id="logout-btn">登出</button>
-      </div>
-
-      <!-- 音效切換按鈕 -->
-      <div class="ui-btn" id="audio-btn">
-        <span class="ui-btn-icon" id="audio-icon">🔊</span>
-        <span class="ui-btn-text" id="audio-text">音樂開</span>
       </div>
 
       <!-- 抽卡區域 (固定 3 張卡片) -->
@@ -660,7 +661,7 @@
             localStorage.setItem('vip_remember_me', 'true');
           } else {
             localStorage.removeItem('vip_current_user');
-            localStorage.setItem('vip_remember_me', 'false');
+            localStorage.removeItem('vip_remember_me', 'false');
           }
           startSession(val);
         } catch (error) {
@@ -851,9 +852,9 @@
         }).catch(() => {});
       });
 
-      // 【已修改】改成可發送多次的預熱機制（此處設定最多發送 3 次）
+      // 支援多次的預熱機制（最多 3 次）
       let warmUpCount = 0;
-      const MAX_WARM_UP = 5;
+      const MAX_WARM_UP = 3;
 
       function startBGM(event) {
         if (event && event.target && event.target.closest('#audio-btn')) return;
