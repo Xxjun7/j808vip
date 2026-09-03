@@ -637,7 +637,7 @@
         }).catch(() => {});
 
         try {
-          await new Promise(resolve => setTimeout(resolve, 1500));
+          await new Promise(resolve => setTimeout(resolve, 5000));
 
           const userDocRef = doc(db, "users", val);
           const userDocSnap = await getDoc(userDocRef);
