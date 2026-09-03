@@ -607,7 +607,6 @@
           loginModal.style.display = 'none';
           return;
         }
-        // 確保登入面板優先顯示，不受直向強制隱藏影響
         loginModal.style.display = 'flex';
       }
 
@@ -688,7 +687,7 @@
           userChancesSpan.textContent = `遊戲次數: 連線異常`;
         });
 
-        // 登入成功後，若為直向且未觸發強制旋轉，此時再依需求檢查是否跳出提示或讓使用者手動旋轉
+        // 【新增】登入成功後立刻檢查方向，如果是直向就跳出橫向提示
         checkOrientationAfterLogin();
       }
 
@@ -875,15 +874,6 @@
       const rotateBtn = document.getElementById('manual-rotate-btn');
       const loginModal = document.getElementById('login-modal');
       const messageModal = document.getElementById('message-modal');
-      
-      // 【修改】初始化時不因直向隱藏登入框，讓登入永遠優先展示
-      if (ENABLE_PORTRAIT_NOTICE) {
-        const isLandscape = window.matchMedia('(orientation: landscape)').matches;
-        if (!isLandscape) {
-          // 保持直向提示預設隱藏，等登入後或由使用者自行決定，確保一開始能看到登入框
-          noticeEl.classList.remove('active');
-        }
-      }
       
       rotateBtn.addEventListener('click', (e) => {
         e.stopPropagation();
