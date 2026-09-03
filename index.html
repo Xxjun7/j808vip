@@ -473,7 +473,7 @@
         <span class="ui-btn-text">手動旋轉</span>
       </div>
       <div class="phone-icon">📱</div>
-      <p>請將手機旋轉至「橫向」<br>獲得最佳 VIP 抽卡體驗</p>
+      <p>請將手機旋轉至「橫向」<br>獲得發展最佳 VIP 抽卡體驗</p>
     </div>
 
     <!-- 遊戲主區域 -->
@@ -528,7 +528,7 @@
 
     </div>
 
-    <!-- Firebase 邏輯整合與後端 API 串接核心 -->
+    <!-- Firebase 邏輯整合與動畫解耦控制 -->
     <script type="module">
       import { initializeApp } from "https://www.gstatic.com/firebasejs/12.18.0/firebase-app.js";
       import { getAnalytics } from "https://www.gstatic.com/firebasejs/12.18.0/firebase-analytics.js";
@@ -693,7 +693,7 @@
         });
       }
 
-      // 卡片點擊事件：改為呼叫後端 API (drawCard.js) 進行安全抽獎與庫存扣減
+      // 卡片點擊事件：實現「立即動畫、背景請求」的流暢體驗
       cardContainers.forEach((container, index) => {
         const card = container.querySelector('.card');
         const shaker = container.querySelector('.card-shaker');
@@ -729,7 +729,7 @@
 
           animatingCards.add(card);
 
-          // 1. 播放音效與搖晃動畫
+          // 1. 【極速體驗】點擊瞬間立刻播放音效與搖晃動畫，完全不用等 API 回傳
           if (typeof playSFX === 'function' && window.sounds) {
             playSFX(window.sounds.shake);
             setTimeout(() => {
@@ -738,27 +738,26 @@
           }
           shaker.classList.add('shaking');
 
+          // 2. 在背景發送 API 請求資料
+          const apiPromise = fetch('/api/drawCard', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ userId: currentUserId }),
+          }).then(res => res.json());
+
           try {
-            // 2. 透過 POST 請求呼叫後端 API (`/api/drawCard`)
-            const response = await fetch('/api/drawCard', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ userId: currentUserId })
-            });
-            const result = await response.json();
-
-            if (!result.success) {
-              throw new Error(result.error || '抽獎失敗');
-            }
-
-            const prize = result.prize;
-
-            // 3. 等待搖晃動畫完成 (500ms)
+            // 3. 同步進行搖晃動畫 (500ms)
             await new Promise(resolve => setTimeout(resolve, 500));
             shaker.classList.remove('shaking');
 
-            currentState.prize = prize;
-            amountEl.textContent = prize > 0 ? `$${prize}` : '銘謝惠顧';
+            // 等待 API 結果回來
+            const data = await apiPromise;
+            if (!data.success) {
+              throw new Error(data.error || '抽獎失敗');
+            }
+
+            currentState.prize = data.prize;
+            amountEl.textContent = currentState.prize > 0 ? `$${currentState.prize}` : '銘謝惠顧';
 
             // 4. 翻牌顯示結果
             if (typeof playSFX === 'function' && window.sounds) {
@@ -772,11 +771,11 @@
             }, 800);
 
           } catch (err) {
-            console.error("抽獎處理錯誤：", err);
+            console.error("抽獎請求失敗：", err);
             shaker.classList.remove('shaking');
             card.classList.remove('flipped');
             animatingCards.delete(card);
-            showCustomAlert('系統提示', err.message || '抽獎異常，請稍後再試！');
+            showCustomAlert('系統提示', err.message || '連線異常，請稍後再試！');
           }
         });
       });
