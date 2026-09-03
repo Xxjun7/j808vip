@@ -473,7 +473,7 @@
         <span class="ui-btn-text">手動旋轉</span>
       </div>
       <div class="phone-icon">📱</div>
-      <p>請將手機旋轉至「橫向」<br>獲得發展最佳 VIP 抽卡體驗</p>
+      <p>請將手機旋轉至「橫向」<br>獲得最佳 VIP 抽卡體驗</p>
     </div>
 
     <!-- 遊戲主區域 -->
@@ -528,11 +528,11 @@
 
     </div>
 
-    <!-- Firebase 邏輯整合與動畫解耦控制 -->
+    <!-- Firebase 邏輯整合與真實機率抽卡演算核心 -->
     <script type="module">
       import { initializeApp } from "https://www.gstatic.com/firebasejs/12.18.0/firebase-app.js";
       import { getAnalytics } from "https://www.gstatic.com/firebasejs/12.18.0/firebase-analytics.js";
-      import { getFirestore, doc, getDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/12.18.0/firebase-firestore.js";
+      import { getFirestore, doc, getDoc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/12.18.0/firebase-firestore.js";
       
       const firebaseConfig = {
         apiKey: "AIzaSyAgXlbP-D-k_Dj13Mmop-LRIm15FTkrGGY",
@@ -693,7 +693,7 @@
         });
       }
 
-      // 卡片點擊事件：實現「立即動畫、背景請求」的流暢體驗
+      // 卡片點擊事件：前端直接運算與扣除次數、並同步寫回 Firebase
       cardContainers.forEach((container, index) => {
         const card = container.querySelector('.card');
         const shaker = container.querySelector('.card-shaker');
@@ -729,7 +729,7 @@
 
           animatingCards.add(card);
 
-          // 1. 【極速體驗】點擊瞬間立刻播放音效與搖晃動畫，完全不用等 API 回傳
+          // 1. 播放音效與搖晃動畫
           if (typeof playSFX === 'function' && window.sounds) {
             playSFX(window.sounds.shake);
             setTimeout(() => {
@@ -738,25 +738,68 @@
           }
           shaker.classList.add('shaking');
 
-          // 2. 在背景發送 API 請求資料
-          const apiPromise = fetch('/api/drawCard', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ userId: currentUserId }),
-          }).then(res => res.json());
-
           try {
+            // 2. 進行前端中獎機率與保底邏輯運算
+            let chances = Number(currentUserData.chances) || 0;
+            let drawnCount = Number(currentUserData.drawnCount) || 0;
+            let winRate = currentUserData.winRate !== undefined ? Number(currentUserData.winRate) : 100;
+            let guaranteeCount = Number(currentUserData.guaranteeCount) || 0;
+
+            let p100 = Number(currentUserData.p100) || 0;
+            let p500 = Number(currentUserData.p500) || 0;
+            let p1000 = Number(currentUserData.p1000) || 0;
+            let p2000 = Number(currentUserData.p2000) || 0;
+            let p10000 = Number(currentUserData.p10000) || 0;
+
+            chances = Math.max(0, chances - 1);
+            drawnCount += 1;
+
+            let isWin = false;
+            // 檢查全域必中次數保底
+            if (guaranteeCount > 0 && drawnCount >= guaranteeCount) {
+              isWin = true;
+              drawnCount = 0; // 觸發後重置保底計數
+            } else {
+              // 依個人中獎率進行機率判定
+              const randRoll = Math.random() * 100;
+              if (randRoll < winRate) {
+                isWin = true;
+              }
+            }
+
+            let prize = 0;
+            if (isWin) {
+              // 建立可用獎項清單（剩餘次數大於 0 的金額門檻）
+              const availableTiers = [];
+              if (p100 > 0) availableTiers.push({ tier: 'p100', val: 100, count: p100 });
+              if (p500 > 0) availableTiers.push({ tier: 'p500', val: 500, count: p500 });
+              if (p1000 > 0) availableTiers.push({ tier: 'p1000', val: 1000, count: p1000 });
+              if (p2000 > 0) availableTiers.push({ tier: 'p2000', val: 2000, count: p2000 });
+              if (p10000 > 0) availableTiers.push({ tier: 'p10000', val: 10000, count: p10000 });
+
+              if (availableTiers.length > 0) {
+                // 隨機從有剩餘次數的門檻中挑選一個
+                const selectedTier = availableTiers[Math.floor(Math.random() * availableTiers.length)];
+                prize = selectedTier.val;
+                // 扣減該門檻剩餘次數
+                currentUserData[selectedTier.tier] = Math.max(0, selectedTier.count - 1);
+              } else {
+                prize = 0; // 若所有門檻次數皆用盡則視為銘謝惠顧
+              }
+            } else {
+              prize = 0;
+            }
+
+            // 更新本地資料狀態
+            currentUserData.chances = chances;
+            currentUserData.drawnCount = drawnCount;
+            currentUserData.guaranteeCount = guaranteeCount;
+
             // 3. 同步進行搖晃動畫 (500ms)
             await new Promise(resolve => setTimeout(resolve, 500));
             shaker.classList.remove('shaking');
 
-            // 等待 API 結果回來
-            const data = await apiPromise;
-            if (!data.success) {
-              throw new Error(data.error || '抽獎失敗');
-            }
-
-            currentState.prize = data.prize;
+            currentState.prize = prize;
             amountEl.textContent = currentState.prize > 0 ? `$${currentState.prize}` : '銘謝惠顧';
 
             // 4. 翻牌顯示結果
@@ -766,16 +809,28 @@
             card.classList.add('flipped');
             currentState.isFlipped = true;
 
+            // 5. 異步將最新狀態寫回 Firebase 資料庫
+            await setDoc(doc(db, "users", currentUserId), {
+              chances: currentUserData.chances,
+              drawnCount: currentUserData.drawnCount,
+              guaranteeCount: currentUserData.guaranteeCount,
+              p100: currentUserData.p100,
+              p500: currentUserData.p500,
+              p1000: currentUserData.p1000,
+              p2000: currentUserData.p2000,
+              p10000: currentUserData.p10000
+            }, { merge: true });
+
             setTimeout(() => {
               animatingCards.delete(card);
             }, 800);
 
           } catch (err) {
-            console.error("抽獎請求失敗：", err);
+            console.error("抽獎處理錯誤：", err);
             shaker.classList.remove('shaking');
             card.classList.remove('flipped');
             animatingCards.delete(card);
-            showCustomAlert('系統提示', err.message || '連線異常，請稍後再試！');
+            showCustomAlert('系統提示', err.message || '抽獎異常，請稍後再試！');
           }
         });
       });
