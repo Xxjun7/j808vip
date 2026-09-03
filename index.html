@@ -678,6 +678,14 @@
         loginModal.style.display = 'none';
         userInfoSpan.textContent = `VIP: ${userId}`;
         userChancesSpan.textContent = `遊戲次數: 讀取中...`;
+
+        // 【新增】背景預熱請求：在登入成功瞬間悄悄打一次 API，提前喚醒伺服器冷啟動
+        fetch('/api/drawCard', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ userId: userId })
+        }).catch(() => {});
+
         if (unsubscribeFirestore) unsubscribeFirestore();
         unsubscribeFirestore = onSnapshot(doc(db, "users", userId), (docSnap) => {
           if (docSnap.exists()) {
