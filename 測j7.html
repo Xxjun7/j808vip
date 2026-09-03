@@ -186,7 +186,7 @@
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/12.18.0/firebase-app.js";
-        import { getFirestore, collection, doc, getDoc, setDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/12.18.0/firebase-firestore.js";
+        import { getFirestore, collection, doc, getDoc, setDoc, deleteDoc, getDocs } from "https://www.gstatic.com/firebasejs/12.18.0/firebase-firestore.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyAgXlbP-D-k_Dj13Mmop-LRIm15FTkrGGY",
@@ -243,6 +243,7 @@
         const batchDeleteSubmitBtn = document.getElementById('batch-delete-submit-btn');
         const batchDeleteTextarea = document.getElementById('batch-delete-textarea');
 
+        // 顯示一般通知/提示
         function showModal(title, text, type = 'alert', onConfirm = null, showButtons = true) {
             modalTitle.textContent = title;
             modalText.textContent = text;
@@ -285,12 +286,6 @@
 
         async function executeSearch() {
             const keyword = searchInput.value.trim();
-            
-            if (!keyword) {
-                showModal('⚠️ 提示', '請輸入要搜尋的會員編號或姓名！');
-                return;
-            }
-
             fetchMembersData(keyword);
         }
 
@@ -299,14 +294,32 @@
 
             try {
                 allMembers = [];
-                const docRef = doc(db, "users", keyword);
-                const docSnap = await getDoc(docRef);
-                if (docSnap.exists()) {
-                    allMembers.push({ id: docSnap.id, ...docSnap.data() });
+                const usersRef = collection(db, "users");
+                
+                if (keyword === "") {
+                    // 若未輸入關鍵字，抓取全部會員清單
+                    const querySnapshot = await getDocs(usersRef);
+                    querySnapshot.forEach((docSnap) => {
+                        allMembers.push({ id: docSnap.id, ...docSnap.data() });
+                    });
+                } else {
+                    // 有輸入關鍵字：同時支援「精準查詢單筆 ID」或「模糊過濾」
+                    const docRef = doc(db, "users", keyword);
+                    const docSnap = await getDoc(docRef);
+                    if (docSnap.exists()) {
+                        allMembers.push({ id: docSnap.id, ...docSnap.data() });
+                    } else {
+                        // 如果單筆 ID 找不到，抓全部下來做前端字串包含篩選 (支援部分名稱搜尋)
+                        const querySnapshot = await getDocs(usersRef);
+                        querySnapshot.forEach((docSnap) => {
+                            if (docSnap.id.includes(keyword)) {
+                                allMembers.push({ id: docSnap.id, ...docSnap.data() });
+                            }
+                        });
+                    }
                 }
 
                 renderTable(allMembers);
-                showModal('通知', `搜尋完成，找到 ${allMembers.length} 筆資料`);
             } catch (err) {
                 console.error(err);
                 showModal('錯誤', '搜尋失敗！');
@@ -345,6 +358,9 @@
         searchBtn.addEventListener('click', executeSearch);
         searchInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') executeSearch(); });
 
+        // 頁面載入時預設自動抓取所有會員列表，方便直接檢視
+        fetchMembersData("");
+
         saveBtn.addEventListener('click', async () => {
             const userId = inputUserId.value.trim();
             if (!userId) { 
@@ -370,6 +386,7 @@
                 await setDoc(doc(db, "users", userId), dataToSave, { merge: true });
                 showModal('成功', `成功儲存會員：${userId}`);
                 clearForm();
+                fetchMembersData(searchInput.value.trim());
             } catch (err) {
                 showModal('錯誤', '儲存失敗！');
             }
@@ -380,7 +397,7 @@
             if (!m) return;
             inputUserId.value = m.id;
             inputUserId.disabled = true;
-            inputChances.value = m.chances ?? 1;
+            inputChances.value = m.chances ?? 0;
             inputDrawn.value = m.drawnCount ?? 0;
             inputRate.value = (m.winRate !== undefined && m.winRate !== null) ? m.winRate : 100;
             inputGuarantee.value = m.guaranteeCount ?? 0;
@@ -399,7 +416,7 @@
         function clearForm() {
             inputUserId.value = '';
             inputUserId.disabled = false;
-            inputChances.value = '1';
+            inputChances.value = '0';
             inputDrawn.value = '0';
             inputRate.value = '100';
             inputGuarantee.value = '0';
@@ -416,10 +433,11 @@
             showModal('確認刪除', `確定要刪除會員 [ ${id} ] 嗎？`, 'confirm', async () => {
                 await deleteDoc(doc(db, "users", id));
                 showModal('成功', `已刪除會員：${id}`);
-                tableBody.innerHTML = `<tr><td colspan="11" style="text-align: center; color: #888;">請輸入會員名稱後點擊搜尋</td></tr>`;
+                fetchMembersData(searchInput.value.trim());
             });
         }
 
+        // 批量設定主選單互動事件
         batchMenuOpenBtn.addEventListener('click', () => {
             batchMenuModal.classList.add('active');
         });
@@ -428,6 +446,7 @@
             batchMenuModal.classList.remove('active');
         });
 
+        // 點擊「批量寫入」按鈕
         batchOpenBtn.addEventListener('click', () => {
             batchMenuModal.classList.remove('active');
             batchTextarea.value = '';
@@ -475,7 +494,7 @@
                         let successCount = 0;
                         for (const memberId of membersToProcess) {
                             const defaultData = {
-                                chances: 1,
+                                chances: 0,
                                 drawnCount: 0,
                                 winRate: 100,
                                 guaranteeCount: 0,
@@ -491,9 +510,7 @@
                         }
 
                         showModal('✅ 批量寫入完成', `已成功寫入 / 更新 ${successCount} 筆會員資料。`);
-                        if (searchInput.value.trim()) {
-                            executeSearch();
-                        }
+                        fetchMembersData(searchInput.value.trim());
                     } catch (err) {
                         console.error(err);
                         showModal('❌ 錯誤', '批量寫入過程中發生錯誤！');
@@ -502,6 +519,7 @@
             );
         });
 
+        // 點擊「批量刪除」按鈕
         batchDeleteOpenBtn.addEventListener('click', () => {
             batchMenuModal.classList.remove('active');
             batchDeleteTextarea.value = '';
@@ -553,9 +571,7 @@
                         }
 
                         showModal('✅ 批量刪除完成', `已成功刪除 ${deleteCount} 筆會員資料。`);
-                        if (searchInput.value.trim()) {
-                            executeSearch();
-                        }
+                        fetchMembersData(searchInput.value.trim());
                     } catch (err) {
                         console.error(err);
                         showModal('❌ 錯誤', '批量刪除過程中發生錯誤！');
