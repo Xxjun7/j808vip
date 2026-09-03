@@ -20,7 +20,6 @@
         overflow: hidden;
         font-family: 'Arial Black', Impact, sans-serif;
         background-color: #080b10;
-        /* 禁止文字反白選取與長按跳出選單 */
         -webkit-user-select: none;
         user-select: none;
         -webkit-touch-callout: none;
@@ -94,40 +93,27 @@
         transform: translateY(-10px) scale(1.03);
       }
 
+      /* 【已修改】改成 infinite 無限循環搖晃，直到 JS 移除 shaking class */
       .card-shaker.shaking {
-        /*0.5s 卡片搖晃*/
-        animation: cardShake 0.5s ease-in-out forwards;
+        animation: cardShake 0.4s ease-in-out infinite;
       }
 
       @keyframes cardShake {
         0% {
           transform: scale(1) rotate(0deg);
         }
-
-        15% {
+        20% {
           transform: scale(1.05) rotate(-5deg) translateY(-5px);
         }
-
-        30% {
+        40% {
           transform: scale(1.05) rotate(5deg) translateY(-5px);
         }
-
-        45% {
-          transform: scale(1.08) rotate(-5deg) translateY(-8px);
-        }
-
         60% {
-          transform: scale(1.08) rotate(5deg) translateY(-8px);
+          transform: scale(1.08) rotate(-4deg) translateY(-8px);
         }
-
-        75% {
-          transform: scale(1.1) rotate(-3deg) translateY(-10px);
+        80% {
+          transform: scale(1.08) rotate(4deg) translateY(-8px);
         }
-
-        90% {
-          transform: scale(1.1) rotate(3deg) translateY(-10px);
-        }
-
         100% {
           transform: scale(1) rotate(0deg);
         }
@@ -270,13 +256,12 @@
       }
 
       /* 登入遮罩與通用訊息彈窗 Modal */
-      #login-modal {
+      #login-modal, #message-modal {
         position: fixed;
         top: 0;
         left: 0;
         width: 100vw;
         height: 100vh;
-        background-image: url('image_7.png');
         background-size: cover;
         background-position: center;
         display: flex;
@@ -286,20 +271,13 @@
         transition: transform 0.3s ease, width 0.3s ease, height 0.3s ease;
       }
 
-      #message-modal {
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: 100vw;
-        height: 100vh;
+      #login-modal {
         background-image: url('image_7.png');
-        background-size: cover;
-        background-position: center;
+      }
+
+      #message-modal {
+        background-image: url('image_7.png');
         display: none;
-        justify-content: center;
-        align-items: center;
-        z-index: 10000;
-        transition: transform 0.3s ease, width 0.3s ease, height 0.3s ease;
       }
 
       #login-modal.force-rotated,
@@ -392,7 +370,6 @@
         min-height: 18px;
       }
 
-      /* 載入動畫效果 */
       .loading-dots::after {
         content: '';
         animation: loadingDots 1.5s infinite steps(4, end);
@@ -409,7 +386,6 @@
         100% { content: ''; }
       }
 
-      /* 直向提示優先 */
       #portrait-notice {
         display: none;
         position: fixed;
@@ -435,20 +411,9 @@
       }
 
       @keyframes rotatePhone {
-        0%,
-        10% {
-          transform: rotate(0deg);
-        }
-
-        40%,
-        60% {
-          transform: rotate(-90deg);
-        }
-
-        90%,
-        100% {
-          transform: rotate(0deg);
-        }
+        0%, 10% { transform: rotate(0deg); }
+        40%, 60% { transform: rotate(-90deg); }
+        90%, 100% { transform: rotate(0deg); }
       }
 
       .rotate-btn {
@@ -634,6 +599,7 @@
         loginModal.style.display = 'flex';
       }
 
+      // 【已修改】點擊登入按鈕瞬間在背景發送預熱請求 (warmUp: true)
       loginSubmitBtn.addEventListener('click', async () => {
         const val = loginInput.value.trim();
         if (!val) {
@@ -644,8 +610,15 @@
         loginError.innerHTML = '登入中<span class="loading-dots"></span>';
         loginSubmitBtn.disabled = true;
 
+        // 在背景發送預熱請求（不影響後續主流程，也不會扣次數）
+        fetch('/api/drawCard', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ warmUp: true })
+        }).catch(() => {});
+
         try {
-          await new Promise(resolve => setTimeout(resolve, 3000));
+          await new Promise(resolve => setTimeout(resolve, 1500)); // 模擬或確保動畫流暢
 
           const userDocRef = doc(db, "users", val);
           const userDocSnap = await getDoc(userDocRef);
@@ -718,7 +691,7 @@
         checkOrientationAfterLogin();
       }
 
-      // 卡片點擊事件
+      // 卡片點擊事件（無限循環搖晃，直到 API 回傳後停止搖晃並翻牌）
       cardContainers.forEach((container, index) => {
         const card = container.querySelector('.card');
         const shaker = container.querySelector('.card-shaker');
@@ -760,8 +733,11 @@
               playSFX(window.sounds.win);
             }, 200);
           }
+          
+          // 開始無限循環搖晃
           shaker.classList.add('shaking');
 
+          // 發送 API 抽卡請求
           const apiPromise = fetch('/api/drawCard', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -769,10 +745,12 @@
           }).then(res => res.json());
 
           try {
-            await new Promise(resolve => setTimeout(resolve, 500));
+            // 等待 API 回傳結果
+            const data = await apiPromise;
+            
+            // 收到結果後立刻停止搖晃
             shaker.classList.remove('shaking');
 
-            const data = await apiPromise;
             if (!data.success) {
               throw new Error(data.error || '抽獎失敗');
             }
@@ -803,7 +781,8 @@
       function checkOrientationAfterLogin() {
         const isLandscape = window.matchMedia('(orientation: landscape)').matches;
         const noticeEl = document.getElementById('portrait-notice');
-        if (!isLandscape && ENABLE_PORTRAIT_NOTICE && !gameContainer.classList.contains('force-rotated')) {
+        const gameContainer = document.getElementById('game-container');
+        if (!isLandscape && !gameContainer.classList.contains('force-rotated')) {
           noticeEl.classList.add('active');
         }
       }
@@ -814,13 +793,8 @@
 
     <!-- 遊戲互動與音效控制 -->
     <script>
-      // 禁止滑鼠右鍵選單與行動裝置長按選單
-      document.addEventListener('contextmenu', (e) => {
-        e.preventDefault();
-      });
-      document.addEventListener('gesturestart', (e) => {
-        e.preventDefault();
-      });
+      document.addEventListener('contextmenu', (e) => { e.preventDefault(); });
+      document.addEventListener('gesturestart', (e) => { e.preventDefault(); });
 
       const sounds = {
         bgm: new Audio('bgm01.mp3'),
@@ -852,22 +826,8 @@
         }).catch(() => {});
       });
 
-      // 【已修改】改成可發送多次的預熱機制（此處設定最多發送 3 次）
-      let warmUpCount = 0;
-      const MAX_WARM_UP = 5;
-
       function startBGM(event) {
         if (event && event.target && event.target.closest('#audio-btn')) return;
-        
-        if (warmUpCount < MAX_WARM_UP) {
-          warmUpCount++;
-          fetch('/api/drawCard', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ warmUp: true })
-          }).catch(() => {});
-        }
-
         if (bgmStarted || isMuted) return;
         sounds.bgm.play().then(() => {
           bgmStarted = true;
@@ -907,7 +867,6 @@
       window.addEventListener('pagehide', stopAllAudio);
       window.addEventListener('beforeunload', stopAllAudio);
       
-      const ENABLE_PORTRAIT_NOTICE = true;
       const noticeEl = document.getElementById('portrait-notice');
       const gameContainer = document.getElementById('game-container');
       const rotateBtn = document.getElementById('manual-rotate-btn');
@@ -937,7 +896,7 @@
             window.checkAndShowLogin();
           }
         } else {
-          if (window.getCurrentUserId && window.getCurrentUserId() && ENABLE_PORTRAIT_NOTICE && !gameContainer.classList.contains('force-rotated')) {
+          if (window.getCurrentUserId && window.getCurrentUserId() && !gameContainer.classList.contains('force-rotated')) {
             noticeEl.classList.add('active');
           }
         }
