@@ -93,7 +93,6 @@
         transform: translateY(-10px) scale(1.03);
       }
 
-      /* 【已修改】改成 infinite 無限循環搖晃，直到 JS 移除 shaking class */
       .card-shaker.shaking {
         animation: cardShake 0.4s ease-in-out infinite;
       }
@@ -176,7 +175,6 @@
         pointer-events: none;
       }
 
-      /* UI 按鈕樣式 */
       .ui-btn {
         position: absolute;
         display: flex;
@@ -221,7 +219,6 @@
         right: 20px;
       }
 
-      /* 玩家狀態列 (左上角) */
       #user-info-bar {
         position: absolute;
         top: 15px;
@@ -255,7 +252,6 @@
         transform: scale(0.95);
       }
 
-      /* 登入遮罩與通用訊息彈窗 Modal */
       #login-modal, #message-modal {
         position: fixed;
         top: 0;
@@ -599,7 +595,7 @@
         loginModal.style.display = 'flex';
       }
 
-      // 【已修改】點擊登入按鈕瞬間在背景發送預熱請求 (warmUp: true)
+      // 【已改用專屬的極輕量預熱路由 /api/warmup】
       loginSubmitBtn.addEventListener('click', async () => {
         const val = loginInput.value.trim();
         if (!val) {
@@ -610,15 +606,14 @@
         loginError.innerHTML = '登入中<span class="loading-dots"></span>';
         loginSubmitBtn.disabled = true;
 
-        // 在背景發送預熱請求（不影響後續主流程，也不會扣次數）
-        fetch('/api/drawCard', {
+        // 打獨立的輕量預熱路由，不碰資料庫、秒喚醒伺服器
+        fetch('/api/warmup', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ warmUp: true })
+          headers: { 'Content-Type': 'application/json' }
         }).catch(() => {});
 
         try {
-          await new Promise(resolve => setTimeout(resolve, 1500)); // 模擬或確保動畫流暢
+          await new Promise(resolve => setTimeout(resolve, 1500));
 
           const userDocRef = doc(db, "users", val);
           const userDocSnap = await getDoc(userDocRef);
@@ -691,7 +686,6 @@
         checkOrientationAfterLogin();
       }
 
-      // 卡片點擊事件（無限循環搖晃，直到 API 回傳後停止搖晃並翻牌）
       cardContainers.forEach((container, index) => {
         const card = container.querySelector('.card');
         const shaker = container.querySelector('.card-shaker');
@@ -734,10 +728,8 @@
             }, 200);
           }
           
-          // 開始無限循環搖晃
           shaker.classList.add('shaking');
 
-          // 發送 API 抽卡請求
           const apiPromise = fetch('/api/drawCard', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -745,10 +737,8 @@
           }).then(res => res.json());
 
           try {
-            // 等待 API 回傳結果
             const data = await apiPromise;
             
-            // 收到結果後立刻停止搖晃
             shaker.classList.remove('shaking');
 
             if (!data.success) {
@@ -791,7 +781,6 @@
       window.getCurrentUserId = () => currentUserId;
     </script>
 
-    <!-- 遊戲互動與音效控制 -->
     <script>
       document.addEventListener('contextmenu', (e) => { e.preventDefault(); });
       document.addEventListener('gesturestart', (e) => { e.preventDefault(); });
