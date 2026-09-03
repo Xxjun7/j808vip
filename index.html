@@ -473,7 +473,7 @@
         <span class="ui-btn-text">手動旋轉</span>
       </div>
       <div class="phone-icon">📱</div>
-      <p>請將手機旋轉至「橫向」<br>獲得發展最佳 VIP 抽卡體驗</p>
+      <p>請將手機旋轉至「橫向」<br>獲得最佳 VIP 抽卡體驗</p>
     </div>
 
     <!-- 遊戲主區域 -->
@@ -607,13 +607,8 @@
           loginModal.style.display = 'none';
           return;
         }
-        const isLandscape = window.matchMedia('(orientation: landscape)').matches;
-        const noticeEl = document.getElementById('portrait-notice');
-        if (isLandscape || !noticeEl.classList.contains('active')) {
-          loginModal.style.display = 'flex';
-        } else {
-          loginModal.style.display = 'none';
-        }
+        // 確保登入面板優先顯示，不受直向強制隱藏影響
+        loginModal.style.display = 'flex';
       }
 
       loginSubmitBtn.addEventListener('click', async () => {
@@ -692,9 +687,12 @@
           console.error("Firestore 監聽錯誤：", error);
           userChancesSpan.textContent = `遊戲次數: 連線異常`;
         });
+
+        // 登入成功後，若為直向且未觸發強制旋轉，此時再依需求檢查是否跳出提示或讓使用者手動旋轉
+        checkOrientationAfterLogin();
       }
 
-      // 卡片點擊事件：實現「立即動畫、背景請求」的流暢體驗
+      // 卡片點擊事件
       cardContainers.forEach((container, index) => {
         const card = container.querySelector('.card');
         const shaker = container.querySelector('.card-shaker');
@@ -730,7 +728,6 @@
 
           animatingCards.add(card);
 
-          // 1. 【極速體驗】點擊瞬間立刻播放音效與搖晃動畫，完全不用等 API 回傳
           if (typeof playSFX === 'function' && window.sounds) {
             playSFX(window.sounds.shake);
             setTimeout(() => {
@@ -739,7 +736,6 @@
           }
           shaker.classList.add('shaking');
 
-          // 2. 在背景發送 API 請求資料
           const apiPromise = fetch('/api/drawCard', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -747,11 +743,9 @@
           }).then(res => res.json());
 
           try {
-            // 3. 同步進行搖晃動畫 (500ms)
             await new Promise(resolve => setTimeout(resolve, 500));
             shaker.classList.remove('shaking');
 
-            // 等待 API 結果回來
             const data = await apiPromise;
             if (!data.success) {
               throw new Error(data.error || '抽獎失敗');
@@ -760,7 +754,6 @@
             currentState.prize = data.prize;
             amountEl.textContent = currentState.prize > 0 ? `$${currentState.prize}` : '銘謝惠顧';
 
-            // 4. 翻牌顯示結果
             if (typeof playSFX === 'function' && window.sounds) {
               playSFX(window.sounds.flip);
             }
@@ -780,6 +773,14 @@
           }
         });
       });
+
+      function checkOrientationAfterLogin() {
+        const isLandscape = window.matchMedia('(orientation: landscape)').matches;
+        const noticeEl = document.getElementById('portrait-notice');
+        if (!isLandscape && ENABLE_PORTRAIT_NOTICE && !gameContainer.classList.contains('force-rotated')) {
+          noticeEl.classList.add('active');
+        }
+      }
 
       window.checkAndShowLogin = checkAndShowLogin;
     </script>
@@ -816,12 +817,10 @@
         }).catch(() => {});
       });
 
-      // 【修改】結合首屏第一下點擊事件：同時播放音樂並在背景發送預熱請求喚醒伺服器
       let hasWarmedUp = false;
       function startBGM(event) {
         if (event && event.target && event.target.closest('#audio-btn')) return;
         
-        // 觸發伺服器預熱請求 (僅執行一次)
         if (!hasWarmedUp) {
           hasWarmedUp = true;
           fetch('/api/drawCard', {
@@ -877,12 +876,11 @@
       const loginModal = document.getElementById('login-modal');
       const messageModal = document.getElementById('message-modal');
       
+      // 【修改】初始化時不因直向隱藏登入框，讓登入永遠優先展示
       if (ENABLE_PORTRAIT_NOTICE) {
         const isLandscape = window.matchMedia('(orientation: landscape)').matches;
         if (!isLandscape) {
-          noticeEl.classList.add('active');
-          loginModal.style.display = 'none';
-        } else {
+          // 保持直向提示預設隱藏，等登入後或由使用者自行決定，確保一開始能看到登入框
           noticeEl.classList.remove('active');
         }
       }
@@ -908,11 +906,6 @@
           noticeEl.classList.remove('active');
           if (window.checkAndShowLogin) {
             window.checkAndShowLogin();
-          }
-        } else {
-          if (!gameContainer.classList.contains('force-rotated') && ENABLE_PORTRAIT_NOTICE) {
-            noticeEl.classList.add('active');
-            loginModal.style.display = 'none';
           }
         }
       }
