@@ -351,7 +351,6 @@
         margin-bottom: 15px;
         text-align: center;
         outline: none;
-        /* 允許輸入框內正常選取文字 */
         -webkit-user-select: text;
         user-select: text;
       }
@@ -814,7 +813,7 @@
 
     <!-- 遊戲互動與音效控制 -->
     <script>
-      // 【新增】全面禁止滑鼠右鍵選單與行動裝置長按選單
+      // 禁止滑鼠右鍵選單與行動裝置長按選單
       document.addEventListener('contextmenu', (e) => {
         e.preventDefault();
       });
@@ -852,12 +851,15 @@
         }).catch(() => {});
       });
 
-      let hasWarmedUp = false;
+      // 【已修改】改成可發送多次的預熱機制（此處設定最多發送 3 次）
+      let warmUpCount = 0;
+      const MAX_WARM_UP = 3;
+
       function startBGM(event) {
         if (event && event.target && event.target.closest('#audio-btn')) return;
         
-        if (!hasWarmedUp) {
-          hasWarmedUp = true;
+        if (warmUpCount < MAX_WARM_UP) {
+          warmUpCount++;
           fetch('/api/drawCard', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
