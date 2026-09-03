@@ -803,6 +803,7 @@
       }
 
       window.checkAndShowLogin = checkAndShowLogin;
+      window.getCurrentUserId = () => currentUserId;
     </script>
 
     <!-- 遊戲互動與音效控制 -->
@@ -917,6 +918,11 @@
           noticeEl.classList.remove('active');
           if (window.checkAndShowLogin) {
             window.checkAndShowLogin();
+          }
+        } else {
+          // 【新增】如果已經登入，且轉回直向時，自動跳出提示
+          if (window.getCurrentUserId && window.getCurrentUserId() && ENABLE_PORTRAIT_NOTICE && !gameContainer.classList.contains('force-rotated')) {
+            noticeEl.classList.add('active');
           }
         }
       }
