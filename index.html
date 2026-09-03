@@ -20,6 +20,10 @@
         overflow: hidden;
         font-family: 'Arial Black', Impact, sans-serif;
         background-color: #080b10;
+        /* 禁止文字反白選取與長按跳出選單 */
+        -webkit-user-select: none;
+        user-select: none;
+        -webkit-touch-callout: none;
       }
 
       #game-container {
@@ -347,6 +351,9 @@
         margin-bottom: 15px;
         text-align: center;
         outline: none;
+        /* 允許輸入框內正常選取文字 */
+        -webkit-user-select: text;
+        user-select: text;
       }
 
       .login-box .checkbox-container {
@@ -638,7 +645,6 @@
         loginSubmitBtn.disabled = true;
 
         try {
-          // 強制加上 3 秒延遲
           await new Promise(resolve => setTimeout(resolve, 3000));
 
           const userDocRef = doc(db, "users", val);
@@ -808,6 +814,14 @@
 
     <!-- 遊戲互動與音效控制 -->
     <script>
+      // 【新增】全面禁止滑鼠右鍵選單與行動裝置長按選單
+      document.addEventListener('contextmenu', (e) => {
+        e.preventDefault();
+      });
+      document.addEventListener('gesturestart', (e) => {
+        e.preventDefault();
+      });
+
       const sounds = {
         bgm: new Audio('bgm01.mp3'),
         shake: new Audio('shake01.mp3'),
@@ -920,7 +934,6 @@
             window.checkAndShowLogin();
           }
         } else {
-          // 【新增】如果已經登入，且轉回直向時，自動跳出提示
           if (window.getCurrentUserId && window.getCurrentUserId() && ENABLE_PORTRAIT_NOTICE && !gameContainer.classList.contains('force-rotated')) {
             noticeEl.classList.add('active');
           }
