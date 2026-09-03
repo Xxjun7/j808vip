@@ -679,13 +679,6 @@
         userInfoSpan.textContent = `VIP: ${userId}`;
         userChancesSpan.textContent = `遊戲次數: 讀取中...`;
 
-        // 【修改】背景預熱請求：帶入 warmUp: true，不傳送會員參數，純粹喚醒伺服器冷啟動而不扣次數
-        fetch('/api/drawCard', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ warmUp: true })
-        }).catch(() => {});
-
         if (unsubscribeFirestore) unsubscribeFirestore();
         unsubscribeFirestore = onSnapshot(doc(db, "users", userId), (docSnap) => {
           if (docSnap.exists()) {
@@ -823,8 +816,21 @@
         }).catch(() => {});
       });
 
+      // 【修改】結合首屏第一下點擊事件：同時播放音樂並在背景發送預熱請求喚醒伺服器
+      let hasWarmedUp = false;
       function startBGM(event) {
         if (event && event.target && event.target.closest('#audio-btn')) return;
+        
+        // 觸發伺服器預熱請求 (僅執行一次)
+        if (!hasWarmedUp) {
+          hasWarmedUp = true;
+          fetch('/api/drawCard', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ warmUp: true })
+          }).catch(() => {});
+        }
+
         if (bgmStarted || isMuted) return;
         sounds.bgm.play().then(() => {
           bgmStarted = true;
