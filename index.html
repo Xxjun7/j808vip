@@ -2,8 +2,7 @@
 <html lang="zh-TW">
   <head>
     <meta charset="UTF-8">
-    <!-- 🎯 嚴格鎖定縮放與畫面尺寸 -->
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>金正旺銀行vip抽卡系統</title>
     <link rel="icon" type="image/x-icon" href="./Jicon.ico">
 
@@ -16,6 +15,7 @@
         box-sizing: border-box;
         margin: 0;
         padding: 0;
+        /* 🎯 關鍵防護：徹底禁用手機瀏覽器的雙擊縮放與預設觸控手勢延遲 */
         touch-action: manipulation;
       }
 
@@ -24,32 +24,27 @@
         width: 100%;
         height: 100%;
         overflow: hidden;
-        position: fixed;
         font-family: 'Arial Black', Impact, sans-serif;
         background-color: #080b10;
         -webkit-user-select: none;
         user-select: none;
         -webkit-touch-callout: none;
-        overscroll-behavior: none;
       }
 
-      /* 遊戲主容器與背景設置 (🎯 擴充填滿安全區域，消除黑邊) */
+      /* 遊戲主容器與背景設置 */
       #game-container {
-        position: fixed;
+        position: absolute;
         top: 0;
         left: 0;
         width: 100vw;
         height: 100vh;
-        width: 100svw;
-        height: 100svh;
         background-image: url('image_6.png');
-        background-size: 100% 100%;
+        background-size: cover;
         background-position: center;
         display: flex;
         justify-content: center;
         align-items: center;
-        padding: 0 !important;
-        overflow: hidden;
+        padding: 20px;
         transition: transform 0.3s ease, width 0.3s ease, height 0.3s ease;
       }
 
@@ -222,17 +217,17 @@
         line-height: 1;
       }
 
-      /* 音效切換按鈕定位 (使用固定邊距，無視安全區域) */
+      /* 音效切換按鈕定位 (遊戲中與登入畫面共用) */
       .audio-btn-global {
-        top: 20px;
-        right: 25px;
+        top: 10px;
+        right: 20px;
       }
 
-      /* 左上角玩家資訊列 (使用固定邊距，無視安全區域) */
+      /* 左上角玩家資訊列 */
       #user-info-bar {
         position: absolute;
-        top: 20px;
-        left: 25px;
+        top: 10px;
+        left: 20px;
         display: flex;
         align-items: center;
         gap: 15px;
@@ -262,15 +257,13 @@
         transform: scale(0.95);
       }
 
-      /* 彈窗背景與互動面板 (支援全螢幕填滿) */
+      /* 彈窗背景與互動面板 */
       #login-modal, #message-modal {
         position: fixed;
         top: 0;
         left: 0;
         width: 100vw;
         height: 100vh;
-        width: 100dvw;
-        height: 100dvh;
         background-size: cover;
         background-position: center;
         display: flex;
@@ -342,7 +335,8 @@
         outline: none;
         -webkit-user-select: text;
         user-select: text;
-        touch-action: auto;
+        /* 輸入框保留預設觸控以便打字 */
+        touch-action: auto; 
       }
 
       .login-box .checkbox-container {
@@ -406,8 +400,6 @@
         left: 0;
         width: 100vw;
         height: 100vh;
-        width: 100dvw;
-        height: 100dvh;
         background: rgba(8, 11, 16, 0.95);
         z-index: 10005;
         color: #ffd700;
@@ -819,15 +811,6 @@
     <!-- 音效與畫面方向控制區段                     -->
     <!-- ========================================== -->
     <script>
-      // 🎯 重新整理或切換回來時強制重置縮放比例與捲動位置
-      window.addEventListener('pageshow', (event) => {
-        const viewportMeta = document.querySelector('meta[name="viewport"]');
-        if (viewportMeta) {
-          viewportMeta.setAttribute('content', 'width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no, viewport-fit=cover');
-        }
-        window.scrollTo(0, 0);
-      });
-
       // 確保整個頁面生命週期中只發送一次 warmup 請求
       let hasWarmedUp = document.hidden;
 
@@ -847,11 +830,9 @@
       document.addEventListener('click', triggerWarmupOnce, { passive: true });
       document.addEventListener('touchstart', triggerWarmupOnce, { passive: true });
 
-      // 🎯 徹底禁用右鍵選單與所有手勢縮放/雙指縮放
+      // 禁用右鍵選單與手勢縮放
       document.addEventListener('contextmenu', (e) => { e.preventDefault(); });
       document.addEventListener('gesturestart', (e) => { e.preventDefault(); });
-      document.addEventListener('gesturechange', (e) => { e.preventDefault(); });
-      document.addEventListener('gestureend', (e) => { e.preventDefault(); });
 
       // 圖片預載機制 (Preload Images)
       const preloadImages = ['image_6.png', 'image_7.png', 'Card_Back.JPG', 'Card_Front.JPG'];
