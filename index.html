@@ -2,6 +2,7 @@
 <html lang="zh-TW">
   <head>
     <meta charset="UTF-8">
+    <!-- 🎯 關鍵防護：加入 viewport-fit=cover 讓畫面延伸至手機邊緣（填滿安全區黑條） -->
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>金正旺銀行vip抽卡系統</title>
     <link rel="icon" type="image/x-icon" href="./Jicon.ico">
@@ -32,19 +33,18 @@
         overscroll-behavior: none;
       }
 
-      /* 遊戲主容器與背景設置 */
+      /* 遊戲主容器與背景設置 (🎯 擴展至安全區域外，徹底消除左右黑條) */
       #game-container {
         position: absolute;
         top: 0;
         left: 0;
         width: 100vw;
         height: 100vh;
-        /* 🎯 填滿安全區域：使用 env() 將寬高擴展至包含瀏海與側邊黑條區域 */
-        width: 100vw;
+        /* 使用 env 函式將寬高額外擴展安全區域，確保橫向黑條被背景填滿 */
         width: calc(100vw + env(safe-area-inset-left) + env(safe-area-inset-right));
         height: calc(100vh + env(safe-area-inset-top) + env(safe-area-inset-bottom));
-        left: env(safe-area-inset-left);
-        top: env(safe-area-inset-top);
+        left: calc(0px - env(safe-area-inset-left));
+        top: calc(0px - env(safe-area-inset-top));
         
         background-image: url('image_6.png');
         background-size: cover;
@@ -52,7 +52,8 @@
         display: flex;
         justify-content: center;
         align-items: center;
-        padding: 20px;
+        /* 內部加上安全距離 padding，避免內容被手機瀏海或圓角遮擋 */
+        padding: max(20px, env(safe-area-inset-top)) max(20px, env(safe-area-inset-right)) max(20px, env(safe-area-inset-bottom)) max(20px, env(safe-area-inset-left));
         overflow: hidden;
         transition: transform 0.3s ease, width 0.3s ease, height 0.3s ease;
       }
@@ -226,17 +227,17 @@
         line-height: 1;
       }
 
-      /* 音效切換按鈕定位 (遊戲中與登入畫面共用) - 配合安全邊距微調 */
+      /* 音效切換按鈕定位 (配合安全區動態調整) */
       .audio-btn-global {
-        top: calc(10px + env(safe-area-inset-top));
-        right: calc(20px + env(safe-area-inset-right));
+        top: max(10px, env(safe-area-inset-top));
+        right: max(20px, env(safe-area-inset-right));
       }
 
-      /* 左上角玩家資訊列 - 配合安全邊距微調 */
+      /* 左上角玩家資訊列 (配合安全區動態調整) */
       #user-info-bar {
         position: absolute;
-        top: calc(10px + env(safe-area-inset-top));
-        left: calc(20px + env(safe-area-inset-left));
+        top: max(10px, env(safe-area-inset-top));
+        left: max(20px, env(safe-area-inset-left));
         display: flex;
         align-items: center;
         gap: 15px;
@@ -266,7 +267,7 @@
         transform: scale(0.95);
       }
 
-      /* 彈窗背景與互動面板 - 填滿安全區域 */
+      /* 彈窗背景與互動面板 (同樣填滿安全區) */
       #login-modal, #message-modal {
         position: fixed;
         top: 0;
@@ -275,8 +276,9 @@
         height: 100vh;
         width: calc(100vw + env(safe-area-inset-left) + env(safe-area-inset-right));
         height: calc(100vh + env(safe-area-inset-top) + env(safe-area-inset-bottom));
-        left: env(safe-area-inset-left);
-        top: env(safe-area-inset-top);
+        left: calc(0px - env(safe-area-inset-left));
+        top: calc(0px - env(safe-area-inset-top));
+        
         background-size: cover;
         background-position: center;
         display: flex;
@@ -404,7 +406,7 @@
         100% { content: ''; }
       }
 
-      /* 直向強制提示畫面設定 - 填滿安全區域 */
+      /* 直向強制提示畫面設定 */
       #portrait-notice {
         display: none;
         position: fixed;
@@ -412,10 +414,6 @@
         left: 0;
         width: 100vw;
         height: 100vh;
-        width: calc(100vw + env(safe-area-inset-left) + env(safe-area-inset-right));
-        height: calc(100vh + env(safe-area-inset-top) + env(safe-area-inset-bottom));
-        left: env(safe-area-inset-left);
-        top: env(safe-area-inset-top);
         background: rgba(8, 11, 16, 0.95);
         z-index: 10005;
         color: #ffd700;
@@ -440,8 +438,8 @@
       }
 
       .rotate-btn {
-        top: calc(20px + env(safe-area-inset-top));
-        right: calc(20px + env(safe-area-inset-right));
+        top: 20px;
+        right: 20px;
         width: 70px;
         height: 70px;
       }
@@ -827,7 +825,15 @@
     <!-- 音效與畫面方向控制區段                     -->
     <!-- ========================================== -->
     <script>
-      // 重整或重新進入畫面時，強制重設 viewport 縮放，確保回到 100% 初始大小
+      // 🎯 關鍵修復：每次畫面大小改變或旋轉時，強制重置縮放與捲動位置，防止自動旋轉後解鎖放大
+      window.addEventListener('resize', () => {
+        window.scrollTo(0, 0);
+        const viewportMeta = document.querySelector('meta[name="viewport"]');
+        if (viewportMeta) {
+          viewportMeta.setAttribute('content', 'width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no, viewport-fit=cover');
+        }
+      });
+
       window.addEventListener('pageshow', (event) => {
         const viewportMeta = document.querySelector('meta[name="viewport"]');
         if (viewportMeta) {
@@ -835,20 +841,6 @@
         }
         window.scrollTo(0, 0);
       });
-
-      // 🎯 徹底封鎖所有手機原生的觸控縮放、雙指放大及手勢事件
-      document.addEventListener('gesturestart', (e) => { e.preventDefault(); }, { passive: false });
-      document.addEventListener('gesturechange', (e) => { e.preventDefault(); }, { passive: false });
-      document.addEventListener('gestureend', (e) => { e.preventDefault(); }, { passive: false });
-      
-      // 防止多指觸控造成的畫面縮放
-      document.addEventListener('touchstart', (e) => {
-        if (e.touches.length > 1) {
-          e.preventDefault();
-        }
-      }, { passive: false });
-
-      document.addEventListener('contextmenu', (e) => { e.preventDefault(); });
 
       // 確保整個頁面生命週期中只發送一次 warmup 請求
       let hasWarmedUp = document.hidden;
@@ -868,6 +860,12 @@
 
       document.addEventListener('click', triggerWarmupOnce, { passive: true });
       document.addEventListener('touchstart', triggerWarmupOnce, { passive: true });
+
+      // 🎯 徹底禁用右鍵選單與所有手勢縮放/雙指縮放
+      document.addEventListener('contextmenu', (e) => { e.preventDefault(); });
+      document.addEventListener('gesturestart', (e) => { e.preventDefault(); });
+      document.addEventListener('gesturechange', (e) => { e.preventDefault(); });
+      document.addEventListener('gestureend', (e) => { e.preventDefault(); });
 
       // 圖片預載機制 (Preload Images)
       const preloadImages = ['image_6.png', 'image_7.png', 'Card_Back.JPG', 'Card_Front.JPG'];
@@ -935,7 +933,7 @@
       // 同步更新所有音效按鈕的圖示與文字狀態
       const audioButtons = document.querySelectorAll('.audio-btn-global');
       
-      audioButtons.def = audioButtons.forEach(btn => {
+      audioButtons.forEach(btn => {
         btn.addEventListener('click', (e) => {
           e.stopPropagation();
           isMuted = !isMuted;
