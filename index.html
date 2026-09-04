@@ -2,8 +2,8 @@
 <html lang="zh-TW">
   <head>
     <meta charset="UTF-8">
-    <!-- 🎯 關鍵防護：強制將初始縮放設為 1.0，並徹底禁止使用者手動縮放與放大縮小 -->
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no">
+    <!-- 🎯 嚴格鎖定縮放與畫面尺寸 -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>金正旺銀行vip抽卡系統</title>
     <link rel="icon" type="image/x-icon" href="./Jicon.ico">
 
@@ -30,24 +30,25 @@
         -webkit-user-select: none;
         user-select: none;
         -webkit-touch-callout: none;
-        /* 🎯 額外鎖定：防止頁面在手機上被任意手動拉動或彈性滾動 */
         overscroll-behavior: none;
       }
 
-      /* 遊戲主容器與背景設置 */
+      /* 遊戲主容器與背景設置 (🎯 擴充填滿安全區域，消除黑邊) */
       #game-container {
         position: absolute;
         top: 0;
         left: 0;
         width: 100vw;
         height: 100vh;
+        width: 100dvw;
+        height: 100dvh;
         background-image: url('image_6.png');
         background-size: cover;
         background-position: center;
         display: flex;
         justify-content: center;
         align-items: center;
-        padding: 20px;
+        padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
         overflow: hidden;
         transition: transform 0.3s ease, width 0.3s ease, height 0.3s ease;
       }
@@ -221,17 +222,17 @@
         line-height: 1;
       }
 
-      /* 音效切換按鈕定位 (遊戲中與登入畫面共用) */
+      /* 音效切換按鈕定位 (配合安全區域微調) */
       .audio-btn-global {
-        top: 10px;
-        right: 20px;
+        top: max(10px, env(safe-area-inset-top));
+        right: max(20px, env(safe-area-inset-right));
       }
 
-      /* 左上角玩家資訊列 */
+      /* 左上角玩家資訊列 (配合安全區域微調) */
       #user-info-bar {
         position: absolute;
-        top: 10px;
-        left: 20px;
+        top: max(10px, env(safe-area-inset-top));
+        left: max(20px, env(safe-area-inset-left));
         display: flex;
         align-items: center;
         gap: 15px;
@@ -261,13 +262,15 @@
         transform: scale(0.95);
       }
 
-      /* 彈窗背景與互動面板 */
+      /* 彈窗背景與互動面板 (支援全螢幕填滿) */
       #login-modal, #message-modal {
         position: fixed;
         top: 0;
         left: 0;
         width: 100vw;
         height: 100vh;
+        width: 100dvw;
+        height: 100dvh;
         background-size: cover;
         background-position: center;
         display: flex;
@@ -403,6 +406,8 @@
         left: 0;
         width: 100vw;
         height: 100vh;
+        width: 100dvw;
+        height: 100dvh;
         background: rgba(8, 11, 16, 0.95);
         z-index: 10005;
         color: #ffd700;
@@ -814,11 +819,11 @@
     <!-- 音效與畫面方向控制區段                     -->
     <!-- ========================================== -->
     <script>
-      // 🎯 關鍵修復：重整或重新進入畫面時，強制重設 viewport 縮放，確保回到 100% 初始大小
+      // 🎯 重新整理或切換回來時強制重置縮放比例與捲動位置
       window.addEventListener('pageshow', (event) => {
         const viewportMeta = document.querySelector('meta[name="viewport"]');
         if (viewportMeta) {
-          viewportMeta.setAttribute('content', 'width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no');
+          viewportMeta.setAttribute('content', 'width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no, viewport-fit=cover');
         }
         window.scrollTo(0, 0);
       });
