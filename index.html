@@ -2,7 +2,7 @@
 <html lang="zh-TW">
   <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no">
     <title>金正旺銀行vip抽卡系統</title>
     <link rel="icon" type="image/x-icon" href="./Jicon.ico">
 
@@ -15,7 +15,6 @@
         box-sizing: border-box;
         margin: 0;
         padding: 0;
-        /* 🎯 關鍵防護：徹底禁用手機瀏覽器的雙擊縮放與預設觸控手勢延遲 */
         touch-action: manipulation;
       }
 
@@ -24,35 +23,38 @@
         width: 100%;
         height: 100%;
         overflow: hidden;
+        position: fixed;
         font-family: 'Arial Black', Impact, sans-serif;
         background-color: #080b10;
         -webkit-user-select: none;
         user-select: none;
         -webkit-touch-callout: none;
+        overscroll-behavior: none;
       }
 
-      /* 遊戲主容器與背景設置 */
+      /* 遊戲主容器與背景設置 (🎯 修正滿版與黑邊問題：改用 100dvw/100dvh 確保隨時動態滿版) */
       #game-container {
-        position: absolute;
+        position: fixed;
         top: 0;
         left: 0;
-        width: 100vw;
-        height: 100vh;
+        width: 100dvw;
+        height: 100dvh;
         background-image: url('image_6.png');
-        background-size: cover;
+        background-size: 100% 100%; /* 強制填滿整個畫面，消除兩側黑邊 */
         background-position: center;
+        background-repeat: no-repeat;
         display: flex;
         justify-content: center;
         align-items: center;
         padding: 20px;
-        transition: transform 0.3s ease, width 0.3s ease, height 0.3s ease;
+        overflow: hidden;
+        transition: transform 0.3s ease;
       }
 
-      /* 強制旋轉畫面 (直向轉橫向模擬) 設定 */
+      /* 手動旋轉模擬時的樣式 (自動旋轉時不需使用此類別，交由原生橫向處理) */
       #game-container.force-rotated {
-        position: fixed !important;
         width: 100dvh !important;
-        height: 100vw !important;
+        height: 100dvw !important;
         top: 50% !important;
         left: 50% !important;
         transform: translate(-50%, -50%) rotate(90deg) !important;
@@ -257,20 +259,21 @@
         transform: scale(0.95);
       }
 
-      /* 彈窗背景與互動面板 */
+      /* 彈窗背景與互動面板 (🎯 同步修正滿版與背景填滿) */
       #login-modal, #message-modal {
         position: fixed;
         top: 0;
         left: 0;
-        width: 100vw;
-        height: 100vh;
-        background-size: cover;
+        width: 100dvw;
+        height: 100dvh;
+        background-size: 100% 100%;
         background-position: center;
+        background-repeat: no-repeat;
         display: flex;
         justify-content: center;
         align-items: center;
         z-index: 10000;
-        transition: transform 0.3s ease, width 0.3s ease, height 0.3s ease;
+        transition: transform 0.3s ease;
       }
 
       #login-modal {
@@ -285,7 +288,7 @@
       #login-modal.force-rotated,
       #message-modal.force-rotated {
         width: 100dvh !important;
-        height: 100vw !important;
+        height: 100dvw !important;
         top: 50% !important;
         left: 50% !important;
         transform: translate(-50%, -50%) rotate(90deg) !important;
@@ -335,8 +338,7 @@
         outline: none;
         -webkit-user-select: text;
         user-select: text;
-        /* 輸入框保留預設觸控以便打字 */
-        touch-action: auto; 
+        touch-action: auto;
       }
 
       .login-box .checkbox-container {
@@ -398,8 +400,8 @@
         position: fixed;
         top: 0;
         left: 0;
-        width: 100vw;
-        height: 100vh;
+        width: 100dvw;
+        height: 100dvh;
         background: rgba(8, 11, 16, 0.95);
         z-index: 10005;
         color: #ffd700;
@@ -811,6 +813,22 @@
     <!-- 音效與畫面方向控制區段                     -->
     <!-- ========================================== -->
     <script>
+      // 🎯 強制重整時回到 100% 初始大小
+      window.addEventListener('pageshow', (event) => {
+        const viewportMeta = document.querySelector('meta[name="viewport"]');
+        if (viewportMeta) {
+          viewportMeta.setAttribute('content', 'width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no');
+        }
+        window.scrollTo(0, 0);
+      });
+
+      // 🎯 徹底攔截並封鎖雙指縮放與多點觸控手勢，不管自動旋轉與否都無法手動放大
+      document.addEventListener('touchmove', (e) => {
+        if (e.touches.length > 1) {
+          e.preventDefault();
+        }
+      }, { passive: false });
+
       // 確保整個頁面生命週期中只發送一次 warmup 請求
       let hasWarmedUp = document.hidden;
 
@@ -830,9 +848,11 @@
       document.addEventListener('click', triggerWarmupOnce, { passive: true });
       document.addEventListener('touchstart', triggerWarmupOnce, { passive: true });
 
-      // 禁用右鍵選單與手勢縮放
+      // 徹底禁用右鍵選單與手勢縮放
       document.addEventListener('contextmenu', (e) => { e.preventDefault(); });
       document.addEventListener('gesturestart', (e) => { e.preventDefault(); });
+      document.addEventListener('gesturechange', (e) => { e.preventDefault(); });
+      document.addEventListener('gestureend', (e) => { e.preventDefault(); });
 
       // 圖片預載機制 (Preload Images)
       const preloadImages = ['image_6.png', 'image_7.png', 'Card_Back.JPG', 'Card_Front.JPG'];
