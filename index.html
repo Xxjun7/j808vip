@@ -2,7 +2,7 @@
 <html lang="zh-TW">
   <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>金正旺銀行vip抽卡系統</title>
     <link rel="icon" type="image/x-icon" href="./Jicon.ico">
 
@@ -15,6 +15,7 @@
         box-sizing: border-box;
         margin: 0;
         padding: 0;
+        /* 🎯 關鍵防護：徹底禁用手機瀏覽器的雙擊縮放與預設觸控手勢延遲 */
         touch-action: manipulation;
       }
 
@@ -23,15 +24,11 @@
         width: 100%;
         height: 100%;
         overflow: hidden;
-        position: fixed;
         font-family: 'Arial Black', Impact, sans-serif;
         background-color: #080b10;
         -webkit-user-select: none;
         user-select: none;
         -webkit-touch-callout: none;
-        /* 🎯 徹底禁用彈性回彈與畫面平移滾動 */
-        overscroll-behavior: none;
-        touch-action: none;
       }
 
       /* 遊戲主容器與背景設置 */
@@ -48,9 +45,7 @@
         justify-content: center;
         align-items: center;
         padding: 20px;
-        overflow: hidden;
         transition: transform 0.3s ease, width 0.3s ease, height 0.3s ease;
-        touch-action: manipulation; /* 容器內部保留點擊觸控 */
       }
 
       /* 強制旋轉畫面 (直向轉橫向模擬) 設定 */
@@ -340,7 +335,8 @@
         outline: none;
         -webkit-user-select: text;
         user-select: text;
-        touch-action: auto;
+        /* 輸入框保留預設觸控以便打字 */
+        touch-action: auto; 
       }
 
       .login-box .checkbox-container {
@@ -815,28 +811,6 @@
     <!-- 音效與畫面方向控制區段                     -->
     <!-- ========================================== -->
     <script>
-      // 🎯 關鍵修復：無論自動旋轉或重整，強制重設 viewport 並把捲動歸零
-      function forceResetViewport() {
-        const viewportMeta = document.querySelector('meta[name="viewport"]');
-        if (viewportMeta) {
-          viewportMeta.setAttribute('content', 'width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no');
-        }
-        window.scrollTo(0, 0);
-      }
-
-      window.addEventListener('pageshow', forceResetViewport);
-      window.addEventListener('orientationchange', () => {
-        setTimeout(forceResetViewport, 150);
-      });
-      window.addEventListener('resize', forceResetViewport);
-
-      // 🎯 攔截並禁止非輸入框的所有預設移動與多指手勢拉動畫面行為
-      document.addEventListener('touchmove', (e) => {
-        if (e.target.tagName !== 'INPUT') {
-          e.preventDefault();
-        }
-      }, { passive: false });
-
       // 確保整個頁面生命週期中只發送一次 warmup 請求
       let hasWarmedUp = document.hidden;
 
@@ -856,11 +830,9 @@
       document.addEventListener('click', triggerWarmupOnce, { passive: true });
       document.addEventListener('touchstart', triggerWarmupOnce, { passive: true });
 
-      // 徹底禁用右鍵選單與所有手勢縮放
+      // 禁用右鍵選單與手勢縮放
       document.addEventListener('contextmenu', (e) => { e.preventDefault(); });
       document.addEventListener('gesturestart', (e) => { e.preventDefault(); });
-      document.addEventListener('gesturechange', (e) => { e.preventDefault(); });
-      document.addEventListener('gestureend', (e) => { e.preventDefault(); });
 
       // 圖片預載機制 (Preload Images)
       const preloadImages = ['image_6.png', 'image_7.png', 'Card_Back.JPG', 'Card_Front.JPG'];
