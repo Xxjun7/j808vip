@@ -10,7 +10,6 @@
     <!-- CSS 樣式表設定區段                         -->
     <!-- ========================================== -->
     <style>
-      /* 全局通用的基本重置與設定 */
       * {
         box-sizing: border-box;
         margin: 0;
@@ -32,25 +31,22 @@
         overscroll-behavior: none;
       }
 
-      /* 遊戲主容器與背景設置：強制以動態視口填滿，並延伸至安全區域 */
+      /* 遊戲主容器與背景設置 (透過 JS 動態填滿與外擴安全區) */
       #game-container {
-        position: fixed;
+        position: absolute;
         top: 0;
         left: 0;
         width: 100vw;
-        width: 100dvw;
         height: 100vh;
-        height: 100dvh;
-        
         background-image: url('image_6.png');
         background-size: cover;
         background-position: center;
         display: flex;
         justify-content: center;
         align-items: center;
-        padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+        padding: 20px;
         overflow: hidden;
-        transition: transform 0.3s ease, width 0.3s ease, height 0.3s ease;
+        transition: transform 0.3s ease;
       }
 
       /* 強制旋轉畫面 (直向轉橫向模擬) 設定 */
@@ -224,15 +220,15 @@
 
       /* 音效切換按鈕定位 */
       .audio-btn-global {
-        top: max(10px, env(safe-area-inset-top));
-        right: max(20px, env(safe-area-inset-right));
+        top: 15px;
+        right: 25px;
       }
 
       /* 左上角玩家資訊列 */
       #user-info-bar {
         position: absolute;
-        top: max(10px, env(safe-area-inset-top));
-        left: max(20px, env(safe-area-inset-left));
+        top: 15px;
+        left: 25px;
         display: flex;
         align-items: center;
         gap: 15px;
@@ -262,22 +258,20 @@
         transform: scale(0.95);
       }
 
-      /* 彈窗背景與互動面板：強制填滿視口 */
+      /* 彈窗背景與互動面板 */
       #login-modal, #message-modal {
         position: fixed;
         top: 0;
         left: 0;
         width: 100vw;
-        width: 100dvw;
         height: 100vh;
-        height: 100dvh;
         background-size: cover;
         background-position: center;
         display: flex;
         justify-content: center;
         align-items: center;
         z-index: 10000;
-        transition: transform 0.3s ease, width 0.3s ease, height 0.3s ease;
+        transition: transform 0.3s ease;
       }
 
       #login-modal {
@@ -803,68 +797,87 @@
     </script>
 
     <!-- ========================================== -->
-    <!-- 音效與畫面方向控制區段                     -->
+    <!-- 音效與畫面方向控制區段 (核心修正)         -->
     <!-- ========================================== -->
     <script>
-      let resizeTimer = null;
-      function lockViewportAfterRotate() {
+      // 🎯 核心防護：偵測旋轉與畫面完成調整後，自動檢查安全區黑邊並擴大填滿，同時徹底鎖死縮放
+      function handleOrientationAndSafeArea() {
         window.scrollTo(0, 0);
         
-        // 強制觸發瀏覽器重新計算 DOM 尺寸（解決黑邊殘留問題）
-        document.body.style.display = 'none';
-        document.body.offsetHeight; // 讀取觸發 Reflow
-        document.body.style.display = '';
-
+        // 鎖死 Viewport 縮放
         const viewportMeta = document.querySelector('meta[name="viewport"]');
         if (viewportMeta) {
           viewportMeta.setAttribute('content', 'width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no, viewport-fit=cover');
         }
+
+        // 延遲 150ms 確保手機瀏覽器完成旋轉動畫與排版計算
+        setTimeout(() => {
+          const isLandscape = window.matchMedia('(orientation: landscape)').matches;
+          const gameContainer = document.getElementById('game-container');
+          const loginModal = document.getElementById('login-modal');
+          const messageModal = document.getElementById('message-modal');
+
+          if (isLandscape || gameContainer.classList.contains('force-rotated')) {
+            // 🎯 動態計算並填滿黑條安全區 (擴大容器尺寸包覆瀏海與邊角黑邊)
+            const w = window.innerWidth;
+            const h = window.innerHeight;
+            
+            // 擴大填滿全螢幕背景（比可視區域多取 60px 確保切齊邊緣）
+            const expandStyle = `
+              width: ${w + 60}px !important;
+              height: ${h + 60}px !important;
+              top: -30px !important;
+              left: -30px !important;
+            `;
+
+            gameContainer.style.cssText += expandStyle;
+            loginModal.style.cssText += expandStyle;
+            messageModal.style.cssText += expandStyle;
+          }
+        }, 150);
       }
 
-      window.addEventListener('resize', () => {
-        clearTimeout(resizeTimer);
-        resizeTimer = setTimeout(() => {
-          lockViewportAfterRotate();
-          checkOrientation();
-        }, 200);
-      });
+      // 綁定所有可能觸發旋轉與畫面變動的事件
+      window.addEventListener('resize', handleOrientationAndSafeArea);
+      window.addEventListener('orientationchange', handleOrientationAndSafeArea);
+      window.addEventListener('pageshow', handleOrientationAndSafeArea);
 
-      window.addEventListener('orientationchange', () => {
-        setTimeout(() => {
-          lockViewportAfterRotate();
-          checkOrientation();
-        }, 300);
-      });
+      // 初始化執行一次
+      handleOrientationAndSafeArea();
 
-      window.addEventListener('pageshow', (event) => {
-        lockViewportAfterRotate();
-      });
-
+      // 確保整個頁面生命週期中只發送一次 warmup 請求
       let hasWarmedUp = document.hidden;
+
       function triggerWarmupOnce() {
         if (hasWarmedUp) return;
         hasWarmedUp = true;
+
         fetch('/api/warmup', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' }
         }).catch(() => {});
+
         document.removeEventListener('click', triggerWarmupOnce);
         document.removeEventListener('touchstart', triggerWarmupOnce);
       }
+
       document.addEventListener('click', triggerWarmupOnce, { passive: true });
       document.addEventListener('touchstart', triggerWarmupOnce, { passive: true });
 
+      // 🎯 徹底禁用右鍵選單與所有手勢縮放/雙指縮放
       document.addEventListener('contextmenu', (e) => { e.preventDefault(); });
       document.addEventListener('gesturestart', (e) => { e.preventDefault(); });
       document.addEventListener('gesturechange', (e) => { e.preventDefault(); });
       document.addEventListener('gestureend', (e) => { e.preventDefault(); });
 
+      // 圖片預載機制 (Preload Images)
       const preloadImages = ['image_6.png', 'image_7.png', 'Card_Back.JPG', 'Card_Front.JPG'];
       preloadImages.forEach(src => {
         const img = new Image();
         img.src = src;
       });
 
+      // 音效物件初始化與音量配置 (預載入記憶體)
       const sounds = {
         bgm: new Audio('bgm01.mp3'),
         shake: new Audio('shake01.mp3'),
@@ -891,6 +904,7 @@
         const cloneAudio = audioObj.cloneNode();
         cloneAudio.volume = audioObj.volume;
         cloneAudio.play().catch(() => {});
+        
         cloneAudio.onended = () => {
           cloneAudio.src = '';
           cloneAudio.load();
@@ -916,10 +930,12 @@
       document.addEventListener('touchstart', startBGM, { passive: true });
       
       const audioButtons = document.querySelectorAll('.audio-btn-global');
+      
       audioButtons.forEach(btn => {
         btn.addEventListener('click', (e) => {
           e.stopPropagation();
           isMuted = !isMuted;
+          
           audioButtons.forEach(b => {
             const iconEl = b.querySelector('.audio-icon-el');
             const textEl = b.querySelector('.audio-text-el');
@@ -931,6 +947,7 @@
               textEl.textContent = '音樂開';
             }
           });
+
           if (isMuted) {
             sounds.bgm.pause();
           } else {
@@ -967,7 +984,7 @@
         if (window.checkAndShowLogin) {
           window.checkAndShowLogin();
         }
-        window.dispatchEvent(new Event('resize'));
+        handleOrientationAndSafeArea();
       });
 
       function checkOrientation() {
@@ -986,6 +1003,8 @@
           }
         }
       }
+      window.addEventListener('resize', checkOrientation);
+      window.addEventListener('orientationchange', checkOrientation);
     </script>
   </body>
 </html>
