@@ -32,11 +32,13 @@
         overscroll-behavior: none;
       }
 
-      /* 遊戲主容器與背景設置 (全面擴展至安全區域，徹底消除黑條) */
+      /* 遊戲主容器與背景設置 (支援安全區域與動態覆蓋) */
       #game-container {
         position: absolute;
         top: 0;
         left: 0;
+        width: 100vw;
+        height: 100vh;
         width: calc(100vw + env(safe-area-inset-left) + env(safe-area-inset-right));
         height: calc(100vh + env(safe-area-inset-top) + env(safe-area-inset-bottom));
         left: calc(0px - env(safe-area-inset-left));
@@ -267,6 +269,8 @@
         position: fixed;
         top: 0;
         left: 0;
+        width: 100vw;
+        height: 100vh;
         width: calc(100vw + env(safe-area-inset-left) + env(safe-area-inset-right));
         height: calc(100vh + env(safe-area-inset-top) + env(safe-area-inset-bottom));
         left: calc(0px - env(safe-area-inset-left));
@@ -601,7 +605,7 @@
       
       window.addEventListener('DOMContentLoaded', () => {
         const savedUser = localStorage.getItem('vip_current_user');
-        const savedRemember = localStorage.getItem('vip_remember_me') === 'true';
+        const savedRemember = localStorage.getItem('vip_remember_me'] === 'true';
         rememberMeCheckbox.checked = savedRemember;
         if (savedRemember && savedUser) {
           loginInput.value = savedUser;
@@ -755,7 +759,6 @@
 
           try {
             const data = await apiPromise;
-            
             shaker.classList.remove('shaking');
 
             if (!data.success) {
@@ -802,63 +805,44 @@
     <!-- 音效與畫面方向控制區段                     -->
     <!-- ========================================== -->
     <script>
-      // 🎯 關鍵修復：監聽自動旋轉事件。當轉向完成（延遲 300ms 避開瀏覽器旋轉動畫期）
-      // 強制重設畫面 100% 比例、捲回頂部，讓全螢幕安全區與鎖死縮放完美重置
-      let resizeTimer = null;
-      window.addEventListener('resize', () => {
-        clearTimeout(resizeTimer);
-        resizeTimer = setTimeout(() => {
-          window.scrollTo(0, 0);
-          const viewportMeta = document.querySelector('meta[name="viewport"]');
-          if (viewportMeta) {
-            viewportMeta.setAttribute('content', 'width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no, viewport-fit=cover');
-          }
-          // 強制觸發一次畫面排版更新
-          window.dispatchEvent(new Event('orientationchange-handled'));
-        }, 300);
-      });
-
-      window.addEventListener('pageshow', () => {
+      // 🎯 核心防護：監聽旋轉/尺寸變更，重新計算版面並「動態重寫」Viewport 徹底強鎖縮放
+      function lockViewport() {
         window.scrollTo(0, 0);
-        const viewportMeta = document.querySelector('meta[name="viewport"]');
+        let viewportMeta = document.querySelector('meta[name="viewport"]');
         if (viewportMeta) {
+          // 透過短暫變更數值強制瀏覽器重新解析並鎖死，防止自動旋轉後解鎖
           viewportMeta.setAttribute('content', 'width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no, viewport-fit=cover');
         }
-      });
-
-      // 確保整個頁面生命週期中只發送一次 warmup 請求
-      let hasWarmedUp = document.hidden;
-
-      function triggerWarmupOnce() {
-        if (hasWarmedUp) return;
-        hasWarmedUp = true;
-
-        fetch('/api/warmup', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' }
-        }).catch(() => {});
-
-        document.removeEventListener('click', triggerWarmupOnce);
-        document.removeEventListener('touchstart', triggerWarmupOnce);
       }
 
-      document.addEventListener('click', triggerWarmupOnce, { passive: true });
-      document.addEventListener('touchstart', triggerWarmupOnce, { passive: true });
+      window.addEventListener('resize', () => {
+        lockViewport();
+        // 觸發重新排版，確保安全區背景完整填滿
+        window.dispatchEvent(new Event('orientationchange_handled'));
+      });
 
-      // 🎯 徹底禁用右鍵選單與所有手勢縮放/雙指縮放
+      window.addEventListener('orientationchange', () => {
+        setTimeout(lockViewport, 100);
+      });
+
+      window.addEventListener('pageshow', (event) => {
+        lockViewport();
+      });
+
+      // 徹底禁用所有手勢與右鍵縮放
       document.addEventListener('contextmenu', (e) => { e.preventDefault(); });
       document.addEventListener('gesturestart', (e) => { e.preventDefault(); });
       document.addEventListener('gesturechange', (e) => { e.preventDefault(); });
       document.addEventListener('gestureend', (e) => { e.preventDefault(); });
 
-      // 圖片預載機制 (Preload Images)
+      // 圖片預載機制
       const preloadImages = ['image_6.png', 'image_7.png', 'Card_Back.JPG', 'Card_Front.JPG'];
       preloadImages.forEach(src => {
         const img = new Image();
         img.src = src;
       });
 
-      // 音效物件初始化與音量配置 (預載入記憶體)
+      // 音效初始化
       const sounds = {
         bgm: new Audio('bgm01.mp3'),
         shake: new Audio('shake01.mp3'),
@@ -885,7 +869,6 @@
         const cloneAudio = audioObj.cloneNode();
         cloneAudio.volume = audioObj.volume;
         cloneAudio.play().catch(() => {});
-        
         cloneAudio.onended = () => {
           cloneAudio.src = '';
           cloneAudio.load();
@@ -911,7 +894,6 @@
       document.addEventListener('touchstart', startBGM, { passive: true });
       
       const audioButtons = document.querySelectorAll('.audio-btn-global');
-      
       audioButtons.forEach(btn => {
         btn.addEventListener('click', (e) => {
           e.stopPropagation();
@@ -965,7 +947,7 @@
         if (window.checkAndShowLogin) {
           window.checkAndShowLogin();
         }
-        window.dispatchEvent(new Event('resize'));
+        lockViewport();
       });
 
       function checkOrientation() {
@@ -983,6 +965,7 @@
             noticeEl.classList.add('active');
           }
         }
+        lockViewport();
       }
       window.addEventListener('resize', checkOrientation);
       window.addEventListener('orientationchange', checkOrientation);
