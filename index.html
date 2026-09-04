@@ -2,7 +2,6 @@
 <html lang="zh-TW">
   <head>
     <meta charset="UTF-8">
-    <!-- 🎯 關鍵防護：加入 viewport-fit=cover 延伸至安全區邊緣 -->
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>金正旺銀行vip抽卡系統</title>
     <link rel="icon" type="image/x-icon" href="./Jicon.ico">
@@ -33,15 +32,15 @@
         overscroll-behavior: none;
       }
 
-      /* 遊戲主容器與背景設置 (🎯 擴展至安全區域外，徹底消除黑條並填滿) */
+      /* 遊戲主容器與背景設置：強制以動態視口填滿，並延伸至安全區域 */
       #game-container {
-        position: absolute;
+        position: fixed;
         top: 0;
         left: 0;
-        width: calc(100vw + env(safe-area-inset-left) + env(safe-area-inset-right));
-        height: calc(100vh + env(safe-area-inset-top) + env(safe-area-inset-bottom));
-        left: calc(0px - env(safe-area-inset-left));
-        top: calc(0px - env(safe-area-inset-top));
+        width: 100vw;
+        width: 100dvw;
+        height: 100vh;
+        height: 100dvh;
         
         background-image: url('image_6.png');
         background-size: cover;
@@ -49,7 +48,7 @@
         display: flex;
         justify-content: center;
         align-items: center;
-        padding: max(20px, env(safe-area-inset-top)) max(20px, env(safe-area-inset-right)) max(20px, env(safe-area-inset-bottom)) max(20px, env(safe-area-inset-left));
+        padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
         overflow: hidden;
         transition: transform 0.3s ease, width 0.3s ease, height 0.3s ease;
       }
@@ -263,16 +262,15 @@
         transform: scale(0.95);
       }
 
-      /* 彈窗背景與互動面板 */
+      /* 彈窗背景與互動面板：強制填滿視口 */
       #login-modal, #message-modal {
         position: fixed;
         top: 0;
         left: 0;
-        width: calc(100vw + env(safe-area-inset-left) + env(safe-area-inset-right));
-        height: calc(100vh + env(safe-area-inset-top) + env(safe-area-inset-bottom));
-        left: calc(0px - env(safe-area-inset-left));
-        top: calc(0px - env(safe-area-inset-top));
-        
+        width: 100vw;
+        width: 100dvw;
+        height: 100vh;
+        height: 100dvh;
         background-size: cover;
         background-position: center;
         display: flex;
@@ -454,7 +452,6 @@
 
     <!-- 會員登入面板 -->
     <div id="login-modal">
-      <!-- 登入畫面的音效切換按鈕 -->
       <div class="ui-btn audio-btn-global login-audio-btn">
         <span class="ui-btn-icon audio-icon-el">🔊</span>
         <span class="ui-btn-text audio-text-el">音樂開</span>
@@ -809,11 +806,15 @@
     <!-- 音效與畫面方向控制區段                     -->
     <!-- ========================================== -->
     <script>
-      // 🎯 核心修復：偵測到手機自動轉向（Resize/OrientationChange）完成後，
-      // 延遲 150ms 重新計算尺寸，並強行再次鎖死縮放與滾動位置
       let resizeTimer = null;
       function lockViewportAfterRotate() {
         window.scrollTo(0, 0);
+        
+        // 強制觸發瀏覽器重新計算 DOM 尺寸（解決黑邊殘留問題）
+        document.body.style.display = 'none';
+        document.body.offsetHeight; // 讀取觸發 Reflow
+        document.body.style.display = '';
+
         const viewportMeta = document.querySelector('meta[name="viewport"]');
         if (viewportMeta) {
           viewportMeta.setAttribute('content', 'width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no, viewport-fit=cover');
@@ -825,14 +826,14 @@
         resizeTimer = setTimeout(() => {
           lockViewportAfterRotate();
           checkOrientation();
-        }, 150);
+        }, 200);
       });
 
       window.addEventListener('orientationchange', () => {
         setTimeout(() => {
           lockViewportAfterRotate();
           checkOrientation();
-        }, 200);
+        }, 300);
       });
 
       window.addEventListener('pageshow', (event) => {
