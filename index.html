@@ -32,29 +32,28 @@
         overscroll-behavior: none;
       }
 
-      /* 遊戲主容器與背景設置 (🎯 改用 cover 確保任何長寬比螢幕橫向時都完全填滿、無黑邊) */
+      /* 遊戲主容器與背景設置 (改由 JS 動態指定寬高以防黑邊) */
       #game-container {
         position: fixed;
         top: 0;
         left: 0;
-        width: 100dvw;
-        height: 100dvh;
+        width: 100vw;
+        height: 100vh;
         background-image: url('image_6.png');
         background-size: cover;
         background-position: center;
-        background-repeat: no-repeat;
         display: flex;
         justify-content: center;
         align-items: center;
         padding: 20px;
         overflow: hidden;
-        transition: transform 0.3s ease;
       }
 
-      /* 手動旋轉模擬時的樣式 */
+      /* 強制旋轉畫面 (直向轉橫向模擬) 設定 */
       #game-container.force-rotated {
+        position: fixed !important;
         width: 100dvh !important;
-        height: 100dvw !important;
+        height: 100vw !important;
         top: 50% !important;
         left: 50% !important;
         transform: translate(-50%, -50%) rotate(90deg) !important;
@@ -259,21 +258,19 @@
         transform: scale(0.95);
       }
 
-      /* 彈窗背景與互動面板 (🎯 同步修正為 cover 滿版無黑邊) */
+      /* 彈窗背景與互動面板 */
       #login-modal, #message-modal {
         position: fixed;
         top: 0;
         left: 0;
-        width: 100dvw;
-        height: 100dvh;
+        width: 100vw;
+        height: 100vh;
         background-size: cover;
         background-position: center;
-        background-repeat: no-repeat;
         display: flex;
         justify-content: center;
         align-items: center;
         z-index: 10000;
-        transition: transform 0.3s ease;
       }
 
       #login-modal {
@@ -288,7 +285,7 @@
       #login-modal.force-rotated,
       #message-modal.force-rotated {
         width: 100dvh !important;
-        height: 100dvw !important;
+        height: 100vw !important;
         top: 50% !important;
         left: 50% !important;
         transform: translate(-50%, -50%) rotate(90deg) !important;
@@ -400,8 +397,8 @@
         position: fixed;
         top: 0;
         left: 0;
-        width: 100dvw;
-        height: 100dvh;
+        width: 100vw;
+        height: 100vh;
         background: rgba(8, 11, 16, 0.95);
         z-index: 10005;
         color: #ffd700;
@@ -607,7 +604,7 @@
       // 網頁載入時初始化記住我資料與登入狀態
       window.addEventListener('DOMContentLoaded', () => {
         const savedUser = localStorage.getItem('vip_current_user');
-        const savedRemember = localStorage.getItem('vip_remember_me') === 'true';
+        const savedRemember = localStorage.getItem('vip_remember_me'] === 'true';
         rememberMeCheckbox.checked = savedRemember;
         if (savedRemember && savedUser) {
           loginInput.value = savedUser;
@@ -813,22 +810,44 @@
     <!-- 音效與畫面方向控制區段                     -->
     <!-- ========================================== -->
     <script>
-      // 🎯 強制重整時回到 100% 初始大小
+      // 🎯 關鍵防護 1：動態覆蓋容器尺寸，消除劉海與上下左右黑邊
+      function updateFullSize() {
+        const w = window.innerWidth;
+        const h = window.innerHeight;
+        const gameContainer = document.getElementById('game-container');
+        const loginModal = document.getElementById('login-modal');
+        const messageModal = document.getElementById('message-modal');
+
+        const styleStr = `width: ${w}px !important; height: ${h}px !important;`;
+        gameContainer.style.cssText += styleStr;
+        loginModal.style.cssText += styleStr;
+        messageModal.style.cssText += styleStr;
+      }
+
+      window.addEventListener('resize', updateFullSize);
+      window.addEventListener('orientationchange', () => {
+        setTimeout(updateFullSize, 100);
+        setTimeout(updateFullSize, 300); // 確保旋轉完成後再次精準校正
+      });
+      window.addEventListener('DOMContentLoaded', updateFullSize);
+
+      // 🎯 關鍵防護 2：重整時強制重設 100% 縮放並滾動至頂部
       window.addEventListener('pageshow', (event) => {
         const viewportMeta = document.querySelector('meta[name="viewport"]');
         if (viewportMeta) {
           viewportMeta.setAttribute('content', 'width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no');
         }
         window.scrollTo(0, 0);
+        updateFullSize();
       });
 
-      // 🎯 雙重強力封鎖手動縮放（無論自動旋轉與否，雙指縮放或觸控滑動放大一律阻止）
-      document.addEventListener('touchmove', (e) => {
-        if (e.touches.length > 1) {
-          e.preventDefault();
-        }
-      }, { passive: false });
+      // 🎯 關鍵防護 3：全面攔截並強制禁止所有手勢縮放（雙指開合、雙擊等）
+      document.addEventListener('contextmenu', (e) => { e.preventDefault(); }, { passive: false });
+      document.addEventListener('gesturestart', (e) => { e.preventDefault(); }, { passive: false });
+      document.addEventListener('gesturechange', (e) => { e.preventDefault(); }, { passive: false });
+      document.addEventListener('gestureend', (e) => { e.preventDefault(); }, { passive: false });
 
+      // 預防多點觸控放大（雙指縮放防護）
       document.addEventListener('touchstart', (e) => {
         if (e.touches.length > 1) {
           e.preventDefault();
@@ -854,12 +873,6 @@
       document.addEventListener('click', triggerWarmupOnce, { passive: true });
       document.addEventListener('touchstart', triggerWarmupOnce, { passive: true });
 
-      // 徹底禁用右鍵選單與手勢縮放
-      document.addEventListener('contextmenu', (e) => { e.preventDefault(); });
-      document.addEventListener('gesturestart', (e) => { e.preventDefault(); });
-      document.addEventListener('gesturechange', (e) => { e.preventDefault(); });
-      document.addEventListener('gestureend', (e) => { e.preventDefault(); });
-
       // 圖片預載機制 (Preload Images)
       const preloadImages = ['image_6.png', 'image_7.png', 'Card_Back.JPG', 'Card_Front.JPG'];
       preloadImages.forEach(src => {
@@ -881,7 +894,6 @@
       sounds.flip.volume = 0.7;
       sounds.win.volume = 0.8;
 
-      // 確保所有音效在背景預先加載（Preload）
       Object.values(sounds).forEach(audio => {
         audio.preload = 'auto';
         audio.load();
@@ -890,14 +902,12 @@
       let isMuted = false;
       let bgmStarted = false;
 
-      // 播放音效輔助函數 (搭配播完立刻銷毀，防止記憶體洩漏與卡頓)
       function playSFX(audioObj) {
         if (isMuted) return;
         const cloneAudio = audioObj.cloneNode();
         cloneAudio.volume = audioObj.volume;
         cloneAudio.play().catch(() => {});
         
-        // 播放完畢後立刻清空來源與釋放實體，避免長時間累積造成卡頓
         cloneAudio.onended = () => {
           cloneAudio.src = '';
           cloneAudio.load();
@@ -912,7 +922,6 @@
         }).catch(() => {});
       });
 
-      // 透過首次點擊觸發背景音樂播放 (應對瀏覽器自動播放限制)
       function startBGM(event) {
         if (event && event.target && event.target.closest('.audio-btn-global')) return;
         if (bgmStarted || isMuted) return;
@@ -923,7 +932,6 @@
       document.addEventListener('click', startBGM, { passive: true });
       document.addEventListener('touchstart', startBGM, { passive: true });
       
-      // 同步更新所有音效按鈕的圖示與文字狀態
       const audioButtons = document.querySelectorAll('.audio-btn-global');
       
       audioButtons.forEach(btn => {
@@ -951,7 +959,6 @@
         });
       });
 
-      // 頁面隱藏或離開時自動停止所有音效
       function stopAllAudio() {
         Object.values(sounds).forEach(audio => audio.pause());
       }
@@ -965,7 +972,6 @@
       window.addEventListener('pagehide', stopAllAudio);
       window.addEventListener('beforeunload', stopAllAudio);
       
-      // 螢幕旋轉與版面適應控制
       const noticeEl = document.getElementById('portrait-notice');
       const gameContainer = document.getElementById('game-container');
       const rotateBtn = document.getElementById('manual-rotate-btn');
