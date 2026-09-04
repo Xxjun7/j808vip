@@ -2,8 +2,7 @@
 <html lang="zh-TW">
   <head>
     <meta charset="UTF-8">
-    <!-- 🎯 關鍵防護：強制鎖定畫面大小，禁止一切手動縮放，確保每次重整都回到 100% 初始比例 -->
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>金正旺銀行vip抽卡系統</title>
     <link rel="icon" type="image/x-icon" href="./Jicon.ico">
 
@@ -24,7 +23,7 @@
         width: 100%;
         height: 100%;
         overflow: hidden;
-        position: fixed;
+        position: fixed; /* 🎯 關鍵鎖定：防止手機切換畫面或上下滾動時造成畫面變大 */
         font-family: 'Arial Black', Impact, sans-serif;
         background-color: #080b10;
         -webkit-user-select: none;
@@ -605,18 +604,11 @@
       
       // 網頁載入時初始化記住我資料與登入狀態
       window.addEventListener('DOMContentLoaded', () => {
-        // 🎯 強制重整時畫面歸零防護：瞬間抽換 viewport 屬性逼迫瀏覽器重置縮放
-        const viewportMeta = document.querySelector('meta[name="viewport"]');
-        if (viewportMeta) {
-          viewportMeta.content = 'width=device-width, initial-scale=0.99, maximum-scale=1.0, user-scalable=no';
-          setTimeout(() => {
-            viewportMeta.content = 'width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no';
-          }, 50);
-        }
+        // 🎯 確保每次重整畫面滾動歸零，避免記憶上一次縮放
         window.scrollTo(0, 0);
 
         const savedUser = localStorage.getItem('vip_current_user');
-        const savedRemember = localStorage.getItem('vip_remember_me'] === 'true';
+        const savedRemember = localStorage.getItem('vip_remember_me') === 'true';
         rememberMeCheckbox.checked = savedRemember;
         if (savedRemember && savedUser) {
           loginInput.value = savedUser;
@@ -844,9 +836,6 @@
       // 禁用右鍵選單與手勢縮放
       document.addEventListener('contextmenu', (e) => { e.preventDefault(); });
       document.addEventListener('gesturestart', (e) => { e.preventDefault(); });
-      document.addEventListener('touchmove', (e) => {
-        if (e.scale !== 1) { e.preventDefault(); }
-      }, { passive: false });
 
       // 圖片預載機制 (Preload Images)
       const preloadImages = ['image_6.png', 'image_7.png', 'Card_Back.JPG', 'Card_Front.JPG'];
