@@ -15,6 +15,7 @@
         box-sizing: border-box;
         margin: 0;
         padding: 0;
+        touch-action: manipulation;
       }
 
       body,
@@ -22,6 +23,7 @@
         width: 100%;
         height: 100%;
         overflow: hidden;
+        position: fixed; /* 🎯 關鍵鎖定：防止手機切換畫面或上下滾動時造成畫面變大 */
         font-family: 'Arial Black', Impact, sans-serif;
         background-color: #080b10;
         -webkit-user-select: none;
@@ -43,6 +45,7 @@
         justify-content: center;
         align-items: center;
         padding: 20px;
+        overflow: hidden;
         transition: transform 0.3s ease, width 0.3s ease, height 0.3s ease;
       }
 
@@ -333,6 +336,7 @@
         outline: none;
         -webkit-user-select: text;
         user-select: text;
+        touch-action: auto;
       }
 
       .login-box .checkbox-container {
@@ -830,7 +834,7 @@
       document.addEventListener('contextmenu', (e) => { e.preventDefault(); });
       document.addEventListener('gesturestart', (e) => { e.preventDefault(); });
 
-      // 🎯 圖片預載機制 (Preload Images)
+      // 圖片預載機制 (Preload Images)
       const preloadImages = ['image_6.png', 'image_7.png', 'Card_Back.JPG', 'Card_Front.JPG'];
       preloadImages.forEach(src => {
         const img = new Image();
@@ -860,7 +864,7 @@
       let isMuted = false;
       let bgmStarted = false;
 
-      // 🎯 播放音效輔助函數 (搭配播完立刻銷毀，防止記憶體洩漏與卡頓)
+      // 播放音效輔助函數 (搭配播完立刻銷毀，防止記憶體洩漏與卡頓)
       function playSFX(audioObj) {
         if (isMuted) return;
         const cloneAudio = audioObj.cloneNode();
