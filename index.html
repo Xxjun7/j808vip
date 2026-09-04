@@ -2,7 +2,7 @@
 <html lang="zh-TW">
   <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no">
     <title>金正旺銀行vip抽卡系統</title>
     <link rel="icon" type="image/x-icon" href="./Jicon.ico">
 
@@ -32,13 +32,11 @@
         overscroll-behavior: none;
       }
 
-      /* 遊戲主容器與背景設置 (🎯 改回 cover 等比例放大填滿，消除變形，並透過置中裁切邊緣來徹底避免黑邊) */
+      /* 遊戲主容器與背景設置 (🎯 改用 cover 確保任何長寬比螢幕橫向時都完全填滿、無黑邊) */
       #game-container {
         position: fixed;
         top: 0;
         left: 0;
-        width: 100vw;
-        height: 100vh;
         width: 100dvw;
         height: 100dvh;
         background-image: url('image_6.png');
@@ -221,7 +219,7 @@
         line-height: 1;
       }
 
-      /* 音效切換按鈕定位 */
+      /* 音效切換按鈕定位 (遊戲中與登入畫面共用) */
       .audio-btn-global {
         top: 10px;
         right: 20px;
@@ -261,13 +259,11 @@
         transform: scale(0.95);
       }
 
-      /* 彈窗背景與互動面板 (🎯 同步修正背景為 cover 等比例滿版) */
+      /* 彈窗背景與互動面板 (🎯 同步修正為 cover 滿版無黑邊) */
       #login-modal, #message-modal {
         position: fixed;
         top: 0;
         left: 0;
-        width: 100vw;
-        height: 100vh;
         width: 100dvw;
         height: 100dvh;
         background-size: cover;
@@ -404,8 +400,6 @@
         position: fixed;
         top: 0;
         left: 0;
-        width: 100vw;
-        height: 100vh;
         width: 100dvw;
         height: 100dvh;
         background: rgba(8, 11, 16, 0.95);
@@ -454,6 +448,7 @@
 
     <!-- 會員登入面板 -->
     <div id="login-modal">
+      <!-- 登入畫面的音效切換按鈕 -->
       <div class="ui-btn audio-btn-global login-audio-btn">
         <span class="ui-btn-icon audio-icon-el">🔊</span>
         <span class="ui-btn-text audio-text-el">音樂開</span>
@@ -479,7 +474,7 @@
       </div>
     </div>
 
-    <!-- 橫向提示面板 -->
+    <!-- 橫向提示面板 (已移除音效按鈕避免重疊) -->
     <div id="portrait-notice">
       <div class="ui-btn rotate-btn" id="manual-rotate-btn">
         <span class="ui-btn-icon">🔄</span>
@@ -491,17 +486,21 @@
 
     <!-- 遊戲主區域 -->
     <div id="game-container">
+
+      <!-- 左上角玩家資訊列 -->
       <div id="user-info-bar">
         <span id="display-user-info">載入中...</span>
         <span id="display-user-chances">遊戲次數: -</span>
         <button id="logout-btn">登出</button>
       </div>
 
+      <!-- 遊戲主畫面的音效切換按鈕 -->
       <div class="ui-btn audio-btn-global game-audio-btn">
         <span class="ui-btn-icon audio-icon-el">🔊</span>
         <span class="ui-btn-text audio-text-el">音樂開</span>
       </div>
 
+      <!-- 抽卡區域 (固定 3 張卡片) -->
       <div id="card-area">
         <div class="card-container" data-index="0">
           <div class="card-shaker">
@@ -534,6 +533,7 @@
           </div>
         </div>
       </div>
+
     </div>
 
     <!-- ========================================== -->
@@ -544,6 +544,7 @@
       import { getAnalytics } from "https://www.gstatic.com/firebasejs/12.18.0/firebase-analytics.js";
       import { getFirestore, doc, getDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/12.18.0/firebase-firestore.js";
       
+      // Firebase 設定初始化
       const firebaseConfig = {
         apiKey: "AIzaSyAgXlbP-D-k_Dj13Mmop-LRIm15FTkrGGY",
         authDomain: "j808vip.firebaseapp.com",
@@ -558,6 +559,7 @@
       const analytics = getAnalytics(app);
       const db = getFirestore(app);
       
+      // DOM 元素快取綁定
       const loginModal = document.getElementById('login-modal');
       const loginInput = document.getElementById('login-input');
       const rememberMeCheckbox = document.getElementById('remember-me');
@@ -573,6 +575,7 @@
       const logoutBtn = document.getElementById('logout-btn');
       const cardContainers = document.querySelectorAll('.card-container');
       
+      // 全局狀態變數
       let unsubscribeFirestore = null;
       let currentUserId = null;
       let currentUserData = null;
@@ -584,6 +587,7 @@
         { isFlipped: false, prize: null }
       ];
 
+      // 自定義彈窗訊息顯示函數
       function showCustomAlert(title, message) {
         msgTitle.textContent = title;
         msgContent.innerHTML = message.replace(/\n/g, '<br>');
@@ -600,9 +604,10 @@
         messageModal.style.display = 'none';
       });
       
+      // 網頁載入時初始化記住我資料與登入狀態
       window.addEventListener('DOMContentLoaded', () => {
         const savedUser = localStorage.getItem('vip_current_user');
-        const savedRemember = localStorage.getItem('vip_remember_me'] === 'true';
+        const savedRemember = localStorage.getItem('vip_remember_me') === 'true';
         rememberMeCheckbox.checked = savedRemember;
         if (savedRemember && savedUser) {
           loginInput.value = savedUser;
@@ -620,6 +625,7 @@
         loginModal.style.display = 'flex';
       }
 
+      // 登入按鈕事件 (含伺服器預熱與 Firebase 身分驗證)
       loginSubmitBtn.addEventListener('click', async () => {
         const val = loginInput.value.trim();
         if (!val) {
@@ -657,6 +663,7 @@
         }
       });
 
+      // 登出按鈕事件處理
       logoutBtn.addEventListener('click', () => {
         if (unsubscribeFirestore) unsubscribeFirestore();
         currentUserId = null;
@@ -671,6 +678,7 @@
         userChancesSpan.textContent = '遊戲次數: -';
       });
 
+      // 重置所有卡片狀態
       function resetAllCards() {
         cardStates.forEach((state, i) => {
           state.isFlipped = false;
@@ -681,6 +689,7 @@
         });
       }
 
+      // 啟動使用者會話並即時監聽 Firestore 變更
       function startSession(userId) {
         currentUserId = userId;
         loginModal.style.display = 'none';
@@ -704,6 +713,7 @@
         checkOrientationAfterLogin();
       }
 
+      // 卡片點擊與抽獎互動邏輯
       cardContainers.forEach((container, index) => {
         const card = container.querySelector('.card');
         const shaker = container.querySelector('.card-shaker');
@@ -803,44 +813,61 @@
     <!-- 音效與畫面方向控制區段                     -->
     <!-- ========================================== -->
     <script>
-      // 🎯 重整時強制回到 100% 初始大小並滾動到頂部
+      // 🎯 強制重整時回到 100% 初始大小
       window.addEventListener('pageshow', (event) => {
         const viewportMeta = document.querySelector('meta[name="viewport"]');
         if (viewportMeta) {
-          viewportMeta.setAttribute('content', 'width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no, viewport-fit=cover');
+          viewportMeta.setAttribute('content', 'width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no');
         }
         window.scrollTo(0, 0);
       });
 
-      // 🎯 徹底攔截所有多點觸控（雙指縮放），無論是否自動旋轉都無法手動放大
+      // 🎯 雙重強力封鎖手動縮放（無論自動旋轉與否，雙指縮放或觸控滑動放大一律阻止）
       document.addEventListener('touchmove', (e) => {
         if (e.touches.length > 1) {
           e.preventDefault();
         }
       }, { passive: false });
 
+      document.addEventListener('touchstart', (e) => {
+        if (e.touches.length > 1) {
+          e.preventDefault();
+        }
+      }, { passive: false });
+
+      // 確保整個頁面生命週期中只發送一次 warmup 請求
       let hasWarmedUp = document.hidden;
+
       function triggerWarmupOnce() {
         if (hasWarmedUp) return;
         hasWarmedUp = true;
-        fetch('/api/warmup', { method: 'POST', headers: { 'Content-Type': 'application/json' } }).catch(() => {});
+
+        fetch('/api/warmup', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' }
+        }).catch(() => {});
+
         document.removeEventListener('click', triggerWarmupOnce);
         document.removeEventListener('touchstart', triggerWarmupOnce);
       }
+
       document.addEventListener('click', triggerWarmupOnce, { passive: true });
       document.addEventListener('touchstart', triggerWarmupOnce, { passive: true });
 
+      // 徹底禁用右鍵選單與手勢縮放
       document.addEventListener('contextmenu', (e) => { e.preventDefault(); });
       document.addEventListener('gesturestart', (e) => { e.preventDefault(); });
       document.addEventListener('gesturechange', (e) => { e.preventDefault(); });
       document.addEventListener('gestureend', (e) => { e.preventDefault(); });
 
+      // 圖片預載機制 (Preload Images)
       const preloadImages = ['image_6.png', 'image_7.png', 'Card_Back.JPG', 'Card_Front.JPG'];
       preloadImages.forEach(src => {
         const img = new Image();
         img.src = src;
       });
 
+      // 音效物件初始化與音量配置 (預載入記憶體)
       const sounds = {
         bgm: new Audio('bgm01.mp3'),
         shake: new Audio('shake01.mp3'),
@@ -854,6 +881,7 @@
       sounds.flip.volume = 0.7;
       sounds.win.volume = 0.8;
 
+      // 確保所有音效在背景預先加載（Preload）
       Object.values(sounds).forEach(audio => {
         audio.preload = 'auto';
         audio.load();
@@ -862,11 +890,14 @@
       let isMuted = false;
       let bgmStarted = false;
 
+      // 播放音效輔助函數 (搭配播完立刻銷毀，防止記憶體洩漏與卡頓)
       function playSFX(audioObj) {
         if (isMuted) return;
         const cloneAudio = audioObj.cloneNode();
         cloneAudio.volume = audioObj.volume;
         cloneAudio.play().catch(() => {});
+        
+        // 播放完畢後立刻清空來源與釋放實體，避免長時間累積造成卡頓
         cloneAudio.onended = () => {
           cloneAudio.src = '';
           cloneAudio.load();
@@ -876,22 +907,30 @@
       
       window.addEventListener('load', () => {
         if (isMuted) return;
-        sounds.bgm.play().then(() => { bgmStarted = true; }).catch(() => {});
+        sounds.bgm.play().then(() => {
+          bgmStarted = true;
+        }).catch(() => {});
       });
 
+      // 透過首次點擊觸發背景音樂播放 (應對瀏覽器自動播放限制)
       function startBGM(event) {
         if (event && event.target && event.target.closest('.audio-btn-global')) return;
         if (bgmStarted || isMuted) return;
-        sounds.bgm.play().then(() => { bgmStarted = true; }).catch(() => {});
+        sounds.bgm.play().then(() => {
+          bgmStarted = true;
+        }).catch(() => {});
       }
       document.addEventListener('click', startBGM, { passive: true });
       document.addEventListener('touchstart', startBGM, { passive: true });
       
+      // 同步更新所有音效按鈕的圖示與文字狀態
       const audioButtons = document.querySelectorAll('.audio-btn-global');
+      
       audioButtons.forEach(btn => {
         btn.addEventListener('click', (e) => {
           e.stopPropagation();
           isMuted = !isMuted;
+          
           audioButtons.forEach(b => {
             const iconEl = b.querySelector('.audio-icon-el');
             const textEl = b.querySelector('.audio-text-el');
@@ -903,6 +942,7 @@
               textEl.textContent = '音樂開';
             }
           });
+
           if (isMuted) {
             sounds.bgm.pause();
           } else {
@@ -911,6 +951,7 @@
         });
       });
 
+      // 頁面隱藏或離開時自動停止所有音效
       function stopAllAudio() {
         Object.values(sounds).forEach(audio => audio.pause());
       }
@@ -924,6 +965,7 @@
       window.addEventListener('pagehide', stopAllAudio);
       window.addEventListener('beforeunload', stopAllAudio);
       
+      // 螢幕旋轉與版面適應控制
       const noticeEl = document.getElementById('portrait-notice');
       const gameContainer = document.getElementById('game-container');
       const rotateBtn = document.getElementById('manual-rotate-btn');
