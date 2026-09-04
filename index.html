@@ -389,15 +389,6 @@
         min-height: 18px;
       }
 
-      /* 登入頁面左上角加入主畫面按鈕 */
-      #pwa-install-btn {
-        position: absolute;
-        top: max(10px, env(safe-area-inset-top));
-        left: max(20px, env(safe-area-inset-left));
-        display: none; /* 預設隱藏，透過 JS 判斷 PWA 條件後顯示 */
-        z-index: 10100;
-      }
-
       /* 載入中動畫效果 */
       .loading-dots::after {
         content: '';
@@ -473,12 +464,6 @@
       <div class="ui-btn audio-btn-global login-audio-btn">
         <span class="ui-btn-icon audio-icon-el">🔊</span>
         <span class="ui-btn-text audio-text-el">音樂開</span>
-      </div>
-
-      <!-- 左上角加入主畫面按鈕 (僅在登入頁面且符合安裝條件時顯示) -->
-      <div class="ui-btn" id="pwa-install-btn">
-        <span class="ui-btn-icon">📲</span>
-        <span class="ui-btn-text">加入主畫面</span>
       </div>
 
       <div class="login-box">
@@ -592,7 +577,6 @@
       const rememberMeCheckbox = document.getElementById('remember-me');
       const loginSubmitBtn = document.getElementById('login-submit-btn');
       const loginError = document.getElementById('login-error');
-      const pwaInstallBtn = document.getElementById('pwa-install-btn');
       
       const messageModal = document.getElementById('message-modal');
       const msgTitle = document.getElementById('msg-title');
@@ -607,7 +591,6 @@
       let unsubscribeFirestore = null;
       let currentUserId = null;
       let currentUserData = null;
-      let deferredPrompt = null; // PWA 安裝事件
       const animatingCards = new Set();
       
       const cardStates = [
@@ -615,37 +598,6 @@
         { isFlipped: false, prize: null },
         { isFlipped: false, prize: null }
       ];
-
-      // 監聽 PWA 安裝提示事件
-      window.addEventListener('beforeinstallprompt', (e) => {
-        e.preventDefault();
-        deferredPrompt = e;
-        // 如果目前正在登入頁面，則顯示安裝按鈕
-        if (!currentUserId && loginModal.style.display !== 'none') {
-          pwaInstallBtn.style.display = 'flex';
-        }
-      });
-
-      // 點擊「加入主畫面」按鈕事件
-      pwaInstallBtn.addEventListener('click', async () => {
-        if (deferredPrompt) {
-          deferredPrompt.prompt();
-          const { outcome } = await deferredPrompt.userChoice;
-          if (outcome === 'accepted') {
-            console.log('使用者接受安裝 PWA');
-          }
-          deferredPrompt = null;
-          pwaInstallBtn.style.display = 'none';
-        } else {
-          // 若瀏覽器未觸發 beforeinstallprompt（例如 iOS Safari 或非標準環境），給予通用提示
-          const isIOS = /iphone|ipad|ipod/.test(window.navigator.userAgent.toLowerCase());
-          if (isIOS) {
-            showCustomAlert('加入主畫面', '請點擊瀏覽器底部的「分享」按鈕 ⎋，\n然後選擇「加入主畫面」即可！');
-          } else {
-            showCustomAlert('加入主畫面', '您的瀏覽器可能已安裝或未支援直接安裝，\n請嘗試使用瀏覽器選單中的「加到主畫面」功能。');
-          }
-        }
-      });
 
       // 自定義彈窗訊息顯示函數
       function showCustomAlert(title, message) {
@@ -680,14 +632,9 @@
       function checkAndShowLogin() {
         if (currentUserId) {
           loginModal.style.display = 'none';
-          pwaInstallBtn.style.display = 'none';
           return;
         }
         loginModal.style.display = 'flex';
-        // 只有在登入頁面且有 deferredPrompt 或符合 iOS 提示條件時顯示按鈕
-        if (deferredPrompt || /iphone|ipad|ipod/.test(window.navigator.userAgent.toLowerCase())) {
-          pwaInstallBtn.style.display = 'flex';
-        }
       }
 
       // 登入按鈕事件 (含伺服器預熱與 Firebase 身分驗證)
@@ -735,9 +682,6 @@
         currentUserData = null;
         resetAllCards();
         loginModal.style.display = 'flex';
-        if (deferredPrompt || /iphone|ipad|ipod/.test(window.navigator.userAgent.toLowerCase())) {
-          pwaInstallBtn.style.display = 'flex';
-        }
         if (!rememberMeCheckbox.checked) {
           loginInput.value = '';
           localStorage.removeItem('vip_current_user');
@@ -761,7 +705,6 @@
       function startSession(userId) {
         currentUserId = userId;
         loginModal.style.display = 'none';
-        pwaInstallBtn.style.display = 'none';
         userInfoSpan.textContent = `VIP: ${userId}`;
         userChancesSpan.textContent = `遊戲次數: 讀取中...`;
 
