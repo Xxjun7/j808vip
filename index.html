@@ -2,6 +2,7 @@
 <html lang="zh-TW">
   <head>
     <meta charset="UTF-8">
+    <!-- 🎯 關鍵防護：加入 viewport-fit=cover 延伸至安全區邊緣 -->
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>金正旺銀行vip抽卡系統</title>
     <link rel="icon" type="image/x-icon" href="./Jicon.ico">
@@ -32,13 +33,11 @@
         overscroll-behavior: none;
       }
 
-      /* 遊戲主容器與背景設置 (支援安全區域與動態覆蓋) */
+      /* 遊戲主容器與背景設置 (🎯 擴展至安全區域外，徹底消除黑條並填滿) */
       #game-container {
         position: absolute;
         top: 0;
         left: 0;
-        width: 100vw;
-        height: 100vh;
         width: calc(100vw + env(safe-area-inset-left) + env(safe-area-inset-right));
         height: calc(100vh + env(safe-area-inset-top) + env(safe-area-inset-bottom));
         left: calc(0px - env(safe-area-inset-left));
@@ -269,8 +268,6 @@
         position: fixed;
         top: 0;
         left: 0;
-        width: 100vw;
-        height: 100vh;
         width: calc(100vw + env(safe-area-inset-left) + env(safe-area-inset-right));
         height: calc(100vh + env(safe-area-inset-top) + env(safe-area-inset-bottom));
         left: calc(0px - env(safe-area-inset-left));
@@ -457,6 +454,7 @@
 
     <!-- 會員登入面板 -->
     <div id="login-modal">
+      <!-- 登入畫面的音效切換按鈕 -->
       <div class="ui-btn audio-btn-global login-audio-btn">
         <span class="ui-btn-icon audio-icon-el">🔊</span>
         <span class="ui-btn-text audio-text-el">音樂開</span>
@@ -494,17 +492,21 @@
 
     <!-- 遊戲主區域 -->
     <div id="game-container">
+
+      <!-- 左上角玩家資訊列 -->
       <div id="user-info-bar">
         <span id="display-user-info">載入中...</span>
         <span id="display-user-chances">遊戲次數: -</span>
         <button id="logout-btn">登出</button>
       </div>
 
+      <!-- 遊戲主畫面的音效切換按鈕 -->
       <div class="ui-btn audio-btn-global game-audio-btn">
         <span class="ui-btn-icon audio-icon-el">🔊</span>
         <span class="ui-btn-text audio-text-el">音樂開</span>
       </div>
 
+      <!-- 抽卡區域 (固定 3 張卡片) -->
       <div id="card-area">
         <div class="card-container" data-index="0">
           <div class="card-shaker">
@@ -537,6 +539,7 @@
           </div>
         </div>
       </div>
+
     </div>
 
     <!-- ========================================== -->
@@ -605,7 +608,7 @@
       
       window.addEventListener('DOMContentLoaded', () => {
         const savedUser = localStorage.getItem('vip_current_user');
-        const savedRemember = localStorage.getItem('vip_remember_me'] === 'true';
+        const savedRemember = localStorage.getItem('vip_remember_me') === 'true';
         rememberMeCheckbox.checked = savedRemember;
         if (savedRemember && savedUser) {
           loginInput.value = savedUser;
@@ -759,6 +762,7 @@
 
           try {
             const data = await apiPromise;
+            
             shaker.classList.remove('shaking');
 
             if (!data.success) {
@@ -805,44 +809,61 @@
     <!-- 音效與畫面方向控制區段                     -->
     <!-- ========================================== -->
     <script>
-      // 🎯 核心防護：監聽旋轉/尺寸變更，重新計算版面並「動態重寫」Viewport 徹底強鎖縮放
-      function lockViewport() {
+      // 🎯 核心修復：偵測到手機自動轉向（Resize/OrientationChange）完成後，
+      // 延遲 150ms 重新計算尺寸，並強行再次鎖死縮放與滾動位置
+      let resizeTimer = null;
+      function lockViewportAfterRotate() {
         window.scrollTo(0, 0);
-        let viewportMeta = document.querySelector('meta[name="viewport"]');
+        const viewportMeta = document.querySelector('meta[name="viewport"]');
         if (viewportMeta) {
-          // 透過短暫變更數值強制瀏覽器重新解析並鎖死，防止自動旋轉後解鎖
           viewportMeta.setAttribute('content', 'width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no, viewport-fit=cover');
         }
       }
 
       window.addEventListener('resize', () => {
-        lockViewport();
-        // 觸發重新排版，確保安全區背景完整填滿
-        window.dispatchEvent(new Event('orientationchange_handled'));
+        clearTimeout(resizeTimer);
+        resizeTimer = setTimeout(() => {
+          lockViewportAfterRotate();
+          checkOrientation();
+        }, 150);
       });
 
       window.addEventListener('orientationchange', () => {
-        setTimeout(lockViewport, 100);
+        setTimeout(() => {
+          lockViewportAfterRotate();
+          checkOrientation();
+        }, 200);
       });
 
       window.addEventListener('pageshow', (event) => {
-        lockViewport();
+        lockViewportAfterRotate();
       });
 
-      // 徹底禁用所有手勢與右鍵縮放
+      let hasWarmedUp = document.hidden;
+      function triggerWarmupOnce() {
+        if (hasWarmedUp) return;
+        hasWarmedUp = true;
+        fetch('/api/warmup', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' }
+        }).catch(() => {});
+        document.removeEventListener('click', triggerWarmupOnce);
+        document.removeEventListener('touchstart', triggerWarmupOnce);
+      }
+      document.addEventListener('click', triggerWarmupOnce, { passive: true });
+      document.addEventListener('touchstart', triggerWarmupOnce, { passive: true });
+
       document.addEventListener('contextmenu', (e) => { e.preventDefault(); });
       document.addEventListener('gesturestart', (e) => { e.preventDefault(); });
       document.addEventListener('gesturechange', (e) => { e.preventDefault(); });
       document.addEventListener('gestureend', (e) => { e.preventDefault(); });
 
-      // 圖片預載機制
       const preloadImages = ['image_6.png', 'image_7.png', 'Card_Back.JPG', 'Card_Front.JPG'];
       preloadImages.forEach(src => {
         const img = new Image();
         img.src = src;
       });
 
-      // 音效初始化
       const sounds = {
         bgm: new Audio('bgm01.mp3'),
         shake: new Audio('shake01.mp3'),
@@ -898,7 +919,6 @@
         btn.addEventListener('click', (e) => {
           e.stopPropagation();
           isMuted = !isMuted;
-          
           audioButtons.forEach(b => {
             const iconEl = b.querySelector('.audio-icon-el');
             const textEl = b.querySelector('.audio-text-el');
@@ -910,7 +930,6 @@
               textEl.textContent = '音樂開';
             }
           });
-
           if (isMuted) {
             sounds.bgm.pause();
           } else {
@@ -947,7 +966,7 @@
         if (window.checkAndShowLogin) {
           window.checkAndShowLogin();
         }
-        lockViewport();
+        window.dispatchEvent(new Event('resize'));
       });
 
       function checkOrientation() {
@@ -965,10 +984,7 @@
             noticeEl.classList.add('active');
           }
         }
-        lockViewport();
       }
-      window.addEventListener('resize', checkOrientation);
-      window.addEventListener('orientationchange', checkOrientation);
     </script>
   </body>
 </html>
