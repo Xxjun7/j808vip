@@ -15,6 +15,8 @@
         box-sizing: border-box;
         margin: 0;
         padding: 0;
+        /* 🎯 關鍵防護：徹底禁用手機瀏覽器的雙擊縮放與預設觸控手勢延遲 */
+        touch-action: manipulation;
       }
 
       body,
@@ -333,6 +335,8 @@
         outline: none;
         -webkit-user-select: text;
         user-select: text;
+        /* 輸入框保留預設觸控以便打字 */
+        touch-action: auto; 
       }
 
       .login-box .checkbox-container {
@@ -830,7 +834,7 @@
       document.addEventListener('contextmenu', (e) => { e.preventDefault(); });
       document.addEventListener('gesturestart', (e) => { e.preventDefault(); });
 
-      // 🎯 圖片預載機制 (Preload Images)
+      // 圖片預載機制 (Preload Images)
       const preloadImages = ['image_6.png', 'image_7.png', 'Card_Back.JPG', 'Card_Front.JPG'];
       preloadImages.forEach(src => {
         const img = new Image();
@@ -860,7 +864,7 @@
       let isMuted = false;
       let bgmStarted = false;
 
-      // 🎯 播放音效輔助函數 (搭配播完立刻銷毀，防止記憶體洩漏與卡頓)
+      // 播放音效輔助函數 (搭配播完立刻銷毀，防止記憶體洩漏與卡頓)
       function playSFX(audioObj) {
         if (isMuted) return;
         const cloneAudio = audioObj.cloneNode();
