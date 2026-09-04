@@ -2,7 +2,8 @@
 <html lang="zh-TW">
   <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <!-- 🎯 關鍵防護：強制將初始縮放設為 1.0，並徹底禁止使用者手動縮放與放大縮小 -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no">
     <title>金正旺銀行vip抽卡系統</title>
     <link rel="icon" type="image/x-icon" href="./Jicon.ico">
 
@@ -23,12 +24,14 @@
         width: 100%;
         height: 100%;
         overflow: hidden;
-        position: fixed; /* 🎯 關鍵鎖定：防止手機切換畫面或上下滾動時造成畫面變大 */
+        position: fixed;
         font-family: 'Arial Black', Impact, sans-serif;
         background-color: #080b10;
         -webkit-user-select: none;
         user-select: none;
         -webkit-touch-callout: none;
+        /* 🎯 額外鎖定：防止頁面在手機上被任意手動拉動或彈性滾動 */
+        overscroll-behavior: none;
       }
 
       /* 遊戲主容器與背景設置 */
@@ -811,6 +814,15 @@
     <!-- 音效與畫面方向控制區段                     -->
     <!-- ========================================== -->
     <script>
+      // 🎯 關鍵修復：重整或重新進入畫面時，強制重設 viewport 縮放，確保回到 100% 初始大小
+      window.addEventListener('pageshow', (event) => {
+        const viewportMeta = document.querySelector('meta[name="viewport"]');
+        if (viewportMeta) {
+          viewportMeta.setAttribute('content', 'width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no');
+        }
+        window.scrollTo(0, 0);
+      });
+
       // 確保整個頁面生命週期中只發送一次 warmup 請求
       let hasWarmedUp = document.hidden;
 
@@ -830,9 +842,11 @@
       document.addEventListener('click', triggerWarmupOnce, { passive: true });
       document.addEventListener('touchstart', triggerWarmupOnce, { passive: true });
 
-      // 禁用右鍵選單與手勢縮放
+      // 🎯 徹底禁用右鍵選單與所有手勢縮放/雙指縮放
       document.addEventListener('contextmenu', (e) => { e.preventDefault(); });
       document.addEventListener('gesturestart', (e) => { e.preventDefault(); });
+      document.addEventListener('gesturechange', (e) => { e.preventDefault(); });
+      document.addEventListener('gestureend', (e) => { e.preventDefault(); });
 
       // 圖片預載機制 (Preload Images)
       const preloadImages = ['image_6.png', 'image_7.png', 'Card_Back.JPG', 'Card_Front.JPG'];
