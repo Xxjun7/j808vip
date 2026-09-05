@@ -2,6 +2,7 @@
 <html lang="zh-TW">
   <head>
     <meta charset="UTF-8">
+    <!-- 🎯 關鍵防護：加入 viewport-fit=cover 允許網頁延伸至全螢幕邊緣 -->
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>金正旺銀行vip抽卡系統</title>
     <link rel="icon" type="image/x-icon" href="./Jicon.ico">
@@ -10,7 +11,7 @@
     <!-- CSS 樣式表設定區段                         -->
     <!-- ========================================== -->
     <style>
-      /* 全局通用的基本重置與設定：強制 html 與 body 鎖定為全螢幕，防止任何父層限制 */
+      /* 全局通用的基本重置與設定 */
       * {
         box-sizing: border-box;
         margin: 0;
@@ -18,32 +19,29 @@
         touch-action: manipulation;
       }
 
-      html, body {
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: 100vw;
-        height: 100vh;
-        width: 100dvw;
-        height: 100dvh;
+      body,
+      html {
+        width: 100%;
+        height: 100%;
         overflow: hidden;
-        background-color: #080b10;
+        position: fixed;
         font-family: 'Arial Black', Impact, sans-serif;
+        background-color: #080b10;
         -webkit-user-select: none;
         user-select: none;
         -webkit-touch-callout: none;
         overscroll-behavior: none;
       }
 
-      /* 遊戲主容器與背景設置 (🎯 利用負邊距與 env 徹底跨越安全區黑邊) */
+      /* 遊戲主容器與背景設置 (🎯 透過負邊距與 env 擴展，徹底吃掉左右安全區黑邊) */
       #game-container {
-        position: fixed;
-        top: calc(0px - env(safe-area-inset-top));
-        bottom: calc(0px - env(safe-area-inset-bottom));
-        left: calc(0px - env(safe-area-inset-left));
-        right: calc(0px - env(safe-area-inset-right));
-        width: auto;
-        height: auto;
+        position: fixed !important;
+        top: 0 !important;
+        left: 0 !important;
+        width: calc(100vw + env(safe-area-inset-left) + env(safe-area-inset-right)) !important;
+        height: calc(100vh + env(safe-area-inset-top) + env(safe-area-inset-bottom)) !important;
+        left: calc(0px - env(safe-area-inset-left)) !important;
+        top: calc(0px - env(safe-area-inset-top)) !important;
         
         background-image: url('image_6.png');
         background-size: cover;
@@ -51,8 +49,8 @@
         display: flex;
         justify-content: center;
         align-items: center;
-        /* 內部內容保留安全距離，避免被瀏海或圓角遮擋 */
-        padding: max(20px, env(safe-area-inset-top)) max(20px, env(safe-area-inset-right)) max(20px, env(safe-area-inset-bottom)) max(20px, env(safe-area-inset-left));
+        /* 內部內容保持安全距離，避免按鈕被手機瀏海遮住 */
+        padding: max(20px, env(safe-area-inset-top)) max(30px, env(safe-area-inset-right)) max(20px, env(safe-area-inset-bottom)) max(30px, env(safe-area-inset-left));
         overflow: hidden;
         transition: transform 0.3s ease;
       }
@@ -60,10 +58,10 @@
       /* 強制旋轉畫面 (直向轉橫向模擬) 設定 */
       #game-container.force-rotated {
         position: fixed !important;
-        top: 50% !important;
-        left: 50% !important;
         width: 100dvh !important;
         height: 100vw !important;
+        top: 50% !important;
+        left: 50% !important;
         transform: translate(-50%, -50%) rotate(90deg) !important;
         transform-origin: center center;
       }
@@ -228,14 +226,14 @@
 
       /* 音效切換按鈕定位 */
       .audio-btn-global {
-        top: max(15px, env(safe-area-inset-top));
+        top: max(10px, env(safe-area-inset-top));
         right: max(20px, env(safe-area-inset-right));
       }
 
       /* 左上角玩家資訊列 */
       #user-info-bar {
         position: absolute;
-        top: max(15px, env(safe-area-inset-top));
+        top: max(10px, env(safe-area-inset-top));
         left: max(20px, env(safe-area-inset-left));
         display: flex;
         align-items: center;
@@ -266,15 +264,15 @@
         transform: scale(0.95);
       }
 
-      /* 彈窗背景與互動面板 (同樣使用負邊距擴展填滿安全區) */
+      /* 彈窗背景與互動面板 (同步填滿安全區) */
       #login-modal, #message-modal {
-        position: fixed;
-        top: calc(0px - env(safe-area-inset-top));
-        bottom: calc(0px - env(safe-area-inset-bottom));
-        left: calc(0px - env(safe-area-inset-left));
-        right: calc(0px - env(safe-area-inset-right));
-        width: auto;
-        height: auto;
+        position: fixed !important;
+        top: 0 !important;
+        left: 0 !important;
+        width: calc(100vw + env(safe-area-inset-left) + env(safe-area-inset-right)) !important;
+        height: calc(100vh + env(safe-area-inset-top) + env(safe-area-inset-bottom)) !important;
+        left: calc(0px - env(safe-area-inset-left)) !important;
+        top: calc(0px - env(safe-area-inset-top)) !important;
         
         background-size: cover;
         background-position: center;
@@ -282,7 +280,6 @@
         justify-content: center;
         align-items: center;
         z-index: 10000;
-        transition: transform 0.3s ease;
       }
 
       #login-modal {
@@ -296,10 +293,10 @@
 
       #login-modal.force-rotated,
       #message-modal.force-rotated {
-        top: 50% !important;
-        left: 50% !important;
         width: 100dvh !important;
         height: 100vw !important;
+        top: 50% !important;
+        left: 50% !important;
         transform: translate(-50%, -50%) rotate(90deg) !important;
         transform-origin: center center;
       }
@@ -811,6 +808,7 @@
     <!-- 音效與畫面方向控制區段                     -->
     <!-- ========================================== -->
     <script>
+      // 🎯 核心防護：每次畫面縮放或自動旋轉觸發 resize 時，強制將畫面重設回 100% 比例並歸零捲動
       window.addEventListener('resize', () => {
         window.scrollTo(0, 0);
         const viewportMeta = document.querySelector('meta[name="viewport"]');
@@ -819,7 +817,7 @@
         }
       });
 
-      window.addEventListener('pageshow', () => {
+      window.addEventListener('pageshow', (event) => {
         const viewportMeta = document.querySelector('meta[name="viewport"]');
         if (viewportMeta) {
           viewportMeta.setAttribute('content', 'width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no, viewport-fit=cover');
@@ -828,13 +826,20 @@
       });
 
       let hasWarmedUp = document.hidden;
+
       function triggerWarmupOnce() {
         if (hasWarmedUp) return;
         hasWarmedUp = true;
-        fetch('/api/warmup', { method: 'POST', headers: { 'Content-Type': 'application/json' } }).catch(() => {});
+
+        fetch('/api/warmup', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' }
+        }).catch(() => {});
+
         document.removeEventListener('click', triggerWarmupOnce);
         document.removeEventListener('touchstart', triggerWarmupOnce);
       }
+
       document.addEventListener('click', triggerWarmupOnce, { passive: true });
       document.addEventListener('touchstart', triggerWarmupOnce, { passive: true });
 
@@ -875,6 +880,7 @@
         const cloneAudio = audioObj.cloneNode();
         cloneAudio.volume = audioObj.volume;
         cloneAudio.play().catch(() => {});
+        
         cloneAudio.onended = () => {
           cloneAudio.src = '';
           cloneAudio.load();
@@ -884,22 +890,28 @@
       
       window.addEventListener('load', () => {
         if (isMuted) return;
-        sounds.bgm.play().then(() => { bgmStarted = true; }).catch(() => {});
+        sounds.bgm.play().then(() => {
+          bgmStarted = true;
+        }).catch(() => {});
       });
 
       function startBGM(event) {
         if (event && event.target && event.target.closest('.audio-btn-global')) return;
         if (bgmStarted || isMuted) return;
-        sounds.bgm.play().then(() => { bgmStarted = true; }).catch(() => {});
+        sounds.bgm.play().then(() => {
+          bgmStarted = true;
+        }).catch(() => {});
       }
       document.addEventListener('click', startBGM, { passive: true });
       document.addEventListener('touchstart', startBGM, { passive: true });
       
       const audioButtons = document.querySelectorAll('.audio-btn-global');
+      
       audioButtons.forEach(btn => {
         btn.addEventListener('click', (e) => {
           e.stopPropagation();
           isMuted = !isMuted;
+          
           audioButtons.forEach(b => {
             const iconEl = b.querySelector('.audio-icon-el');
             const textEl = b.querySelector('.audio-text-el');
@@ -911,6 +923,7 @@
               textEl.textContent = '音樂開';
             }
           });
+
           if (isMuted) {
             sounds.bgm.pause();
           } else {
