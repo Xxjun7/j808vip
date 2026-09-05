@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>背景強制填滿測試</title>
+  <title>背景滿版修正測試</title>
   <style>
     * {
       box-sizing: border-box;
@@ -17,7 +17,7 @@
       height: 100%;
       overflow: hidden;
       position: fixed;
-      background-color: #000;
+      background-color: #080b10;
       -webkit-user-select: none;
       user-select: none;
       -webkit-touch-callout: none;
@@ -25,37 +25,34 @@
     }
 
     #test-bg {
-      position: absolute;
+      position: fixed;
       top: 0;
       left: 0;
       width: 100vw;
       height: 100vh;
-      /* 透過 safe-area 確保全螢幕覆蓋 */
-      width: calc(100vw + env(safe-area-inset-left) + env(safe-area-inset-right));
-      height: calc(100vh + env(safe-area-inset-top) + env(safe-area-inset-bottom));
-      left: calc(0px - env(safe-area-inset-left));
-      top: calc(0px - env(safe-area-inset-top));
+      /* 使用 dvh 確保在手機動態網址列縮放時依然能抓準高度 */
+      height: 100dvh;
       
       background-image: url('image_6.png');
-      /* 改用 100% 100% 強制把圖片拉伸填滿整個畫面，絕不留黑邊 */
-      background-size: 100% 100%;
+      /* 改回 cover，讓圖片維持比例填滿整個畫面，不會變形 */
+      background-size: cover;
       background-position: center;
       background-repeat: no-repeat;
       display: flex;
       justify-content: center;
       align-items: center;
-      color: #fff;
+      color: #ffd700;
       font-family: Arial, sans-serif;
-      font-size: 24px;
+      font-size: 22px;
       font-weight: bold;
-      text-shadow: 0 2px 4px rgba(0,0,0,0.8);
+      text-shadow: 0 2px 6px rgba(0,0,0,0.9);
     }
   </style>
 </head>
 <body>
 
   <div id="test-bg">
-    強制 100% 滿版測試中 (image_6.png)
+    滿版修正測試中 (100vw x 100dvh)
   </div>
 
   <script>
