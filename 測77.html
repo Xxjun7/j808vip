@@ -240,9 +240,11 @@
 
         async function sendWarmupRequest() {
             try {
-                await fetch('/api/warmup', {
+                // 帶入「j808」測試用空資料發送至 /api/drawCard 進行預熱
+                await fetch('/api/drawCard', {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' }
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ userId: 'j808' })
                 });
             } catch (e) {
                 // 忽略背景請求錯誤
