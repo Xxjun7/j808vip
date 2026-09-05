@@ -32,18 +32,15 @@
         overscroll-behavior: none;
       }
 
-      /* 遊戲主容器與背景設置 (🎯 透過 fixed 與負邊距徹底填滿安全區黑條) */
+      /* 遊戲主容器與背景設置 (🎯 改用暴力放大法徹底吃掉黑邊) */
       #game-container {
         position: fixed;
-        top: 0;
-        left: 0;
-        right: 0;
-        bottom: 0;
-        /* 將上下左右外推至螢幕最邊緣，直接吃掉黑邊 */
-        top: calc(0px - env(safe-area-inset-top));
-        bottom: calc(0px - env(safe-area-inset-bottom));
-        left: calc(0px - env(safe-area-inset-left));
-        right: calc(0px - env(safe-area-inset-right));
+        top: -20vw;
+        bottom: -20vw;
+        left: -20vw;
+        right: -20vw;
+        width: 140vw;
+        height: 140vh;
         
         background-image: url('image_6.png');
         background-size: cover;
@@ -52,7 +49,7 @@
         justify-content: center;
         align-items: center;
         /* 內部內容保留安全距離，避免被瀏海或圓角遮擋 */
-        padding: max(20px, env(safe-area-inset-top)) max(20px, env(safe-area-inset-right)) max(20px, env(safe-area-inset-bottom)) max(20px, env(safe-area-inset-left));
+        padding: max(40px, env(safe-area-inset-top)) max(40px, env(safe-area-inset-right)) max(40px, env(safe-area-inset-bottom)) max(40px, env(safe-area-inset-left));
         overflow: hidden;
         transition: transform 0.3s ease;
       }
@@ -60,8 +57,8 @@
       /* 強制旋轉畫面 (直向轉橫向模擬) 設定 */
       #game-container.force-rotated {
         position: fixed !important;
-        width: 100dvh !important;
-        height: 100vw !important;
+        width: 140dvh !important;
+        height: 140vw !important;
         top: 50% !important;
         left: 50% !important;
         transform: translate(-50%, -50%) rotate(90deg) !important;
@@ -228,15 +225,15 @@
 
       /* 音效切換按鈕定位 */
       .audio-btn-global {
-        top: max(15px, env(safe-area-inset-top));
-        right: max(20px, env(safe-area-inset-right));
+        top: max(25px, env(safe-area-inset-top));
+        right: max(30px, env(safe-area-inset-right));
       }
 
       /* 左上角玩家資訊列 */
       #user-info-bar {
         position: absolute;
-        top: max(15px, env(safe-area-inset-top));
-        left: max(20px, env(safe-area-inset-left));
+        top: max(25px, env(safe-area-inset-top));
+        left: max(30px, env(safe-area-inset-left));
         display: flex;
         align-items: center;
         gap: 15px;
@@ -266,13 +263,15 @@
         transform: scale(0.95);
       }
 
-      /* 彈窗背景與互動面板 (同樣使用固定定位填滿邊緣) */
+      /* 彈窗背景與互動面板 (同樣套用放大法填滿背景) */
       #login-modal, #message-modal {
         position: fixed;
-        top: calc(0px - env(safe-area-inset-top));
-        bottom: calc(0px - env(safe-area-inset-bottom));
-        left: calc(0px - env(safe-area-inset-left));
-        right: calc(0px - env(safe-area-inset-right));
+        top: -20vw;
+        bottom: -20vw;
+        left: -20vw;
+        right: -20vw;
+        width: 140vw;
+        height: 140vh;
         
         background-size: cover;
         background-position: center;
@@ -294,8 +293,8 @@
 
       #login-modal.force-rotated,
       #message-modal.force-rotated {
-        width: 100dvh !important;
-        height: 100vw !important;
+        width: 140dvh !important;
+        height: 140vw !important;
         top: 50% !important;
         left: 50% !important;
         transform: translate(-50%, -50%) rotate(90deg) !important;
@@ -810,7 +809,6 @@
     <!-- 音效與畫面方向控制區段                     -->
     <!-- ========================================== -->
     <script>
-      // 🎯 確保自動旋轉或變更大小時，隨時重置縮放，徹底防範手動縮放被重置解鎖
       window.addEventListener('resize', () => {
         window.scrollTo(0, 0);
         const viewportMeta = document.querySelector('meta[name="viewport"]');
