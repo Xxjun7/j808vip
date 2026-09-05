@@ -240,11 +240,11 @@
 
         async function sendWarmupRequest() {
             try {
-                // 改為發送 /api/drawCard 並帶入指定 "j808" 測試用空資料
+                // 改為發送 /api/drawCard 並帶入帶有「j808」的測試用空資料物件
                 await fetch('/api/drawCard', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ userId: "j808", amount: 100 })
+                    body: JSON.stringify({ userId: "j808", testMode: true })
                 });
             } catch (e) {
                 // 忽略背景請求錯誤
