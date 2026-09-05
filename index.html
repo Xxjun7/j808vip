@@ -36,10 +36,13 @@
       /* 遊戲主容器與背景設置 (🎯 擴展至安全區域外，徹底消除左右黑條) */
       #game-container {
         position: fixed;
-        inset: 0;
-        width: 100%;
-        height: 100%;
-        
+        top: -100px;
+        left: -100px;
+        right: -100px;
+        bottom: -100px;
+        width: auto;
+        height: auto;
+
         background-image: url('image_6.png');
         background-size: cover;
         background-position: center;
@@ -264,10 +267,13 @@
       /* 彈窗背景與互動面板 (同樣填滿安全區) */
       #login-modal, #message-modal {
         position: fixed;
-        inset: 0;
-        width: 100%;
-        height: 100%;
-        
+        top: -100px;
+        left: -100px;
+        right: -100px;
+        bottom: -100px;
+        width: auto;
+        height: auto;
+
         background-size: cover;
         background-position: center;
         display: flex;
@@ -399,10 +405,12 @@
       #portrait-notice {
         display: none;
         position: fixed;
-        top: 0;
-        left: 0;
-        width: 100vw;
-        height: 100vh;
+        top: -100px;
+        left: -100px;
+        right: -100px;
+        bottom: -100px;
+        width: auto;
+        height: auto;
         background: rgba(8, 11, 16, 0.95);
         z-index: 10005;
         color: #ffd700;
