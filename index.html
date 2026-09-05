@@ -26,14 +26,9 @@
       width: 100%;
       height: 100%;
       overflow: hidden;
+      /* 設定跟圖片相近的底色，萬一比例不合露出空隙時不會太突兀 */
       background: #080b10;
     }
-
-    /*
-      測試重點：
-      viewport-fit=cover
-      + env(safe-area-inset-*)
-    */
 
     #test {
       position: fixed;
@@ -43,13 +38,13 @@
 
       width: 100vw;
       height: 100vh;
-
       width: 100vw;
       height: 100dvh;
 
       background-image: url('image_6.jpg');
       background-size: cover;
       background-position: center;
+      background-repeat: no-repeat;
 
       /*
         讓內容延伸到 Safe Area
