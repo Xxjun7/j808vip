@@ -27,24 +27,24 @@
       overscroll-behavior: none;
     }
 
-    /* 遊戲背景與 Safe Area 滿版延伸 */
     #game-container {
-      position: fixed;
+      position: absolute;
       top: 0;
       left: 0;
       width: 100vw;
       height: 100vh;
-      height: 100dvh;
+      width: calc(100vw + env(safe-area-inset-left) + env(safe-area-inset-right));
+      height: calc(100vh + env(safe-area-inset-top) + env(safe-area-inset-bottom));
+      left: calc(0px - env(safe-area-inset-left));
+      top: calc(0px - env(safe-area-inset-top));
+      
       background-image: url('image_6.png');
       background-size: cover;
       background-position: center;
       display: flex;
       justify-content: center;
       align-items: center;
-      padding-top: env(safe-area-inset-top);
-      padding-right: env(safe-area-inset-right);
-      padding-bottom: env(safe-area-inset-bottom);
-      padding-left: env(safe-area-inset-left);
+      padding: max(20px, env(safe-area-inset-top)) max(20px, env(safe-area-inset-right)) max(20px, env(safe-area-inset-bottom)) max(20px, env(safe-area-inset-left));
       overflow: hidden;
       transition: transform 0.3s ease, width 0.3s ease, height 0.3s ease;
     }
@@ -71,7 +71,6 @@
       font-size: clamp(14px, 2.5dvh, 24px) !important;
     }
 
-    /* 卡片區域與動態 */
     #card-area {
       display: flex;
       flex-direction: row;
@@ -172,7 +171,6 @@
       pointer-events: none;
     }
 
-    /* 共用 UI 按鈕 */
     .ui-btn {
       position: absolute;
       display: flex;
@@ -213,15 +211,14 @@
     }
 
     .audio-btn-global {
-      top: calc(10px + env(safe-area-inset-top));
-      right: calc(20px + env(safe-area-inset-right));
+      top: max(10px, env(safe-area-inset-top));
+      right: max(20px, env(safe-area-inset-right));
     }
 
-    /* 左上角玩家資訊列 */
     #user-info-bar {
       position: absolute;
-      top: calc(10px + env(safe-area-inset-top));
-      left: calc(20px + env(safe-area-inset-left));
+      top: max(10px, env(safe-area-inset-top));
+      left: max(20px, env(safe-area-inset-left));
       display: flex;
       align-items: center;
       gap: 15px;
@@ -251,14 +248,17 @@
       transform: scale(0.95);
     }
 
-    /* 登入背景與彈窗面板 */
     #login-modal, #message-modal {
       position: fixed;
       top: 0;
       left: 0;
       width: 100vw;
       height: 100vh;
-      height: 100dvh;
+      width: calc(100vw + env(safe-area-inset-left) + env(safe-area-inset-right));
+      height: calc(100vh + env(safe-area-inset-top) + env(safe-area-inset-bottom));
+      left: calc(0px - env(safe-area-inset-left));
+      top: calc(0px - env(safe-area-inset-top));
+      
       background-size: cover;
       background-position: center;
       display: flex;
@@ -382,7 +382,6 @@
       100% { content: ''; }
     }
 
-    /* 直向強制提示畫面 */
     #portrait-notice {
       display: none;
       position: fixed;
@@ -390,7 +389,6 @@
       left: 0;
       width: 100vw;
       height: 100vh;
-      height: 100dvh;
       background: rgba(8, 11, 16, 0.95);
       z-index: 10005;
       color: #ffd700;
@@ -430,7 +428,6 @@
 </head>
 <body>
 
-  <!-- 會員登入面板 -->
   <div id="login-modal">
     <div class="ui-btn audio-btn-global login-audio-btn">
       <span class="ui-btn-icon audio-icon-el">🔊</span>
@@ -447,7 +444,6 @@
     </div>
   </div>
 
-  <!-- 通用 UI 提示彈窗面板 -->
   <div id="message-modal">
     <div class="message-box">
       <h2 id="msg-title">提示訊息</h2>
@@ -456,7 +452,6 @@
     </div>
   </div>
 
-  <!-- 直向強制提示畫面設定 (已移除音效按鈕) -->
   <div id="portrait-notice">
     <div class="ui-btn rotate-btn" id="manual-rotate-btn">
       <span class="ui-btn-icon">🔄</span>
@@ -466,7 +461,6 @@
     <p>請將手機旋轉至「橫向」<br>獲得最佳 VIP 抽卡體驗</p>
   </div>
 
-  <!-- 遊戲主背景與介面 -->
   <div id="game-container">
     <div id="user-info-bar">
       <span id="display-user-info">載入中...</span>
@@ -773,7 +767,6 @@
   </script>
 
   <script>
-    // 縮放與重置捲動位置控制
     window.addEventListener('resize', () => {
       window.scrollTo(0, 0);
       const viewportMeta = document.querySelector('meta[name="viewport"]');
@@ -790,8 +783,7 @@
       window.scrollTo(0, 0);
     });
 
-    // API 自動預熱發送一次
-    let hasWarmedUp = document.hidden;
+    let hasWarmedUp = false;
     function triggerWarmupOnce() {
       if (hasWarmedUp) return;
       hasWarmedUp = true;
@@ -802,20 +794,17 @@
     document.addEventListener('click', triggerWarmupOnce, { passive: true });
     document.addEventListener('touchstart', triggerWarmupOnce, { passive: true });
 
-    // 禁止右鍵與所有縮放手勢機制
     document.addEventListener('contextmenu', (e) => { e.preventDefault(); });
     document.addEventListener('gesturestart', (e) => { e.preventDefault(); });
     document.addEventListener('gesturechange', (e) => { e.preventDefault(); });
     document.addEventListener('gestureend', (e) => { e.preventDefault(); });
 
-    // 圖片預載機制
     const preloadImages = ['image_6.png', 'image_7.png', 'Card_Back.JPG', 'Card_Front.JPG'];
     preloadImages.forEach(src => {
       const img = new Image();
       img.src = src;
     });
 
-    // 音效預載機制與音量配置
     const sounds = {
       bgm: new Audio('bgm01.mp3'),
       shake: new Audio('shake01.mp3'),
@@ -905,7 +894,6 @@
     window.addEventListener('pagehide', stopAllAudio);
     window.addEventListener('beforeunload', stopAllAudio);
     
-    // 手動旋轉功能 (放在最後設定)
     const noticeEl = document.getElementById('portrait-notice');
     const gameContainer = document.getElementById('game-container');
     const rotateBtn = document.getElementById('manual-rotate-btn');
