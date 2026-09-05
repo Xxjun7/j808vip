@@ -3,69 +3,70 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>背景圖測試</title>
+  <title>Safe Area 測試</title>
+
   <style>
     * {
       box-sizing: border-box;
       margin: 0;
       padding: 0;
-      touch-action: manipulation;
     }
 
-    html, body {
+    html,
+    body {
       width: 100%;
       height: 100%;
       overflow: hidden;
-      position: fixed;
-      background-color: #000;
-      -webkit-user-select: none;
-      user-select: none;
-      -webkit-touch-callout: none;
-      overscroll-behavior: none;
-    }
-
-    #test-bg {
-      position: absolute;
-      /* 透過擴展安全區域與超大尺寸，確保在任何手機橫直向、安全邊距下絕對 100% 填滿無黑邊 */
-      top: -50px;
-      left: -50px;
-      right: -50px;
-      bottom: -50px;
-      width: calc(100vw + 100px);
-      height: calc(100vh + 100px);
-      
-      background-image: url('image_6.jpg');
+      background-image: url('image_6.png');
       background-size: cover;
       background-position: center;
-      background-repeat: no-repeat;
+    }
+
+    #test {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      width: 100vw;
+      height: 100dvh;
+
+      background-image: url('image_6.png');
+      background-size: cover;
+      background-position: center;
+
+      padding-top: env(safe-area-inset-top);
+      padding-right: env(safe-area-inset-right);
+      padding-bottom: env(safe-area-inset-bottom);
+      padding-left: env(safe-area-inset-left);
+
       display: flex;
-      justify-content: center;
       align-items: center;
-      color: #fff;
+      justify-content: center;
+
+      color: white;
       font-family: Arial, sans-serif;
       font-size: 24px;
       font-weight: bold;
-      text-shadow: 0 2px 4px rgba(0,0,0,0.8);
+
+      overflow: hidden;
+    }
+
+    .text {
+      text-align: center;
+      text-shadow: 0 0 10px rgba(0, 0, 0, 0.8);
     }
   </style>
 </head>
+
 <body>
 
-  <div id="test-bg">
-    背景滿版測試中 (image_6.jpg)
+  <div id="test">
+    <div class="text">
+      image_6.png 背景 Safe Area 測試<br>
+      請橫向觀看
+    </div>
   </div>
 
-  <script>
-    // 禁用右鍵與縮放
-    document.addEventListener('contextmenu', (e) => { e.preventDefault(); });
-    document.addEventListener('gesturestart', (e) => { e.preventDefault(); });
-    document.addEventListener('gesturechange', (e) => { e.preventDefault(); });
-    document.addEventListener('gestureend', (e) => { e.preventDefault(); });
-
-    // 強制滾動歸零與視窗修正
-    window.addEventListener('resize', () => {
-      window.scrollTo(0, 0);
-    });
-  </script>
 </body>
 </html>
