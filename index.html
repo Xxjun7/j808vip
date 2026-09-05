@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>Safe Area 測試</title>
+  <title>全螢幕滿版測試</title>
   <style>
     * {
       box-sizing: border-box;
@@ -20,10 +20,10 @@
 
     #test {
       position: fixed;
-      /* 完美強制填滿整個手機實體可視範圍，避開瀏覽器網址列干擾 */
       top: 0;
       left: 0;
       width: 100vw;
+      height: 100vh;
       height: 100dvh;
 
       background-image: url('image_6.jpg');
@@ -40,11 +40,15 @@
       font-size: 24px;
       font-weight: bold;
       text-shadow: 0 0 10px rgba(0, 0, 0, 0.8);
+      cursor: pointer;
       overflow: hidden;
     }
 
     .text {
       text-align: center;
+      background: rgba(0, 0, 0, 0.5);
+      padding: 20px;
+      border-radius: 10px;
     }
   </style>
 </head>
@@ -52,10 +56,23 @@
 
   <div id="test">
     <div class="text">
-      100dvh 強制滿版測試<br>
-      請橫向觀看
+      點擊此處進入全螢幕<br>
+      解鎖真實 100% 滿版背景
     </div>
   </div>
 
+  <script>
+    // 點擊畫面任意處自動切換為全螢幕，消除瀏覽器工具列
+    document.getElementById('test').addEventListener('click', () => {
+      const docEl = document.documentElement;
+      if (!document.fullscreenElement && !document.webkitFullscreenElement) {
+        if (docEl.requestFullscreen) {
+          docEl.requestFullscreen().catch(() => {});
+        } else if (docEl.webkitRequestFullscreen) {
+          docEl.webkitRequestFullscreen();
+        }
+      }
+    });
+  </script>
 </body>
 </html>
