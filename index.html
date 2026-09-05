@@ -2,18 +2,8 @@
 <html lang="zh-TW">
 <head>
   <meta charset="UTF-8">
-
-  <meta
-    name="viewport"
-    content="width=device-width,
-             initial-scale=1.0,
-             maximum-scale=1.0,
-             user-scalable=no,
-             viewport-fit=cover"
-  >
-
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
   <title>Safe Area 測試</title>
-
   <style>
     * {
       box-sizing: border-box;
@@ -21,8 +11,7 @@
       padding: 0;
     }
 
-    html,
-    body {
+    html, body {
       width: 100%;
       height: 100%;
       overflow: hidden;
@@ -31,20 +20,13 @@
 
     #test {
       position: fixed;
-
+      /* 完美強制填滿整個手機實體可視範圍，避開瀏覽器網址列干擾 */
       top: 0;
       left: 0;
-
-      /* 強制用計算方式吃滿整個安全區域 */
       width: 100vw;
-      height: 100vh;
-      width: calc(100vw + env(safe-area-inset-left) + env(safe-area-inset-right));
-      height: calc(100vh + env(safe-area-inset-top) + env(safe-area-inset-bottom));
-      left: calc(0px - env(safe-area-inset-left));
-      top: calc(0px - env(safe-area-inset-top));
+      height: 100dvh;
 
       background-image: url('image_6.jpg');
-      /* 關鍵修改：不留空、強制 100% 撐滿整個區塊 */
       background-size: 100% 100%;
       background-position: center;
       background-repeat: no-repeat;
@@ -58,7 +40,6 @@
       font-size: 24px;
       font-weight: bold;
       text-shadow: 0 0 10px rgba(0, 0, 0, 0.8);
-
       overflow: hidden;
     }
 
@@ -67,12 +48,11 @@
     }
   </style>
 </head>
-
 <body>
 
   <div id="test">
     <div class="text">
-      強制 100% 填滿測試<br>
+      100dvh 強制滿版測試<br>
       請橫向觀看
     </div>
   </div>
