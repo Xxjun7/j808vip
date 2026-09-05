@@ -55,8 +55,8 @@
       /* 強制旋轉畫面 (直向轉橫向模擬) 設定 */
       #game-container.force-rotated {
         position: fixed !important;
-        width: 100% !important;
-        height: 100% !important;
+        width: 100dvh !important;
+        height: 100vw !important;
         top: 50% !important;
         left: 50% !important;
         transform: translate(-50%, -50%) rotate(90deg) !important;
@@ -288,8 +288,8 @@
 
       #login-modal.force-rotated,
       #message-modal.force-rotated {
-        width: 100% !important;
-        height: 100% !important;
+        width: 100dvh !important;
+        height: 100vw !important;
         top: 50% !important;
         left: 50% !important;
         transform: translate(-50%, -50%) rotate(90deg) !important;
@@ -831,14 +831,13 @@
         window.scrollTo(0, 0);
       });
 
-      // 確保整個頁面生命週期中只發送一次 warmup 請求
+      // 頁面載入時自動靜默發送一次 warmup 請求，整個頁面生命週期只發送一次
       let hasWarmedUp = false;
 
       function triggerWarmupOnce() {
         if (hasWarmedUp) return;
         hasWarmedUp = true;
 
-        // 靜默預熱：不阻塞畫面、不等待回應、不影響登入與抽卡流程
         fetch('/api/warmup', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' }
@@ -848,14 +847,12 @@
         document.removeEventListener('touchstart', triggerWarmupOnce);
       }
 
-      // 頁面載入後自動靜默發送一次預熱請求
       if (document.readyState === 'loading') {
         document.addEventListener('DOMContentLoaded', triggerWarmupOnce, { once: true });
       } else {
         triggerWarmupOnce();
       }
 
-      // 保留使用者第一次操作時的保護機制；若載入預熱已完成，不會重複發送
       document.addEventListener('click', triggerWarmupOnce, { passive: true });
       document.addEventListener('touchstart', triggerWarmupOnce, { passive: true });
 
