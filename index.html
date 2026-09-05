@@ -2,7 +2,6 @@
 <html lang="zh-TW">
   <head>
     <meta charset="UTF-8">
-    <!-- 🎯 關鍵防護：加入 viewport-fit=cover 讓畫面延伸至手機邊緣（填滿安全區黑條） -->
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>金正旺銀行vip抽卡系統</title>
     <link rel="icon" type="image/x-icon" href="./Jicon.ico">
@@ -33,18 +32,14 @@
         overscroll-behavior: none;
       }
 
-      /* 遊戲主容器與背景設置 (🎯 擴展至安全區域外，徹底消除左右黑條) */
+      /* 遊戲主容器與背景設置 (🎯 參考測試網頁：改用 100dvh + 寬高 100% 配合 padding 延伸填滿安全區) */
       #game-container {
-        position: absolute;
+        position: fixed;
         top: 0;
         left: 0;
         width: 100vw;
         height: 100vh;
-        /* 使用 env 函式將寬高額外擴展安全區域，確保橫向黑條被背景填滿 */
-        width: calc(100vw + env(safe-area-inset-left) + env(safe-area-inset-right));
-        height: calc(100vh + env(safe-area-inset-top) + env(safe-area-inset-bottom));
-        left: calc(0px - env(safe-area-inset-left));
-        top: calc(0px - env(safe-area-inset-top));
+        height: 100dvh;
         
         background-image: url('image_6.png');
         background-size: cover;
@@ -52,8 +47,13 @@
         display: flex;
         justify-content: center;
         align-items: center;
-        /* 內部加上安全距離 padding，避免內容被手機瀏海或圓角遮擋 */
-        padding: max(20px, env(safe-area-inset-top)) max(20px, env(safe-area-inset-right)) max(20px, env(safe-area-inset-bottom)) max(20px, env(safe-area-inset-left));
+        
+        /* 內部加上安全距離 padding，避免內容被手機瀏海或圓角遮擋，背景色自動延展填滿 */
+        padding-top: env(safe-area-inset-top);
+        padding-right: env(safe-area-inset-right);
+        padding-bottom: env(safe-area-inset-bottom);
+        padding-left: env(safe-area-inset-left);
+        
         overflow: hidden;
         transition: transform 0.3s ease, width 0.3s ease, height 0.3s ease;
       }
@@ -229,15 +229,15 @@
 
       /* 音效切換按鈕定位 (配合安全區動態調整) */
       .audio-btn-global {
-        top: max(10px, env(safe-area-inset-top));
-        right: max(20px, env(safe-area-inset-right));
+        top: calc(10px + env(safe-area-inset-top));
+        right: calc(20px + env(safe-area-inset-right));
       }
 
       /* 左上角玩家資訊列 (配合安全區動態調整) */
       #user-info-bar {
         position: absolute;
-        top: max(10px, env(safe-area-inset-top));
-        left: max(20px, env(safe-area-inset-left));
+        top: calc(10px + env(safe-area-inset-top));
+        left: calc(20px + env(safe-area-inset-left));
         display: flex;
         align-items: center;
         gap: 15px;
@@ -267,17 +267,14 @@
         transform: scale(0.95);
       }
 
-      /* 彈窗背景與互動面板 (同樣填滿安全區) */
+      /* 彈窗背景與互動面板 (同測試頁面模式填滿安全區) */
       #login-modal, #message-modal {
         position: fixed;
         top: 0;
         left: 0;
         width: 100vw;
         height: 100vh;
-        width: calc(100vw + env(safe-area-inset-left) + env(safe-area-inset-right));
-        height: calc(100vh + env(safe-area-inset-top) + env(safe-area-inset-bottom));
-        left: calc(0px - env(safe-area-inset-left));
-        top: calc(0px - env(safe-area-inset-top));
+        height: 100dvh;
         
         background-size: cover;
         background-position: center;
@@ -414,6 +411,7 @@
         left: 0;
         width: 100vw;
         height: 100vh;
+        height: 100dvh;
         background: rgba(8, 11, 16, 0.95);
         z-index: 10005;
         color: #ffd700;
