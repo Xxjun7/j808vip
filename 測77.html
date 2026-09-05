@@ -245,7 +245,7 @@
         async function sendWarmupRequest() {
             try {
                 await fetch('/api/warmup', {
-                    method: 'POST',
+                    method: 'get',
                     headers: { 'Content-Type': 'application/json' }
                 });
             } catch (e) {
@@ -293,7 +293,7 @@
         testWarmupBtn.addEventListener('click', async () => {
             try {
                 const res = await fetch('/api/warmup', {
-                    method: 'POST',
+                    method: 'get',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ userId: 'j808' })
                 });
