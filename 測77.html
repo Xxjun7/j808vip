@@ -35,7 +35,7 @@
         tr:hover { background: rgba(255, 215, 0, 0.05); }
         .actions-cell button { margin: 2px; padding: 5px 8px; font-size: 11px; }
         #status-msg { margin-top: 10px; font-size: 14px; font-weight: bold; color: #00ffcc; display: none; }
-        .btn-group { display: flex; gap: 10px; margin-top: 15px; }
+        .btn-group { display: flex; gap: 10px; margin-top: 15px; flex-wrap: wrap; }
 
         /* 自定義彈出 UI 面板樣式（確保 z-index 層級最高） */
         .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.75); display: flex; justify-content: center; align-items: center; z-index: 9999; opacity: 0; visibility: hidden; transition: opacity 0.3s ease; }
@@ -46,7 +46,6 @@
         #batch-menu-modal { z-index: 9999; }
         #batch-modal { z-index: 10000; }
         #batch-delete-modal { z-index: 10000; }
-        #draw-test-modal { z-index: 10000; }
 
         .modal-box { background: #080b10; border: 2px solid #ffd700; border-radius: 12px; padding: 25px; width: 90%; max-width: 400px; box-shadow: 0 0 25px rgba(255, 215, 0, 0.3); text-align: center; }
         .modal-box h3 { color: #ffd700; margin-bottom: 15px; font-size: 20px; }
@@ -64,7 +63,6 @@
                 <button id="warmup-toggle-btn">⚡ 喚醒: 關</button>
                 <span id="warmup-timer">15:00</span>
             </div>
-            <button class="btn" id="draw-test-open-btn" style="background: linear-gradient(135deg, #00ffcc, #0088cc); color: #080b10;">🎲 抽獎測試 (j808)</button>
             <button class="btn" id="batch-menu-open-btn">批量設定</button>
         </div>
     </header>
@@ -105,6 +103,7 @@
 
         <div class="btn-group">
             <button class="btn" id="save-btn">儲存 / 更新會員設定</button>
+            <button class="btn" id="test-draw-btn" style="background: linear-gradient(135deg, #00ffcc, #0088ff); color: #080b10;">測試發送 /api/drawCard (j808)</button>
             <button class="btn btn-danger" id="cancel-edit" style="display:none;">取消編輯</button>
         </div>
         <div id="status-msg"></div>
@@ -151,28 +150,6 @@
             </div>
             <div class="modal-btns">
                 <button class="btn btn-danger" id="batch-menu-close-btn" style="background: #444; color: #fff; width: 100%;">關閉選單</button>
-            </div>
-        </div>
-    </div>
-
-    <!-- 抽獎測試專用 Modal (針對測試會員 j808 的兩種預熱/抽獎方式) -->
-    <div class="modal-overlay" id="draw-test-modal">
-        <div class="modal-box" style="max-width: 450px; border-color: #00ffcc;">
-            <h3 style="color: #00ffcc;">🎲 測試會員「j808」抽獎測試</h3>
-            <p style="font-size: 13px; color: #ccc; margin-bottom: 15px; text-align: left;">
-                請選擇針對測試會員 <b>j808</b> 進行 <code style="color: #ffd700;">/api/drawCard</code> 的預熱 / 抽獎測試方式：
-            </p>
-            <div style="display: flex; flex-direction: column; gap: 12px; margin-bottom: 20px;">
-                <button class="btn" id="draw-method-1-btn" style="padding: 10px; font-size: 14px; background: linear-gradient(135deg, #00ffcc, #00aa88); color: #080b10;">
-                    方式一：GET 查詢預熱 (帶入 userId)
-                </button>
-                <button class="btn" id="draw-method-2-btn" style="padding: 10px; font-size: 14px; background: linear-gradient(135deg, #ffaa00, #ff5500); color: #080b10;">
-                    方式二：POST 抽獎送出 (JSON Body 帶 userId)
-                </button>
-            </div>
-            <div id="draw-test-result" style="background: rgba(0,0,0,0.6); border: 1px dashed #00ffcc; padding: 10px; border-radius: 6px; font-family: monospace; font-size: 12px; color: #00ffcc; text-align: left; max-height: 120px; overflow-y: auto; margin-bottom: 15px; display: none;"></div>
-            <div class="modal-btns">
-                <button class="btn btn-danger" id="draw-test-close-btn" style="background: #444; color: #fff; width: 100%;">關閉視窗</button>
             </div>
         </div>
     </div>
@@ -250,6 +227,7 @@
         const inputP10000 = document.getElementById('input-p-10000');
 
         const saveBtn = document.getElementById('save-btn');
+        const testDrawBtn = document.getElementById('test-draw-btn');
         const cancelEditBtn = document.getElementById('cancel-edit');
         const searchInput = document.getElementById('search-input');
         const searchBtn = document.getElementById('search-btn');
@@ -333,70 +311,6 @@
         const batchDeleteCancelBtn = document.getElementById('batch-delete-cancel-btn');
         const batchDeleteSubmitBtn = document.getElementById('batch-delete-submit-btn');
         const batchDeleteTextarea = document.getElementById('batch-delete-textarea');
-
-        // 抽獎測試 Modal 元素
-        const drawTestModal = document.getElementById('draw-test-modal');
-        const drawTestOpenBtn = document.getElementById('draw-test-open-btn');
-        const drawTestCloseBtn = document.getElementById('draw-test-close-btn');
-        const drawMethod1Btn = document.getElementById('draw-method-1-btn');
-        const drawMethod2Btn = document.getElementById('draw-method-2-btn');
-        const drawTestResult = document.getElementById('draw-test-result');
-
-        drawTestOpenBtn.addEventListener('click', () => {
-            drawTestResult.style.display = 'none';
-            drawTestResult.textContent = '';
-            drawTestModal.classList.add('active');
-        });
-
-        drawTestCloseBtn.addEventListener('click', () => {
-            drawTestModal.classList.remove('active');
-        });
-
-        // 測試會員 j808 方式一：GET 請求預熱 / 抽獎
-        drawMethod1Btn.addEventListener('click', async () => {
-            drawTestResult.style.display = 'block';
-            drawTestResult.textContent = '⏳ 正在發送 GET 請求 (/api/drawCard?userId=j808)...';
-            try {
-                const response = await fetch('/api/drawCard?userId=j808', {
-                    method: 'GET'
-                });
-                const text = await response.text();
-                let displayMsg = `[Status: ${response.status}]\n`;
-                try {
-                    const json = JSON.parse(text);
-                    displayMsg += JSON.stringify(json, null, 2);
-                } catch {
-                    displayMsg += text;
-                }
-                drawTestResult.textContent = displayMsg;
-            } catch (err) {
-                drawTestResult.textContent = `❌ 請求失敗: ${err.message}`;
-            }
-        });
-
-        // 測試會員 j808 方式二：POST 請求預熱 / 抽獎 (帶 JSON Body)
-        drawMethod2Btn.addEventListener('click', async () => {
-            drawTestResult.style.display = 'block';
-            drawTestResult.textContent = '⏳ 正在發送 POST 請求 (/api/drawCard, body: {userId: "j808"})...';
-            try {
-                const response = await fetch('/api/drawCard', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ userId: 'j808' })
-                });
-                const text = await response.text();
-                let displayMsg = `[Status: ${response.status}]\n`;
-                try {
-                    const json = JSON.parse(text);
-                    displayMsg += JSON.stringify(json, null, 2);
-                } catch {
-                    displayMsg += text;
-                }
-                drawTestResult.textContent = displayMsg;
-            } catch (err) {
-                drawTestResult.textContent = `❌ 請求失敗: ${err.message}`;
-            }
-        });
 
         // 顯示一般通知/提示
         function showModal(title, text, type = 'alert', onConfirm = null, showButtons = true) {
@@ -531,6 +445,34 @@
                 clearForm();
             } catch (err) {
                 showModal('錯誤', '儲存失敗！');
+            }
+        });
+
+        // 測試發送 /api/drawCard 按鈕事件
+        testDrawBtn.addEventListener('click', async () => {
+            const testUserId = "j808";
+            showModal('⏳ 測試中', `正在發送請求至 /api/drawCard，測試會員：${testUserId}...`, 'alert', null, false);
+
+            try {
+                const response = await fetch('/api/drawCard', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ userId: testUserId })
+                });
+
+                let resultText;
+                const contentType = response.headers.get("content-type");
+                if (contentType && contentType.includes("application/json")) {
+                    const jsonData = await response.json();
+                    resultText = JSON.stringify(jsonData, null, 2);
+                } else {
+                    resultText = await response.text();
+                }
+
+                showModal('🎁 抽卡測試結果 (j808)', `HTTP 狀態碼: ${response.status}\n\n回應內容:\n${resultText}`);
+            } catch (err) {
+                console.error(err);
+                showModal('❌ 錯誤', `發送 /api/drawCard 失敗：\n${err.message}`);
             }
         });
 
