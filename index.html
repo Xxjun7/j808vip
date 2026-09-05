@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>金正旺銀行 VIP 抽卡系統 - 16:9 精緻滿版測試</title>
+  <title>背景強制填滿測試</title>
   <style>
     * {
       box-sizing: border-box;
@@ -17,78 +17,53 @@
       height: 100%;
       overflow: hidden;
       position: fixed;
-      background-color: #080b10;
+      background-color: #000;
       -webkit-user-select: none;
       user-select: none;
       -webkit-touch-callout: none;
       overscroll-behavior: none;
     }
 
-    #test-container {
+    #test-bg {
       position: absolute;
       top: 0;
       left: 0;
       width: 100vw;
       height: 100vh;
-      /* 完美覆蓋安全區域邊距 */
+      /* 透過 safe-area 確保全螢幕覆蓋 */
       width: calc(100vw + env(safe-area-inset-left) + env(safe-area-inset-right));
       height: calc(100vh + env(safe-area-inset-top) + env(safe-area-inset-bottom));
       left: calc(0px - env(safe-area-inset-left));
       top: calc(0px - env(safe-area-inset-top));
       
       background-image: url('image_6.png');
-      background-size: cover;
-      background-position: center center;
+      /* 改用 100% 100% 強制把圖片拉伸填滿整個畫面，絕不留黑邊 */
+      background-size: 100% 100%;
+      background-position: center;
       background-repeat: no-repeat;
       display: flex;
-      flex-direction: column;
       justify-content: center;
       align-items: center;
-      color: #ffd700;
-      font-family: 'Arial Black', Impact, sans-serif;
-      text-shadow: 0 0 10px rgba(255, 215, 0, 0.6);
-    }
-
-    .title-box {
-      background: rgba(8, 11, 16, 0.75);
-      backdrop-filter: blur(6px);
-      border: 2px solid #ffd700;
-      padding: 20px 40px;
-      border-radius: 16px;
-      text-align: center;
-      box-shadow: 0 0 30px rgba(255, 215, 0, 0.4);
-    }
-
-    .title-box h1 {
-      font-size: 28px;
-      margin-bottom: 8px;
-      letter-spacing: 2px;
-    }
-
-    .title-box p {
-      font-size: 14px;
-      color: #fff6d1;
-      font-weight: normal;
+      color: #fff;
+      font-family: Arial, sans-serif;
+      font-size: 24px;
+      font-weight: bold;
+      text-shadow: 0 2px 4px rgba(0,0,0,0.8);
     }
   </style>
 </head>
 <body>
 
-  <div id="test-container">
-    <div class="title-box">
-      <h1>金正旺銀行</h1>
-      <p>16:9 精緻全螢幕背景測試中</p>
-    </div>
+  <div id="test-bg">
+    強制 100% 滿版測試中 (image_6.png)
   </div>
 
   <script>
-    // 禁用右鍵與所有縮放手勢
     document.addEventListener('contextmenu', (e) => { e.preventDefault(); });
     document.addEventListener('gesturestart', (e) => { e.preventDefault(); });
     document.addEventListener('gesturechange', (e) => { e.preventDefault(); });
     document.addEventListener('gestureend', (e) => { e.preventDefault(); });
 
-    // 視窗變動時自動修正滾動
     window.addEventListener('resize', () => {
       window.scrollTo(0, 0);
     });
