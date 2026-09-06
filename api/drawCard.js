@@ -44,10 +44,10 @@ module.exports = async function handler(req, res) {
     return res.status(405).json({ success: false, error: 'Method Not Allowed' });
   }
 
-  const { userId, warmUp } = req.body;
+  const { userId, warmUp, action } = req.body || {};
 
-  // 【新增】如果是進入頁面時的偷偷預熱，直接回傳成功，絕對不碰資料庫與扣次數！
-  if (warmUp || !userId) {
+  // 【新增】如果是進入頁面時的偷偷預熱（支援 action: 'warmup' 或 warmUp 或沒有帶 userId），直接回傳成功，絕對不碰資料庫與扣次數！
+  if (action === 'warmup' || warmUp || !userId) {
     return res.status(200).json({ success: true, message: 'warmed_up' });
   }
 
