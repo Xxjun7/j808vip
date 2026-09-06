@@ -586,6 +586,11 @@
       const userChancesSpan = document.getElementById('display-user-chances');
       const logoutBtn = document.getElementById('logout-btn');
       const cardContainers = document.querySelectorAll('.card-container');
+
+      // 螢幕旋轉與版面適應控制
+      const noticeEl = document.getElementById('portrait-notice');
+      const gameContainer = document.getElementById('game-container');
+      const rotateBtn = document.getElementById('manual-rotate-btn');
       
       // 全局狀態變數
       let unsubscribeFirestore = null;
@@ -975,11 +980,6 @@
       });
       window.addEventListener('pagehide', stopAllAudio);
       window.addEventListener('beforeunload', stopAllAudio);
-      
-      // 螢幕旋轉與版面適應控制
-      const noticeEl = document.getElementById('portrait-notice');
-      const gameContainer = document.getElementById('game-container');
-      const rotateBtn = document.getElementById('manual-rotate-btn');
       
       rotateBtn.addEventListener('click', (e) => {
         e.stopPropagation();
