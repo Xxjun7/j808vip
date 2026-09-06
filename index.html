@@ -7,7 +7,8 @@
     <meta property="og:description" content="金正旺VIP專屬活動">
     <title>金正旺銀行vip抽卡系統</title>
     <link rel="icon" type="image/x-icon" href="./Jicon.ico">
-
+    <!-- 引入 LINE LIFF SDK -->
+    <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
     <!-- ========================================== -->
     <!-- CSS 樣式表設定區段                         -->
     <!-- ========================================== -->
@@ -567,6 +568,27 @@
         appId: "1:694827667740:web:6767bf834427fad56eaad9",
         measurementId: "G-10J5DBGW8B"
       };
+
+      // 初始化 LINE LIFF
+async function initializeLiff() {
+  try {
+    await liff.init({ liffId: "2011471677-Tafg07Bv" });
+    
+    // 檢查是否是在 LINE App 內開啟
+    if (liff.isInClient()) {
+      console.log("目前正在 LINE App 內運行全螢幕 LIFF 模式");
+    } else {
+      console.log("目前是在外部瀏覽器運行");
+    }
+  } catch (err) {
+    console.error("LIFF 初始化失敗：", err);
+  }
+}
+
+// 頁面載入時執行初始化
+window.addEventListener('DOMContentLoaded', () => {
+  initializeLiff();
+});
       
       const app = initializeApp(firebaseConfig);
       const analytics = getAnalytics(app);
