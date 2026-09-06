@@ -843,19 +843,23 @@
       });
 
       // 確保整個頁面生命週期中只發送一次 warmup 請求
-      let hasWarmedUp = document.hidden;
+      let hasWarmedUp = false; // 建議預設為 false，讓第一次點擊時確實觸發
 
       function triggerWarmupOnce() {
-        if (hasWarmedUp) return;
-        hasWarmedUp = true;
+      if (hasWarmedUp) return;
+      hasWarmedUp = true;
 
-        fetch('/api/warmup', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' }
-        }).catch(() => {});
+      // 直接預熱 drawCard，並帶上 action: 'warmup'
+      // 網址用相對路徑 '/api/drawCard' 即可（如果前端後台在同一網域），用絕對網址也行
+      fetch('/api/drawCard', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'warmup' })
+      }).catch(() => {});
 
-        document.removeEventListener('click', triggerWarmupOnce);
-        document.removeEventListener('touchstart', triggerWarmupOnce);
+      // 移除監聽器，避免重複發送
+      document.removeEventListener('click', triggerWarmupOnce);
+      document.removeEventListener('touchstart', triggerWarmupOnce);
       }
 
       document.addEventListener('click', triggerWarmupOnce, { passive: true });
