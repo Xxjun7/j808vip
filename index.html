@@ -464,6 +464,8 @@
         text-align: center;
         padding: 20px;
         font-size: 18px;
+        pointer-events: none;
+        /* 🎯 修正重點：預設不干擾點擊 */
       }
 
       .phone-icon {
@@ -500,6 +502,8 @@
       @media screen and (orientation: portrait) {
         #portrait-notice.active {
           display: flex;
+          pointer-events: auto;
+          /* 🎯 修正重點：只有啟用時才攔截點擊 */
         }
       }
     </style>
@@ -998,14 +1002,18 @@
       window.addEventListener('beforeunload', stopAllAudio);
       rotateBtn.addEventListener('click', (e) => {
         e.stopPropagation();
+        // 🎯 修正重點：強制直接隱藏提示層，不只靠 class
         noticeEl.classList.remove('active');
+        noticeEl.style.display = 'none';
+        // 強制加上旋轉樣式
         gameContainer.classList.add('force-rotated');
         loginModal.classList.add('force-rotated');
         messageModal.classList.add('force-rotated');
+        // 🎯 修正重點：確保強制旋轉後的容器可以點擊
+        gameContainer.style.pointerEvents = 'auto';
         if (window.checkAndShowLogin) {
           window.checkAndShowLogin();
         }
-        // 加入微小延遲，確保畫面旋轉排版平順不卡頓
         setTimeout(() => {
           window.dispatchEvent(new Event('resize'));
         }, 50);
