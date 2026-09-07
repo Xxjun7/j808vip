@@ -138,7 +138,7 @@ module.exports = async function handler(req, res) {
           } else if (outcome === 'normal_win') {
             chosenPrize = defaultPool[Math.floor(Math.random() * defaultPool.length)];
           } else {
-            chosenPrize = 0; // 銘謝惠顧
+            chosenPrize = 0; // 差一點就中了
           }
         } else {
           // 如果剛才有抽中指定金額，扣除該指定金額的庫存
