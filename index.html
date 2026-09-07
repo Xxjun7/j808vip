@@ -787,7 +787,7 @@
             }
 
             currentState.prize = data.prize;
-            amountEl.textContent = currentState.prize > 0 ? `$${currentState.prize}` : '銘謝惠顧';
+            amountEl.textContent = currentState.prize > 0 ? `$${currentState.prize}` : '差一點就中了';
 
             if (typeof playSFX === 'function' && window.sounds) {
               playSFX(window.sounds.flip);
