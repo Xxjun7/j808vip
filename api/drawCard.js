@@ -46,7 +46,7 @@ module.exports = async function handler(req, res) {
 
   const { userId, warmUp, action } = req.body || {};
 
-  // 【新增】如果是進入頁面時的偷偷預熱（支援 action: 'warmup' 或 warmUp 或沒有帶 userId），直接回傳成功，絕對不碰資料庫與扣次數！
+  // 如果是進入頁面時的偷偷預熱，直接回傳成功，絕對不碰資料庫與扣次數！
   if (action === 'warmup' || warmUp || !userId) {
     return res.status(200).json({ success: true, message: 'warmed_up' });
   }
@@ -98,8 +98,10 @@ module.exports = async function handler(req, res) {
 
         let chosenPrize = null;
         let matchedFieldToDecrement = null;
+        let isGuaranteeHit = false;
+        const defaultPool = [100, 500, 1000, 2000, 10000];
 
-        // 1. 檢查指定金額獎品權重
+        // 1. 動態判定：指定金額獎品（機率 = 指定剩餘總數 / 剩餘總次數）
         if (totalSpecificLeft > 0 && currentChances > 0) {
           const specificProbability = totalSpecificLeft / currentChances;
           if (Math.random() < specificProbability) {
@@ -109,49 +111,39 @@ module.exports = async function handler(req, res) {
           }
         }
 
-        // 2. 如果沒有抽中指定金額，走保底或一般中獎判定
-        if (chosenPrize === null) {
-          let lotteryPool = [];
-          if (guaranteeTotal > 0 && currentChances > 0) {
-            const guaranteeProb = guaranteeTotal / currentChances;
-            if (Math.random() < guaranteeProb) {
-              lotteryPool.push('guarantee');
-            }
+        // 2. 動態判定：如果沒中指定金額，接著檢查保底（機率 = 保底剩餘次數 / 剩餘總次數）
+        if (chosenPrize === null && guaranteeTotal > 0 && currentChances > 0) {
+          const guaranteeProb = guaranteeTotal / currentChances;
+          if (Math.random() < guaranteeProb) {
+            chosenPrize = defaultPool[Math.floor(Math.random() * defaultPool.length)];
+            isGuaranteeHit = true;
           }
+        }
 
+        // 3. 如果前兩者都沒中，走一般中獎率 (winRate) 判定
+        if (chosenPrize === null) {
           const roll = Math.random() * 100;
           if (roll <= winRate) {
-            lotteryPool.push('normal_win');
-          } else {
-            lotteryPool.push('lose');
-          }
-
-          const outcome = lotteryPool[Math.floor(Math.random() * lotteryPool.length)];
-          const defaultPool = [100, 500, 1000, 2000, 10000];
-
-          if (outcome === 'guarantee') {
-            // 扣除保底次數
-            transaction.update(userDocRef, {
-              guaranteeCount: FieldValue.increment(-1)
-            });
-            chosenPrize = defaultPool[Math.floor(Math.random() * defaultPool.length)];
-          } else if (outcome === 'normal_win') {
             chosenPrize = defaultPool[Math.floor(Math.random() * defaultPool.length)];
           } else {
             chosenPrize = 0; // 差一點就中了
           }
-        } else {
-          // 如果剛才有抽中指定金額，扣除該指定金額的庫存
-          transaction.update(userDocRef, {
-            [matchedFieldToDecrement]: FieldValue.increment(-1)
-          });
         }
 
-        // 3. 統一扣除遊戲次數與增加已抽次數
-        transaction.update(userDocRef, {
+        // 4. 準備統一更新的欄位（包含必定要扣的 chances 與 drawnCount）
+        let updates = {
           chances: FieldValue.increment(-1),
           drawnCount: FieldValue.increment(1)
-        });
+        };
+
+        if (matchedFieldToDecrement) {
+          updates[matchedFieldToDecrement] = FieldValue.increment(-1);
+        } else if (isGuaranteeHit) {
+          updates.guaranteeCount = FieldValue.increment(-1);
+        }
+
+        // 5. 執行資料庫更新
+        transaction.update(userDocRef, updates);
 
         return { 
           prize: chosenPrize, 
